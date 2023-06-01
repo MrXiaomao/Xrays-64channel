@@ -62,7 +62,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, timer(0)
 	, m_currentTab(0)
 	, saveAsPath("")
-	, sPort(6000)
+	, sPort(5000), sPort2(6000), sPort3(7000), sPort4(8000)
 	, m_targetID(_T("00000"))
 	, m_UDPPort(12100)
 {
@@ -72,6 +72,13 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 {
 	//KillTimer(3); //炮号刷新的计时器
+	if (connectStatus) {
+		connectStatus = FALSE; // 用来控制关闭线程
+		closesocket(mySocket); //关闭套接字
+		closesocket(mySocket2); //关闭套接字
+		closesocket(mySocket3); //关闭套接字
+		closesocket(mySocket4); //关闭套接字
+	}
 	if (!m_UDPSocket) delete m_UDPSocket;
 }
 
@@ -80,9 +87,14 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_LED, m_NetStatusLED);		// “建立链接”LED
-													//DDX_Control(pDX, IDC_TargetNum, m_TargetID);
+	DDX_Control(pDX, IDC_LED2, m_NetStatusLED2);		// “建立链接”LED
+	DDX_Control(pDX, IDC_LED3, m_NetStatusLED3);		// “建立链接”LED
+	DDX_Control(pDX, IDC_LED4, m_NetStatusLED4);		// “建立链接”LED
 	DDX_Control(pDX, IDC_IPADDRESS1, ServerIP);
 	DDX_Text(pDX, IDC_PORT1, sPort);
+	DDX_Text(pDX, IDC_PORT2, sPort2);
+	DDX_Text(pDX, IDC_PORT3, sPort3);
+	DDX_Text(pDX, IDC_PORT4, sPort4);
 	DDX_Control(pDX, IDC_COMBO1, m_TriggerType);
 	DDX_Text(pDX, IDC_TargetNum, m_targetID);
 	DDX_Text(pDX, IDC_UDPPORT, m_UDPPort);
@@ -141,6 +153,9 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	UpdateData(TRUE); //表示写数据，将窗口控制变量写入内存（更新数据）
 	//UpdateData(FALSE); //表示读数据，即显示窗口读取内存的数据以供实时显示
 	m_NetStatusLED.RefreshWindow(FALSE);//设置指示灯
+	m_NetStatusLED2.RefreshWindow(FALSE);//设置指示灯
+	m_NetStatusLED3.RefreshWindow(FALSE);//设置指示灯
+	m_NetStatusLED4.RefreshWindow(FALSE);//设置指示灯
 	m_TriggerType.SetCurSel(0); // 设置下拉框默认选项
 	
 	//----------------------------窗口切换-------------
@@ -166,22 +181,52 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	m_page1->ShowWindow(SW_SHOW);
 	m_page2->ShowWindow(SW_HIDE);
 
-	saveAsPath = GetExeDir(); 
-	CString str = saveAsPath += "\\";
-	CString info = _T("实验数据默认保存路径：") + str;
-	m_page1->PrintLog(info);
-
+	CString strPath = GetExeDir();
+	if (IsPathExit(strPath)) {
+		saveAsPath = strPath;
+		CString str = saveAsPath += "\\";
+		CString info = _T("实验数据默认保存路径：") + str;
+		m_page1->PrintLog(info);
+	}
+	else {
+		CString info = _T("获取实验数据默认保存路径失败");
+		m_page1->PrintLog(info);
+	}
+	
 	// ------------------读取配置参数并设置到相应控件上---------------------
 	CString StrSerIp = _T("192.168.10.22");
+	CString StrSerIp2 = _T("192.168.10.22");
+	CString StrSerIp3 = _T("192.168.10.22");
+	CString StrSerIp4 = _T("192.168.10.22");
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	if (!jsonSetting.isNull()) {
-		StrSerIp = jsonSetting["IP_Detector"].asCString();
-		sPort = jsonSetting["Port_Detector"].asInt();
+		StrSerIp = jsonSetting["IP_Detector1"].asCString();
+		StrSerIp2 = jsonSetting["IP_Detector2"].asCString();
+		StrSerIp3 = jsonSetting["IP_Detector3"].asCString();
+		StrSerIp4 = jsonSetting["IP_Detector4"].asCString();
+
+		sPort = jsonSetting["Port_Detector1"].asInt();
+		sPort2 = jsonSetting["Port_Detector2"].asInt();
+		sPort3 = jsonSetting["Port_Detector3"].asInt();
+		sPort4 = jsonSetting["Port_Detector4"].asInt();
+
 		m_UDPPort = jsonSetting["Port_UDP"].asInt();
 	}
 	SetDlgItemText(IDC_IPADDRESS1, StrSerIp);
+	SetDlgItemText(IDC_IPADDRESS2, StrSerIp2);
+	SetDlgItemText(IDC_IPADDRESS3, StrSerIp3);
+	SetDlgItemText(IDC_IPADDRESS4, StrSerIp4);
+
 	SetDlgItemInt(IDC_PORT1, sPort);
+	SetDlgItemInt(IDC_PORT2, sPort2);
+	SetDlgItemInt(IDC_PORT3, sPort3);
+	SetDlgItemInt(IDC_PORT4, sPort4);
+
 	SetDlgItemInt(IDC_UDPPORT, m_UDPPort);
+
+	// ---------------设置部分按钮初始化使能状态-------------
+	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
+	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -240,85 +285,253 @@ void CXrays_64ChannelDlg::OnConnect()
 {
 	UpdateData(TRUE); //是控件变量的值与界面编辑值同步
 	// TODO: 在此添加控件通知处理程序代码
-	// IDC_CONNECT1为连接控件的按钮，设置该按钮不响应操作，防止用户连续点击多次
+	// 停用连接按钮，防止用户连续点击多次
 	GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE);
-	GetDlgItem(IDC_IPADDRESS1)->EnableWindow(FALSE);
-	GetDlgItem(IDC_PORT1)->EnableWindow(FALSE);
-
+	SetTCPInputStatus(FALSE);
+	
 	CString strTemp;
 	GetDlgItemText(IDC_CONNECT1, strTemp);
-	if (strTemp == _T("连接网络")){
-		// 1、创建套接字
-		mySocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		if (mySocket == NULL) {
-			MessageBox(_T("ClientSocket创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
-			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE);
-			return;
+	if (strTemp == _T("连接网络")) {
+		BOOL status1 = ConnectTCP1();
+		BOOL status2 = ConnectTCP2();
+		BOOL status3 = ConnectTCP3();
+		BOOL status4 = ConnectTCP4();
+		// 连接成功
+		if (status1 && status2 && status3 && status4) {
+			connectStatus = TRUE;
+			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
+
+			// 初始化，并开启接受网口数据线程
+			send(mySocket, Order::WaveRefreshTime, 24, 0);
+			send(mySocket2, Order::WaveRefreshTime, 24, 0);
+			send(mySocket3, Order::WaveRefreshTime, 24, 0);
+			send(mySocket4, Order::WaveRefreshTime, 24, 0);
+			AfxBeginThread(&Recv_Th1, 0); //开启线程接收数据
+
+			GetDlgItem(IDC_Start)->EnableWindow(TRUE);
+			GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 		}
-		
-		// 2、连接服务器
-		CString StrSerIp;
-		GetDlgItemText(IDC_IPADDRESS1, StrSerIp);
-		char* pStrIP = CstringToWideCharArry(StrSerIp);
-
-		// 写入配置文件
-		Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-		jsonSetting["IP_Detector"] = pStrIP;
-		jsonSetting["Port_Detector"] = sPort;
-		WriteSetting(_T("Setting.json"),jsonSetting);
-
-		sockaddr_in server_addr;
-		//server_addr.sin_addr.s_addr = inet_pton(pStrIP);// 网络IP "192.168.0.105"
-		inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
-		server_addr.sin_family = AF_INET;  // 使用IPv4地址
-		server_addr.sin_port = htons(sPort); //网关：5000
-		
-		// 3、检测网络是否连接,以及显示设备联网状况
-		if (connect(mySocket, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR){
-			m_NetStatusLED.RefreshWindow(FALSE);//打开指示灯
+		// 连接失败
+		else {
+			// 恢复各个输入框使能状态
 			connectStatus = FALSE;
-			MessageBox(_T("设备连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
-             1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
-			 3、检查工控机的网络适配器属性设置是否正确\n")); 
-			// 打印日志
-			CString info;
-			info.Format(_T("，端口号：%d"), sPort);
-			info = _T("TCP网络连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
-			m_page1->PrintLog(info);
-			// 恢复各个按钮使能状态
+			SetTCPInputStatus(TRUE);
 			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE);
-			GetDlgItem(IDC_IPADDRESS1)->EnableWindow(TRUE); //恢复IP地址编辑状态
-			GetDlgItem(IDC_PORT1)->EnableWindow(TRUE); //恢复端口编辑
-			return;
 		}
-		CString info;
-		info.Format(_T("，端口号：%d"), sPort);
-		info = _T("TCP网络已连接，网址IP：") + StrSerIp + info;
-		m_page1->PrintLog(info);
-
-		connectStatus = TRUE;
-		m_NetStatusLED.RefreshWindow(TRUE);//打开指示灯
-		// 4、发送数据，设置硬件参数
-		//char msg1[6] = { 0x80,0x01,0x00,0x00,0x00,0xF1 };// 开启第一组偏压监测
-		
-		send(mySocket, Order::WaveRefreshTime, 24, 0);
-		//send(mySocket, msg1, 6, 0);
-		AfxBeginThread(&Recv_Th1, 0); //开启线程接收数据
-		SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
 	}
 	else{
 		// 1、发送数据，在断开网络前进行相应关闭动作
 		//unsigned char msg1[6] = { 0x80,0x01,0x00,0x00,0x00,0x00 };// 开启第一组偏压监测
 		//send(mySocket, msg1, 6, 0);
-		closesocket(mySocket); //关闭套接字。
+		
+		//关闭套接字
+		closesocket(mySocket); 
+		closesocket(mySocket2); 
+		closesocket(mySocket3); 
+		closesocket(mySocket4); 
 		connectStatus = FALSE;
-		m_NetStatusLED.RefreshWindow(FALSE);//打开指示灯
+
+		// 关闭指示灯
+		m_NetStatusLED.RefreshWindow(FALSE);
+		m_NetStatusLED2.RefreshWindow(FALSE);
+		m_NetStatusLED3.RefreshWindow(FALSE);
+		m_NetStatusLED4.RefreshWindow(FALSE);
+
 		SetDlgItemText(IDC_CONNECT1, _T("连接网络"));
-		GetDlgItem(IDC_IPADDRESS1)->EnableWindow(TRUE); //恢复IP地址编辑状态
-		GetDlgItem(IDC_PORT1)->EnableWindow(TRUE); //恢复端口编辑
-		m_page1->PrintLog(_T("TCP网络已断开"));
+
+		// 恢复各个输入框使能状态
+		SetTCPInputStatus(TRUE);
+		m_page1->PrintLog(_T("TCP网络(CH1,CH2,CH3,CH4)已断开"));
 	}
 	GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); // 恢复按钮使能
+}
+
+BOOL CXrays_64ChannelDlg::ConnectTCP1(){
+	// 1、创建套接字
+	mySocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (mySocket == NULL) {
+		MessageBox(_T("ClientSocket1创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
+		return FALSE;
+	}
+
+	// 2、连接服务器
+	CString StrSerIp;
+	GetDlgItemText(IDC_IPADDRESS1, StrSerIp);
+	char* pStrIP = CstringToWideCharArry(StrSerIp);
+
+	// 写入配置文件
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	jsonSetting["IP_Detector1"] = pStrIP;
+	jsonSetting["Port_Detector1"] = sPort;
+	WriteSetting(_T("Setting.json"), jsonSetting);
+	
+	// 设置网络参数
+	sockaddr_in server_addr;
+	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
+	server_addr.sin_family = AF_INET;  // 使用IPv4地址
+	server_addr.sin_port = htons(sPort); //网关：5000
+
+	// 3、检测网络是否连接,以及显示设备联网状况
+	if (connect(mySocket, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+		m_NetStatusLED.RefreshWindow(FALSE);//打开指示灯
+		MessageBox(_T("CH1连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
+            1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
+			3、检查工控机的网络适配器属性设置是否正确\n"));
+		// 打印日志
+		CString info;
+		info.Format(_T("，端口号：%d"), sPort);
+		info = _T("CH1连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
+		m_page1->PrintLog(info);
+		return FALSE;
+	}
+	CString info;
+	info.Format(_T("，端口号：%d"), sPort);
+	info = _T("CH1已连接，网址IP：") + StrSerIp + info;
+	m_page1->PrintLog(info);
+
+	m_NetStatusLED.RefreshWindow(TRUE);//打开指示灯
+	return TRUE;
+}
+
+BOOL CXrays_64ChannelDlg::ConnectTCP2() {
+	// 1、创建套接字
+	mySocket2 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (mySocket2 == NULL) {
+		MessageBox(_T("ClientSocket2创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
+		return FALSE;
+	}
+
+	// 2、连接服务器
+	CString StrSerIp;
+	GetDlgItemText(IDC_IPADDRESS2, StrSerIp);
+	char* pStrIP = CstringToWideCharArry(StrSerIp);
+
+	// 写入配置文件
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	jsonSetting["IP_Detector2"] = pStrIP;
+	jsonSetting["Port_Detector2"] = sPort2;
+	WriteSetting(_T("Setting.json"), jsonSetting);
+
+	// 设置网络参数
+	sockaddr_in server_addr;
+	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
+	server_addr.sin_family = AF_INET;  // 使用IPv4地址
+	server_addr.sin_port = htons(sPort2); //网关：5000
+
+	// 3、检测网络是否连接,以及显示设备联网状况
+	if (connect(mySocket2, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+		m_NetStatusLED2.RefreshWindow(FALSE);//打开指示灯
+		MessageBox(_T("CH2连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
+            1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
+			3、检查工控机的网络适配器属性设置是否正确\n"));
+		// 打印日志
+		CString info;
+		info.Format(_T("，端口号：%d"), sPort2);
+		info = _T("CH2连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
+		m_page1->PrintLog(info);
+		return FALSE;
+	}
+	CString info;
+	info.Format(_T("，端口号：%d"), sPort2);
+	info = _T("CH2已连接，网址IP：") + StrSerIp + info;
+	m_page1->PrintLog(info);
+
+	m_NetStatusLED2.RefreshWindow(TRUE);//打开指示灯
+	return TRUE;
+}
+
+BOOL CXrays_64ChannelDlg::ConnectTCP3() {
+	// 1、创建套接字
+	mySocket3 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (mySocket3 == NULL) {
+		MessageBox(_T("ClientSocket3创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
+		return FALSE;
+	}
+
+	// 2、连接服务器
+	CString StrSerIp;
+	GetDlgItemText(IDC_IPADDRESS3, StrSerIp);
+	char* pStrIP = CstringToWideCharArry(StrSerIp);
+
+	// 写入配置文件
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	jsonSetting["IP_Detector3"] = pStrIP;
+	jsonSetting["Port_Detector3"] = sPort3;
+	WriteSetting(_T("Setting.json"), jsonSetting);
+
+	// 设置网络参数
+	sockaddr_in server_addr;
+	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
+	server_addr.sin_family = AF_INET;  // 使用IPv4地址
+	server_addr.sin_port = htons(sPort3); //网关：5000
+
+	// 3、检测网络是否连接,以及显示设备联网状况
+	if (connect(mySocket3, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+		m_NetStatusLED3.RefreshWindow(FALSE);//打开指示灯
+		MessageBox(_T("CH3连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
+            1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
+			3、检查工控机的网络适配器属性设置是否正确\n"));
+		// 打印日志
+		CString info;
+		info.Format(_T("，端口号：%d"), sPort3);
+		info = _T("CH3连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
+		m_page1->PrintLog(info);
+		return FALSE;
+	}
+	CString info;
+	info.Format(_T("，端口号：%d"), sPort3);
+	info = _T("CH3已连接，网址IP：") + StrSerIp + info;
+	m_page1->PrintLog(info);
+
+	m_NetStatusLED3.RefreshWindow(TRUE);//打开指示灯
+	return TRUE;
+}
+
+BOOL CXrays_64ChannelDlg::ConnectTCP4() {
+	// 1、创建套接字
+	mySocket4 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (mySocket4 == NULL) {
+		MessageBox(_T("ClientSocket2创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
+		return FALSE;
+	}
+
+	// 2、连接服务器
+	CString StrSerIp;
+	GetDlgItemText(IDC_IPADDRESS4, StrSerIp);
+	char* pStrIP = CstringToWideCharArry(StrSerIp);
+
+	// 写入配置文件
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	jsonSetting["IP_Detector4"] = pStrIP;
+	jsonSetting["Port_Detector4"] = sPort4;
+	WriteSetting(_T("Setting.json"), jsonSetting);
+
+	// 设置网络参数
+	sockaddr_in server_addr;
+	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
+	server_addr.sin_family = AF_INET;  // 使用IPv4地址
+	server_addr.sin_port = htons(sPort4); //网关：5000
+
+	// 3、检测网络是否连接,以及显示设备联网状况
+	if (connect(mySocket4, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+		m_NetStatusLED4.RefreshWindow(FALSE);//打开指示灯
+		MessageBox(_T("CH2连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
+            1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
+			3、检查工控机的网络适配器属性设置是否正确\n"));
+		// 打印日志
+		CString info;
+		info.Format(_T("，端口号：%d"), sPort4);
+		info = _T("CH4连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
+		m_page1->PrintLog(info);
+		return FALSE;
+	}
+	CString info;
+	info.Format(_T("，端口号：%d"), sPort4);
+	info = _T("CH4已连接，网址IP：") + StrSerIp + info;
+	m_page1->PrintLog(info);
+
+	m_NetStatusLED4.RefreshWindow(TRUE);//打开指示灯
+	return TRUE;
 }
 
 //线程1，接收TCP网口数据
@@ -483,6 +696,7 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 }
 
+// 清楚当前日志
 void CXrays_64ChannelDlg::OnBnClickedClearLog()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -504,6 +718,7 @@ void CXrays_64ChannelDlg::OnBnClickedClearLog()
 	}
 }
 
+// UDP网络连接
 void CXrays_64ChannelDlg::OnBnClickedUdpButton()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -521,7 +736,7 @@ void CXrays_64ChannelDlg::OnBnClickedUdpButton()
 	}
 }
 
-
+// 多页对话框选择
 void CXrays_64ChannelDlg::OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	// TODO: 在此添加控件通知处理程序代码

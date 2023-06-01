@@ -1,21 +1,15 @@
 {
-	"Age" : 20,
-	"Family" : 
-	{
-		"Father" : "yiyi",
-		"brother" : 
-		[
-			"aa",
-			"bb",
-			"cc"
-		]
-	},
-	"Gateway_Detector" : "192.168.1.1",
-	"IP_Detector" : "192.168.91.1",
-	"IP_Relay" : "192.168.1.120",
-	"Port_Detector" : 169,
+	"IP_Detector1" : "192.168.91.1",
+	"IP_Detector2" : "192.168.91.1",
+	"IP_Detector3" : "192.168.91.1",
+	"IP_Detector4" : "192.168.91.1",
+	"IP_UDP" : "192.168.1.120",
+	"Port_Detector1" : 169,
+	"Port_Detector2" : 170,
+	"Port_Detector3" : 171,
+	"Port_Detector4" : 172,
 	"Port_UDP" : 12100,
-	"SaveDir" : "C:\\Users\\DELL\\Desktop\\宸ヤ綔浜嬮」\\16-浼介┈涓瓙鎺㈡祴\\MFC鐣岄潰\\N_GammaReceiveData\\\\",
+	"SaveDir" : "C:\\Users\\DELL\\Desktop\\工作事项\\16-伽马中子探测\\MFC界面\\N_GammaReceiveData",
 	"SavePictureDir" : "C:\\Users\\DELL\\Desktop\\工作事项\\16-伽马中子探测\\MFC界面\\N_GammaReceiveData",
 	"ThresholdA" : "12",
 	"ThresholdB" : "12"

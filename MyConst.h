@@ -172,18 +172,15 @@ inline void WriteSetting(CString fileName, Json::Value jsonData)
 
 // 获取当前程序（.exe文件）所在路径
 inline CString GetExeDir() {
-	CString strexe, strpath;
-	::GetModuleFileName(NULL, strexe.GetBufferSetLength(MAX_PATH + 1), MAX_PATH);
-	int k = 0;
-	int lo_point = strexe.ReverseFind('.');
-	int lo_x = strexe.ReverseFind('x');
-	int lo_e = strexe.ReverseFind('e');
-	if ((lo_point == lo_e - 3) && (lo_point == lo_x - 2))
-	{
-		k = lo_point - 25;
-	}
-	strpath = strexe.Left(k);
-	return strpath;
+	HMODULE module = GetModuleHandle(0);
+	TCHAR pFileName[MAX_PATH] = { 0 };
+	GetModuleFileName(module, pFileName, MAX_PATH);
+	CString csFullName(pFileName);
+	int nPos = csFullName.ReverseFind('\\');
+	if (nPos < 0)
+		return CString("");
+	else
+		return csFullName.Left(nPos);
 }
 
 // 对话框选择文件夹，设置文件存储路径

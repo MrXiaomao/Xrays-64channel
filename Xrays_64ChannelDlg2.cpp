@@ -15,6 +15,19 @@
 #include <fstream>
 using namespace std;
 
+// 设置TCP的IP、PORT、复选框的输入使能状态
+void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag) {
+	// IP
+	GetDlgItem(IDC_IPADDRESS1)->EnableWindow(flag);
+	GetDlgItem(IDC_IPADDRESS2)->EnableWindow(flag);
+	GetDlgItem(IDC_IPADDRESS3)->EnableWindow(flag);
+	GetDlgItem(IDC_IPADDRESS4)->EnableWindow(flag);
+	// Port
+	GetDlgItem(IDC_PORT1)->EnableWindow(flag);
+	GetDlgItem(IDC_PORT2)->EnableWindow(flag);
+	GetDlgItem(IDC_PORT3)->EnableWindow(flag);
+	GetDlgItem(IDC_PORT4)->EnableWindow(flag);
+}
 
 // 打开UDP通信
 void CXrays_64ChannelDlg::OpenUDP()
@@ -40,7 +53,7 @@ void CXrays_64ChannelDlg::OpenUDP()
 	m_UDPSocket->GetSockName(strIp, uiPort);
 
 	//显示本地的端口号和IP号
-	SetDlgItemText(IDC_UDPIP, strIp);
+	//SetDlgItemText(IDC_UDPIP, strIp);
 	SetDlgItemInt(IDC_UDPPORT, uiPort);
 	CString info;
 	info.Format(_T("UDP已打开，端口号为:%d"), uiPort);
@@ -59,10 +72,12 @@ void CXrays_64ChannelDlg::SaveFile(CString myID, const char* mk, int length) {
 	CString filename = myID + _T(".dat");
 	CString wholePath = saveAsPath + filename;
 	fstream datafile(wholePath, ios::out | ios::app | ios::binary);   // 追加
-	for (int i = 0; i < length; i++) {
-		datafile << mk[i];
+	if (datafile.is_open()) {
+		for (int i = 0; i < length; i++) {
+			datafile << mk[i];
+		}
+		datafile.close();
 	}
-	datafile.close();
 }
 
 //限制端口输入范围0~65535

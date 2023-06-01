@@ -21,7 +21,7 @@ void CClientSocket::OnReceive(int nErrorCode)
 	char recBuf[Len] = {0};
 	int sockAddrLen = sizeof(SOCKADDR_IN);
 	int nLength = ReceiveFrom(recBuf, Len, (SOCKADDR*)&ClientAddr, &sockAddrLen, 0);
-	
+
 	// 日志记录
 	CString tempStr(recBuf);
 	this->m_pMainDlg->m_page2->PrintLog(_T("RECV ASCII: ") + tempStr);
@@ -37,29 +37,10 @@ void CClientSocket::OnReceive(int nErrorCode)
 		if (str_new_ID != this->m_pMainDlg->m_targetID) {
 			this->m_pMainDlg->m_targetID = str_new_ID;
 			this->m_pMainDlg->m_getTargetChange = TRUE;
-			this->m_pMainDlg->SaveFile(_T("ShotNumber"), recBuf, nLength);
+			recBuf[nLength] = '\r\n'; // 追加一个换行符号
+			this->m_pMainDlg->SaveFile(_T("ShotNumber"), recBuf, nLength+1);
 		}
 	}
 	//接受函数信息
 	CSocket::OnReceive(nErrorCode);
-	
-	/*
-	//--------------1.创建UDPSocket------------
-	if (m_UDPSocket != NULL) delete m_UDPSocket;
-	m_UDPSocket = new CClientSocket();//初始化,新创建一个对话框Socket
-	m_UDPSocket->Create(0, SOCK_DGRAM, NULL);
-	m_UDPSocket->Bind(12100, "192.168.0.175");
-
-	//--------------2.获取Socket绑定的ip和端口--------------
-	//获取本机的IP和端口号
-	CString strIp;
-	UINT uiPort;
-
-	//获取本地的服务号和端口号
-	m_UDPSocket->GetSockName(strIp, uiPort);
-
-	//显示本地的端口号和IP号
-	SetDlgItemText(IDC_UDPIP, strIp);
-	SetDlgItemInt(IDC_UDPPORT, uiPort);
-	*/
 }

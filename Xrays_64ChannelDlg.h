@@ -25,12 +25,23 @@ public:
 
 	void OpenUDP(); // 打开UDP通信
 	void CloseUDP(); //关闭UDP通信，以及相应资源
+	BOOL ConnectTCP1(); //连接网络1
+	BOOL ConnectTCP2(); //连接网络2
+	BOOL ConnectTCP3(); //连接网络3
+	BOOL ConnectTCP4(); //连接网络4
+	void SetTCPInputStatus(BOOL flag); // 设置TCP的IP、PORT、复选框的输入使能状态
 	void SaveFile(CString myID, const char* mk, int length); // 保存文件
 	void ClearLog(); // 清空日志
 
 	LEDButton m_NetStatusLED;
+	LEDButton m_NetStatusLED2;
+	LEDButton m_NetStatusLED3;
+	LEDButton m_NetStatusLED4;
 	CClientSocket* m_UDPSocket; //本地UDP服务
 	SOCKET mySocket;
+	SOCKET mySocket2;
+	SOCKET mySocket3;
+	SOCKET mySocket4;
 	BOOL connectStatus;
 	BOOL MeasureStatus; // 手动测量状态
 	BOOL AutoMeasureStatus; // 自动测量状态
@@ -78,6 +89,9 @@ public:
 	CIPAddressCtrl ServerIP;
 	// TCP端口号
 	int sPort;
+	int sPort2;
+	int sPort3;
+	int sPort4;
 	// 触发方式下拉框
 	CComboBox m_TriggerType;
 	// 炮号，一种打靶序列号
