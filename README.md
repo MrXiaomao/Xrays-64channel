@@ -1,2 +1,2 @@
-# Xrays-64channel
-测量X射线——64通道
+# Xrays_64Channel
+聚变相关探测器测量装置——MFC版本
