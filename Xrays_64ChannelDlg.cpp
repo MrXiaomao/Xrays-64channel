@@ -115,6 +115,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CLEAR_LOG, &CXrays_64ChannelDlg::OnBnClickedClearLog)
 	ON_BN_CLICKED(IDC_UDP_BUTTON, &CXrays_64ChannelDlg::OnBnClickedUdpButton)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
+	ON_BN_CLICKED(IDC_CONNECT3, &CXrays_64ChannelDlg::SendParameterToTCP)
 END_MESSAGE_MAP()
 
 
@@ -301,12 +302,8 @@ void CXrays_64ChannelDlg::OnConnect()
 			connectStatus = TRUE;
 			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
 
-			// 初始化，并开启接受网口数据线程
-			send(mySocket, Order::WaveRefreshTime, 24, 0);
-			send(mySocket2, Order::WaveRefreshTime, 24, 0);
-			send(mySocket3, Order::WaveRefreshTime, 24, 0);
-			send(mySocket4, Order::WaveRefreshTime, 24, 0);
-			AfxBeginThread(&Recv_Th1, 0); //开启线程接收数据
+			// 向TCP发送配置参数。
+			SendParameterToTCP(); 
 
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE);
 			GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
@@ -545,8 +542,8 @@ UINT Recv_Th1(LPVOID p)
 
 		if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
 		{
-			const int dataLen = 10000; //接收的数据包长度
-			char mk[dataLen]; 
+			const int dataLen = 100; //接收的数据包长度
+			char mk[dataLen];
 
 			//连接网络后时常判断联网状态
 			int nLength;
@@ -560,7 +557,110 @@ UINT Recv_Th1(LPVOID p)
 			}
 			else {
 				dlg->GetDataStatus = TRUE;
-				dlg->SaveFile(dlg->m_targetID, mk, nLength);
+				CString fileName = dlg->m_targetID + _T("CH1");
+				dlg->SaveFile(fileName, mk, nLength);
+			}
+		}
+	}
+	return 0;
+}
+
+//线程2，接收TCP网口数据
+UINT Recv_Th2(LPVOID p)
+{
+	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
+	while (1)
+	{
+		// 断开网络后关闭本线程
+		if (!dlg->connectStatus) return 0;
+
+		if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
+		{
+			const int dataLen = 10000; //接收的数据包长度
+			char mk[dataLen];
+
+			//连接网络后时常判断联网状态
+			int nLength;
+			//int recvTimeout = 4 * 1000;  //4s
+			//测量状态是等待超过recvTimeout就不再等待
+			//setsockopt(dlg->mySocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&recvTimeout, sizeof(int));
+			nLength = recv(dlg->mySocket2, mk, dataLen, 0);
+			if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+			{
+				return 0;
+			}
+			else {
+				dlg->GetDataStatus = TRUE;
+				CString fileName = dlg->m_targetID + _T("CH2");
+				dlg->SaveFile(fileName, mk, nLength);
+			}
+		}
+	}
+	return 0;
+}
+
+//线程3，接收TCP网口数据
+UINT Recv_Th3(LPVOID p)
+{
+	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
+	while (1)
+	{
+		// 断开网络后关闭本线程
+		if (!dlg->connectStatus) return 0;
+
+		if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
+		{
+			const int dataLen = 10000; //接收的数据包长度
+			char mk[dataLen];
+
+			//连接网络后时常判断联网状态
+			int nLength;
+			//int recvTimeout = 4 * 1000;  //4s
+			//测量状态是等待超过recvTimeout就不再等待
+			//setsockopt(dlg->mySocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&recvTimeout, sizeof(int));
+			nLength = recv(dlg->mySocket3, mk, dataLen, 0);
+			if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+			{
+				return 0;
+			}
+			else {
+				dlg->GetDataStatus = TRUE;
+				CString fileName = dlg->m_targetID + _T("CH3");
+				dlg->SaveFile(fileName, mk, nLength);
+			}
+		}
+	}
+	return 0;
+}
+
+//线程4，接收TCP网口数据
+UINT Recv_Th4(LPVOID p)
+{
+	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
+	while (1)
+	{
+		// 断开网络后关闭本线程
+		if (!dlg->connectStatus) return 0;
+
+		if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
+		{
+			const int dataLen = 10000; //接收的数据包长度
+			char mk[dataLen];
+
+			//连接网络后时常判断联网状态
+			int nLength;
+			//int recvTimeout = 4 * 1000;  //4s
+			//测量状态是等待超过recvTimeout就不再等待
+			//setsockopt(dlg->mySocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&recvTimeout, sizeof(int));
+			nLength = recv(dlg->mySocket4, mk, dataLen, 0);
+			if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+			{
+				return 0;
+			}
+			else {
+				dlg->GetDataStatus = TRUE;
+				CString fileName = dlg->m_targetID + _T("CH4");
+				dlg->SaveFile(fileName, mk, nLength);
 			}
 		}
 	}
@@ -576,7 +676,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 		if (GetDataStatus) {
 			timer++;
 			if (timer * 100 > 3000) {
-				send(mySocket, Order::Stop, 24, 0);
+				send(mySocket, Order::Stop, 12, 0);
 				SetDlgItemText(IDC_Start, _T("开始测量"));
 				timer = 0;
 				GetDataStatus = FALSE;
@@ -593,7 +693,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 		if (GetDataStatus && MeasureStatus) {
 			timer++;
 			if (timer * 100 > 3000) {
-				if(mySocket != NULL) send(mySocket, Order::Stop, 24, 0);
+				if(mySocket != NULL) send(mySocket, Order::Stop, 12, 0);
 				timer = 0;
 				GetDataStatus = FALSE;
 				MeasureStatus = FALSE;
@@ -607,7 +707,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 	case 3:
 		//定时检测炮号是否刷新,若刷新，则发送开始指令
 		if (m_getTargetChange) {
-			if(mySocket != NULL) send(mySocket, Order::Start, 24, 0);
+			if(mySocket != NULL) send(mySocket, Order::HardTouchStart, 12, 0);
+			if (mySocket2 != NULL) send(mySocket2, Order::HardTouchStart, 12, 0);
+			if (mySocket3 != NULL) send(mySocket3, Order::HardTouchStart, 12, 0);
+			if (mySocket4 != NULL) send(mySocket4, Order::HardTouchStart, 12, 0);
 			
 			MeasureStatus = TRUE;
 			m_getTargetChange = FALSE;
@@ -635,7 +738,10 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 	GetDlgItemText(IDC_Start, strTemp);
 	if (strTemp == _T("开始测量")) {
 		MeasureStatus = TRUE;
-		send(mySocket, Order::Start, 24, 0);
+		send(mySocket, Order::HardTouchStart, 12, 0);
+		send(mySocket2, Order::HardTouchStart, 12, 0);
+		send(mySocket3, Order::HardTouchStart, 12, 0);
+		send(mySocket4, Order::HardTouchStart, 12, 0);
 		SetDlgItemText(IDC_Start, _T("停止测量"));
 		SetTimer(1, 100, NULL); //开启定时器，第1个参数表示ID号，第二个参数表示刷新时间ms
 		// 打印日志
@@ -645,7 +751,10 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 	}
 	else {
 		MeasureStatus = FALSE;
-		send(mySocket, Order::Stop, 24, 0);
+		send(mySocket, Order::Stop, 12, 0);
+		send(mySocket2, Order::Stop, 12, 0);
+		send(mySocket3, Order::Stop, 12, 0);
+		send(mySocket4, Order::Stop, 12, 0);
 		SetDlgItemText(IDC_Start, _T("开始测量"));
 		KillTimer(1);	//关闭定时器
 		// 打印日志
@@ -661,7 +770,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	if (!m_UDPSocket || connectStatus) {
+	if (m_UDPSocket==NULL || !connectStatus) {
 		MessageBox(_T("请检查：\n1、是否开启UDP网络;\n2、是否连接TCP网络。"));
 		return;
 	}
@@ -682,7 +791,11 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	}
 	else {
 		AutoMeasureStatus = FALSE;
-		if (mySocket != NULL) send(mySocket, Order::Stop, 24, 0);
+		if (mySocket != NULL) send(mySocket, Order::Stop, 12, 0);
+		if (mySocket2 != NULL) send(mySocket2, Order::Stop, 12, 0);
+		if (mySocket3 != NULL) send(mySocket3, Order::Stop, 12, 0);
+		if (mySocket4 != NULL) send(mySocket4, Order::Stop, 12, 0);
+
 		SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
 
 		//关闭定时器
@@ -696,7 +809,7 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 }
 
-// 清楚当前日志
+// 清除当前日志
 void CXrays_64ChannelDlg::OnBnClickedClearLog()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -756,4 +869,30 @@ void CXrays_64ChannelDlg::OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult)
 		break;
 	}
 	*pResult = 0;
+}
+
+// 配置参数,通过网口向子板发送参数
+void CXrays_64ChannelDlg::SendParameterToTCP()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	// 初始化，并开启接受网口数据线程
+	send(mySocket, Order::WaveRefreshTime, 12, 0);
+	send(mySocket2, Order::WaveRefreshTime, 12, 0);
+	send(mySocket3, Order::WaveRefreshTime, 12, 0);
+	send(mySocket4, Order::WaveRefreshTime, 12, 0);
+	
+	send(mySocket, Order::WorkMode, 12, 0);
+	send(mySocket2, Order::WorkMode, 12, 0);
+	send(mySocket3, Order::WorkMode, 12, 0);
+	send(mySocket4, Order::WorkMode, 12, 0);
+
+	send(mySocket, Order::HardTouchStart, 12, 0);
+	send(mySocket2, Order::HardTouchStart, 12, 0);
+	send(mySocket3, Order::HardTouchStart, 12, 0);
+	send(mySocket4, Order::HardTouchStart, 12, 0);
+
+	AfxBeginThread(&Recv_Th1, 0); //开启线程接收数据
+	AfxBeginThread(&Recv_Th2, 0); //开启线程接收数据
+	AfxBeginThread(&Recv_Th3, 0); //开启线程接收数据
+	AfxBeginThread(&Recv_Th4, 0); //开启线程接收数据
 }

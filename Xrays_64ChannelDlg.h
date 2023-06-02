@@ -14,6 +14,9 @@
 using namespace std;
 
 UINT Recv_Th1(LPVOID p); // 多线程接收网口数据
+UINT Recv_Th2(LPVOID p); // 多线程接收网口数据
+UINT Recv_Th3(LPVOID p); // 多线程接收网口数据
+UINT Recv_Th4(LPVOID p); // 多线程接收网口数据
 
 // CXrays_64ChannelDlg 对话框
 class CXrays_64ChannelDlg : public CDialogEx
@@ -100,4 +103,5 @@ public:
 	int m_UDPPort;
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 	CTabCtrl m_Tab;
+	afx_msg void SendParameterToTCP();
 };

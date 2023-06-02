@@ -49,7 +49,6 @@
 #define IDC_LED4                        1031
 #define IDC_EDIT1                       1035
 #define IDC_RUNNING_LOG                 1035
-#define IDC_CHECK_NET4                  1040
 
 // Next default values for new objects
 // 
