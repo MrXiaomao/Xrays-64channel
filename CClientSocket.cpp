@@ -16,8 +16,8 @@ CClientSocket::~CClientSocket()
 
 void CClientSocket::OnReceive(int nErrorCode)
 {	
-	// 解析炮号 +PLS12345
-	const int Len = 20;
+	// 解析炮号 +PLS_12345
+	const int Len = 30;
 	char recBuf[Len] = {0};
 	int sockAddrLen = sizeof(SOCKADDR_IN);
 	int nLength = ReceiveFrom(recBuf, Len, (SOCKADDR*)&ClientAddr, &sockAddrLen, 0);
@@ -38,7 +38,7 @@ void CClientSocket::OnReceive(int nErrorCode)
 			this->m_pMainDlg->m_targetID = str_new_ID;
 			this->m_pMainDlg->m_getTargetChange = TRUE;
 			recBuf[nLength] = '\r\n'; // 追加一个换行符号
-			this->m_pMainDlg->SaveFile(_T("ShotNumber"), recBuf, nLength+1);
+			this->m_pMainDlg->SaveFile(this->m_pMainDlg->saveAsPath + _T("ShotNumber"), recBuf, nLength+1);
 		}
 	}
 	//接受函数信息

@@ -10,6 +10,8 @@
 #include "Xrays_64ChannelDlg.h"
 #include "afxdialogex.h"
 #include "Order.h"
+//定时器时间间隔
+#define TIMER_INTERVAL 100
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -55,6 +57,7 @@ END_MESSAGE_MAP()
 CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_XRAYS64CHANNEL_DIALOG, pParent)
 	, connectStatus(FALSE)
+	, UDPStatus(FALSE)
 	, MeasureStatus(FALSE)
 	, AutoMeasureStatus(FALSE)
 	, GetDataStatus(FALSE)
@@ -62,9 +65,12 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, timer(0)
 	, m_currentTab(0)
 	, saveAsPath("")
+	, saveAsTargetPath("")
 	, sPort(5000), sPort2(6000), sPort3(7000), sPort4(8000)
 	, m_targetID(_T("00000"))
 	, m_UDPPort(12100)
+	, MeasureTime(3000)
+	, RefreshTime(1)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_NUCLEAR); //设置主界面图标
 }
@@ -99,6 +105,8 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_TargetNum, m_targetID);
 	DDX_Text(pDX, IDC_UDPPORT, m_UDPPort);
 	DDX_Control(pDX, IDC_TAB1, m_Tab);
+	DDX_Text(pDX, IDC_MeasureTime, MeasureTime);
+	DDX_Text(pDX, IDC_RefreshTimeEdit, RefreshTime);
 }
 
 BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
@@ -108,14 +116,19 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_CONNECT1, &CXrays_64ChannelDlg::OnConnect)
 	ON_EN_KILLFOCUS(IDC_PORT1, &CXrays_64ChannelDlg::OnEnKillfocusPort1)
+	ON_EN_KILLFOCUS(IDC_PORT2, &CXrays_64ChannelDlg::OnEnKillfocusPort2)
+	ON_EN_KILLFOCUS(IDC_PORT3, &CXrays_64ChannelDlg::OnEnKillfocusPort3)
+	ON_EN_KILLFOCUS(IDC_PORT4, &CXrays_64ChannelDlg::OnEnKillfocusPort4)
+	ON_EN_KILLFOCUS(IDC_UDPPORT, &CXrays_64ChannelDlg::OnEnKillfocusUDPPort)
+	ON_EN_KILLFOCUS(IDC_RefreshTimeEdit, &CXrays_64ChannelDlg::OnEnKillfocusRefreshTime)
+	ON_EN_KILLFOCUS(IDC_MeasureTime, &CXrays_64ChannelDlg::OnEnKillfocusMeasureTime)
 	ON_BN_CLICKED(IDC_Start, &CXrays_64ChannelDlg::OnBnClickedStart)
 	ON_BN_CLICKED(IDC_AutoMeasure, &CXrays_64ChannelDlg::OnBnClickedAutomeasure)
-	ON_EN_KILLFOCUS(IDC_UDPPORT, &CXrays_64ChannelDlg::OnEnKillfocusUDPPort)
 	ON_BN_CLICKED(IDC_SaveAs, &CXrays_64ChannelDlg::OnBnClickedSaveas)
 	ON_BN_CLICKED(IDC_CLEAR_LOG, &CXrays_64ChannelDlg::OnBnClickedClearLog)
 	ON_BN_CLICKED(IDC_UDP_BUTTON, &CXrays_64ChannelDlg::OnBnClickedUdpButton)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
-	ON_BN_CLICKED(IDC_CONNECT3, &CXrays_64ChannelDlg::SendParameterToTCP)
+	ON_BN_CLICKED(IDC_TEST_BUTTON, &CXrays_64ChannelDlg::OnBnClickedTestButton)
 END_MESSAGE_MAP()
 
 
@@ -159,6 +172,23 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	m_NetStatusLED4.RefreshWindow(FALSE);//设置指示灯
 	m_TriggerType.SetCurSel(0); // 设置下拉框默认选项
 	
+	// 添加状态栏
+	UINT nID[] = { 1001,1002,1003 };
+	//创建状态栏
+	m_statusBar.Create(this);
+	//添加状态栏面板，参数为ID数组和面板数量
+	m_statusBar.SetIndicators(nID, sizeof(nID) / sizeof(UINT));
+	//设置面板序号，ID，样式和宽度，SBPS_NORMAL为普通样式，固定宽度，SBPS_STRETCH为弹簧样式，会自动扩展它的空间
+	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, 80);
+	m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, 0);
+	m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, 80);
+	//设置状态栏位置
+	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
+	//设置状态栏面板文本，参数为面板序号和对应文本
+	m_statusBar.SetPaneText(0, L"aaa");
+	m_statusBar.SetPaneText(1, L"bbb");
+	m_statusBar.SetPaneText(2, L"ccc");
+
 	//----------------------------窗口切换-------------
 	m_page1 = new RunningLog;
 	m_page2 = new UDP_RecieveLog;
@@ -301,18 +331,30 @@ void CXrays_64ChannelDlg::OnConnect()
 		if (status1 && status2 && status3 && status4) {
 			connectStatus = TRUE;
 			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
+			
+			// 发送刻度曲线
+			CString EnCalibrationFile = GetExeDir() + _T("\\刻度指令.txt");
+			SendCalibration(EnCalibrationFile);
 
-			// 向TCP发送配置参数。
-			SendParameterToTCP(); 
+			// 开启线程接收数据
+			AfxBeginThread(&Recv_Th1, 0); 
+			AfxBeginThread(&Recv_Th2, 0); 
+			AfxBeginThread(&Recv_Th3, 0); 
+			AfxBeginThread(&Recv_Th4, 0); 
 
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE);
-			GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
+			// 必须TCP和UDP同时工作才能使用自动测量
+			if (UDPStatus) {
+				GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
+			}
 		}
 		// 连接失败
 		else {
 			// 恢复各个输入框使能状态
 			connectStatus = FALSE;
 			SetTCPInputStatus(TRUE);
+			GetDlgItem(IDC_Start)->EnableWindow(FALSE);
+			GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE);
 		}
 	}
@@ -338,8 +380,11 @@ void CXrays_64ChannelDlg::OnConnect()
 
 		// 恢复各个输入框使能状态
 		SetTCPInputStatus(TRUE);
+		GetDlgItem(IDC_Start)->EnableWindow(FALSE);
+		GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 		m_page1->PrintLog(_T("TCP网络(CH1,CH2,CH3,CH4)已断开"));
 	}
+	// 恢复各个输入框使能状态
 	GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); // 恢复按钮使能
 }
 
@@ -675,8 +720,11 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 	case 1:
 		if (GetDataStatus) {
 			timer++;
-			if (timer * 100 > 3000) {
+			if (timer * TIMER_INTERVAL > MeasureTime) {
 				send(mySocket, Order::Stop, 12, 0);
+				send(mySocket2, Order::Stop, 12, 0);
+				send(mySocket3, Order::Stop, 12, 0);
+				send(mySocket4, Order::Stop, 12, 0);
 				SetDlgItemText(IDC_Start, _T("开始测量"));
 				timer = 0;
 				GetDataStatus = FALSE;
@@ -692,8 +740,18 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 		// 硬件触发后3秒定时发送关闭指令
 		if (GetDataStatus && MeasureStatus) {
 			timer++;
-			if (timer * 100 > 3000) {
-				if(mySocket != NULL) send(mySocket, Order::Stop, 12, 0);
+			//状态栏显示
+			CString strInfo;
+			strInfo.Format(_T("timer = %d"), timer);
+			m_statusBar.SetPaneText(0, strInfo);
+			strInfo.Format(_T("timer = %d，MeasureTime = %d"), timer * TIMER_INTERVAL, MeasureTime);
+			m_statusBar.SetPaneText(1, strInfo);
+			
+			if (timer * TIMER_INTERVAL > MeasureTime) {
+				if (mySocket != NULL) send(mySocket, Order::Stop, 12, 0);
+				if (mySocket2 != NULL) send(mySocket2, Order::Stop, 12, 0);
+				if (mySocket3 != NULL) send(mySocket3, Order::Stop, 12, 0);
+				if (mySocket4 != NULL) send(mySocket4, Order::Stop, 12, 0);
 				timer = 0;
 				GetDataStatus = FALSE;
 				MeasureStatus = FALSE;
@@ -705,21 +763,33 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 		}
 		break;
 	case 3:
-		//定时检测炮号是否刷新,若刷新，则发送开始指令
+		//定时检测炮号是否刷新
 		if (m_getTargetChange) {
-			if(mySocket != NULL) send(mySocket, Order::HardTouchStart, 12, 0);
-			if (mySocket2 != NULL) send(mySocket2, Order::HardTouchStart, 12, 0);
-			if (mySocket3 != NULL) send(mySocket3, Order::HardTouchStart, 12, 0);
-			if (mySocket4 != NULL) send(mySocket4, Order::HardTouchStart, 12, 0);
-			
-			MeasureStatus = TRUE;
+			//刷新炮号相关显示以及日志
 			m_getTargetChange = FALSE;
-
 			CString info = _T("炮号已刷新：") + m_targetID;
 			m_page1->PrintLog(info);
-
-			//刷新炮号
 			UpdateData(FALSE);
+
+			//若处于自动测量状态，创建对应炮号文件夹，并发送开始测量指令
+			if (AutoMeasureStatus) {
+				//创建对应炮号文件夹
+				saveAsTargetPath = saveAsPath + m_targetID;
+				saveAsTargetPath += "\\";
+				Mkdir(saveAsTargetPath);
+				// 发送停止指令，复位。以保证把上一次测量重置。				
+				if (mySocket != NULL) send(mySocket, Order::Stop, 12, 0);
+				if (mySocket2 != NULL) send(mySocket2, Order::Stop, 12, 0);
+				if (mySocket3 != NULL) send(mySocket3, Order::Stop, 12, 0);
+				if (mySocket4 != NULL) send(mySocket4, Order::Stop, 12, 0);
+
+				//发送开始测量指令，采用硬件触发
+				if (mySocket != NULL) send(mySocket, Order::HardTouchStart, 12, 0);
+				if (mySocket2 != NULL) send(mySocket2, Order::HardTouchStart, 12, 0);
+				if (mySocket3 != NULL) send(mySocket3, Order::HardTouchStart, 12, 0);
+				if (mySocket4 != NULL) send(mySocket4, Order::HardTouchStart, 12, 0);
+				MeasureStatus = TRUE;
+			}
 		}
 		break;
 	default:
@@ -728,7 +798,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 	CDialogEx::OnTimer(nIDEvent);
 }
 
-//开始测量——手动测量
+//开始测量——手动测量，采用软件触发方式工作
 void CXrays_64ChannelDlg::OnBnClickedStart()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -737,30 +807,51 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 	CString strTemp;
 	GetDlgItemText(IDC_Start, strTemp);
 	if (strTemp == _T("开始测量")) {
+
 		MeasureStatus = TRUE;
-		send(mySocket, Order::HardTouchStart, 12, 0);
-		send(mySocket2, Order::HardTouchStart, 12, 0);
-		send(mySocket3, Order::HardTouchStart, 12, 0);
-		send(mySocket4, Order::HardTouchStart, 12, 0);
+		//向TCP发送配置参数。
+		SendParameterToTCP(); 
+		//TCP发送的控制板配置参数禁止输入
+		SetParameterInputStatus(FALSE);
+		
+		//向TCP发送开始指令
+		send(mySocket, Order::SoftTouchStart, 12, 0);
+		send(mySocket2, Order::SoftTouchStart, 12, 0);
+		send(mySocket3, Order::SoftTouchStart, 12, 0);
+		send(mySocket4, Order::SoftTouchStart, 12, 0);
 		SetDlgItemText(IDC_Start, _T("停止测量"));
-		SetTimer(1, 100, NULL); //开启定时器，第1个参数表示ID号，第二个参数表示刷新时间ms
+		
+		//开启定时器，第1个参数表示ID号，第二个参数表示刷新时间ms
+		SetTimer(1, TIMER_INTERVAL, NULL); 
+		
 		// 打印日志
 		CString info;
-		info = _T("开始测量（手动测量），等待触发信号");
+		info = _T("开始测量（手动测量），采用软件触发方式工作。");
 		m_page1->PrintLog(info);
+
+		// 按键互斥锁
+		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 	}
 	else {
 		MeasureStatus = FALSE;
+		//往TCP发送的控制板配置参数禁止输入
+		SetParameterInputStatus(TRUE);
+
+		//往TCP发送停止指令
 		send(mySocket, Order::Stop, 12, 0);
 		send(mySocket2, Order::Stop, 12, 0);
 		send(mySocket3, Order::Stop, 12, 0);
 		send(mySocket4, Order::Stop, 12, 0);
 		SetDlgItemText(IDC_Start, _T("开始测量"));
 		KillTimer(1);	//关闭定时器
-		// 打印日志
+
+		//打印日志
 		CString info;
-		info = _T("已停止测量");
+		info = _T("已停止（手动）测量");
 		m_page1->PrintLog(info);
+
+		// 按键互斥锁
+		GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 	}
 	
 	GetDlgItem(IDC_Start)->EnableWindow(TRUE);
@@ -769,6 +860,8 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 //自动测量按钮
 void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 {
+	UpdateData(TRUE);
+
 	// TODO: 在此添加控件通知处理程序代码
 	if (m_UDPSocket==NULL || !connectStatus) {
 		MessageBox(_T("请检查：\n1、是否开启UDP网络;\n2、是否连接TCP网络。"));
@@ -780,17 +873,22 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	GetDlgItemText(IDC_AutoMeasure, strTemp);
 	if (strTemp == _T("自动测量")) {
 		AutoMeasureStatus = TRUE;
+		SendParameterToTCP();
+		SetParameterInputStatus(FALSE);
 		SetDlgItemText(IDC_AutoMeasure, _T("停止测量"));
 
 		//开启定时器，第1个参数表示ID号，第二个参数表示刷新时间ms
-		SetTimer(2, 100, NULL);  //100
+		SetTimer(2, TIMER_INTERVAL, NULL);  
 
 		// 锁死其他相关按键
 		GetDlgItem(IDC_Start)->EnableWindow(FALSE); //手动测量
-		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
+		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接UDP网络
+		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(FALSE); //连接UDP网络
+		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 	}
 	else {
 		AutoMeasureStatus = FALSE;
+		SetParameterInputStatus(TRUE);
 		if (mySocket != NULL) send(mySocket, Order::Stop, 12, 0);
 		if (mySocket2 != NULL) send(mySocket2, Order::Stop, 12, 0);
 		if (mySocket3 != NULL) send(mySocket3, Order::Stop, 12, 0);
@@ -804,34 +902,14 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		// 打开其他相关按键使能
 		GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
 		GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
+		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
+		GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 	}
 
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 }
 
-// 清除当前日志
-void CXrays_64ChannelDlg::OnBnClickedClearLog()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	CRect rc;
-	m_Tab.GetClientRect(rc);
-	rc.top += 20;
-	switch (m_currentTab)
-	{
-	case 0:
-		m_page1->m_Information = _T("");
-		m_page1->UpdateData(FALSE);
-		m_page1->MoveWindow(&rc);
-		break;
-	case 1:
-		m_page2->m_Information = _T("");
-		m_page2->UpdateData(FALSE);
-		m_page2->MoveWindow(&rc);
-		break;
-	}
-}
-
-// UDP网络连接
+// UDP网络连接/断开
 void CXrays_64ChannelDlg::OnBnClickedUdpButton()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -839,9 +917,9 @@ void CXrays_64ChannelDlg::OnBnClickedUdpButton()
 	GetDlgItemText(IDC_UDP_BUTTON, strTemp);
 	if (strTemp == _T("开启UDP网络")) {
 		//打开定时器3，用来刷新炮号
-		SetTimer(3, 100, NULL);  //100
+		SetTimer(3, TIMER_INTERVAL, NULL);
 		OpenUDP();
-		SetDlgItemText(IDC_UDP_BUTTON, _T("关闭UDP网络"));
+		SetDlgItemText(IDC_UDP_BUTTON, _T("断开UDP网络"));
 	}
 	else {
 		CloseUDP();
@@ -849,50 +927,42 @@ void CXrays_64ChannelDlg::OnBnClickedUdpButton()
 	}
 }
 
-// 多页对话框选择
-void CXrays_64ChannelDlg::OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult)
+// 获取刻度曲线数据文件的全路径
+void CXrays_64ChannelDlg::OnBnClickedTestButton()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	*pResult = 0;
-	m_currentTab = m_Tab.GetCurSel();
-	switch (m_currentTab)
+	CString fileName = _T("");
+
+	CFileDialog dlgFile(TRUE, NULL, NULL, OFN_HIDEREADONLY,
+		_T("文件 (*.txt)|*.txt||"), NULL);
+
+	if (dlgFile.DoModal())
 	{
-	case 0:
-		m_page1->ShowWindow(SW_SHOW);
-		m_page2->ShowWindow(SW_HIDE);
-		m_page1->UpdateData(FALSE);
-		break;
-	case 1:
-		m_page1->ShowWindow(SW_HIDE);
-		m_page2->ShowWindow(SW_SHOW);
-		m_page2->UpdateData(FALSE);
-		break;
+		fileName = dlgFile.GetPathName();
 	}
-	*pResult = 0;
+	SendCalibration(fileName);
 }
 
-// 配置参数,通过网口向子板发送参数
-void CXrays_64ChannelDlg::SendParameterToTCP()
+//发送刻度曲线数据
+//fileName为发送文件路径（绝对路径）
+void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 {
-	// TODO: 在此添加控件通知处理程序代码
-	// 初始化，并开启接受网口数据线程
-	send(mySocket, Order::WaveRefreshTime, 12, 0);
-	send(mySocket2, Order::WaveRefreshTime, 12, 0);
-	send(mySocket3, Order::WaveRefreshTime, 12, 0);
-	send(mySocket4, Order::WaveRefreshTime, 12, 0);
-	
-	send(mySocket, Order::WorkMode, 12, 0);
-	send(mySocket2, Order::WorkMode, 12, 0);
-	send(mySocket3, Order::WorkMode, 12, 0);
-	send(mySocket4, Order::WorkMode, 12, 0);
+	// 若当前是联网状态，则发送数据
+	if (connectStatus) {
+		vector<CString> messageList = ReadEnCalibration(fileName);
+		char cmd[10000] = { 0 };
+		int iSize = 0;
+		
+		iSize = Str2Hex(messageList[0], cmd);
+		if (mySocket) send(mySocket, cmd, iSize, 0);
 
-	send(mySocket, Order::HardTouchStart, 12, 0);
-	send(mySocket2, Order::HardTouchStart, 12, 0);
-	send(mySocket3, Order::HardTouchStart, 12, 0);
-	send(mySocket4, Order::HardTouchStart, 12, 0);
+		iSize = Str2Hex(messageList[1], cmd);
+		if (mySocket2) send(mySocket2, cmd, iSize, 0);
 
-	AfxBeginThread(&Recv_Th1, 0); //开启线程接收数据
-	AfxBeginThread(&Recv_Th2, 0); //开启线程接收数据
-	AfxBeginThread(&Recv_Th3, 0); //开启线程接收数据
-	AfxBeginThread(&Recv_Th4, 0); //开启线程接收数据
+		iSize = Str2Hex(messageList[2], cmd);
+		if (mySocket3) send(mySocket3, cmd, iSize, 0);
+		
+		iSize = Str2Hex(messageList[3], cmd);
+		if (mySocket4) send(mySocket4, cmd, iSize, 0);
+	}
 }

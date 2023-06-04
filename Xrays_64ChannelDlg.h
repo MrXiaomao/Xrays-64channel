@@ -28,11 +28,15 @@ public:
 
 	void OpenUDP(); // 打开UDP通信
 	void CloseUDP(); //关闭UDP通信，以及相应资源
+	void SendParameterToTCP(); //发送配置参数
+	void SendCalibration(CString fileName); //发送刻度曲线
 	BOOL ConnectTCP1(); //连接网络1
 	BOOL ConnectTCP2(); //连接网络2
 	BOOL ConnectTCP3(); //连接网络3
 	BOOL ConnectTCP4(); //连接网络4
-	void SetTCPInputStatus(BOOL flag); // 设置TCP的IP、PORT、复选框的输入使能状态
+	void ConfinePortRange(int* myPort); //限制端口号输入范围
+	void SetTCPInputStatus(BOOL flag); //设置TCP的IP、PORT、复选框的输入使能状态
+	void SetParameterInputStatus(BOOL flag); //设置配置参数框的使能状态
 	void SaveFile(CString myID, const char* mk, int length); // 保存文件
 	void ClearLog(); // 清空日志
 
@@ -46,12 +50,15 @@ public:
 	SOCKET mySocket3;
 	SOCKET mySocket4;
 	BOOL connectStatus;
+	BOOL UDPStatus; //UDP工作状态
 	BOOL MeasureStatus; // 手动测量状态
 	BOOL AutoMeasureStatus; // 自动测量状态
 	BOOL GetDataStatus; // 是否接受到TCP网口的数据
 	BOOL m_getTargetChange; // 检测炮号是否变化
 	int timer; // 计时器，满三秒后则发送停止测量
-	CString saveAsPath; //数据存储路径
+	CString saveAsPath; //数据存储根路径
+	CString saveAsTargetPath; //数据存储炮号路径
+	CStatusBar m_statusBar;
 
 	RunningLog* m_page1;
 	UDP_RecieveLog* m_page2;
@@ -79,7 +86,12 @@ protected:
 public:
 	afx_msg void OnConnect(); // 连接网络
 	afx_msg void OnEnKillfocusPort1();
+	afx_msg void OnEnKillfocusPort2();
+	afx_msg void OnEnKillfocusPort3();
+	afx_msg void OnEnKillfocusPort4();
 	afx_msg void OnEnKillfocusUDPPort();
+	afx_msg void OnEnKillfocusRefreshTime(); //限制刷新时间输入范围
+	afx_msg void OnEnKillfocusMeasureTime(); //限制能谱测量总时长输入范围
 	afx_msg void OnBnClickedStart(); // 开始测量（手动测量）
 	afx_msg void OnBnClickedAutomeasure(); //自动测量
 	afx_msg void OnTimer(UINT_PTR nIDEvent); //定时器
@@ -103,5 +115,9 @@ public:
 	int m_UDPPort;
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 	CTabCtrl m_Tab;
-	afx_msg void SendParameterToTCP();
+	// 界面输入的能谱总测量时间,ms
+	int MeasureTime;
+	// 界面输入的能谱刷新时间，ms
+	int RefreshTime;
+	afx_msg void OnBnClickedTestButton();
 };
