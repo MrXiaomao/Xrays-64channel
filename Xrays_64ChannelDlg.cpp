@@ -56,6 +56,7 @@ END_MESSAGE_MAP()
 
 CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_XRAYS64CHANNEL_DIALOG, pParent)
+	, DataMaxlen(1000)
 	, connectStatus(FALSE)
 	, UDPStatus(FALSE)
 	, MeasureStatus(FALSE)
@@ -63,6 +64,10 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, GetDataStatus(FALSE)
 	, m_getTargetChange(FALSE)
 	, timer(0)
+	, CH1_RECVLength(0)
+	, CH2_RECVLength(0)
+	, CH3_RECVLength(0)
+	, CH4_RECVLength(0)
 	, m_currentTab(0)
 	, saveAsPath("")
 	, saveAsTargetPath("")
@@ -70,9 +75,13 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, m_targetID(_T("00000"))
 	, m_UDPPort(12100)
 	, MeasureTime(3000)
-	, RefreshTime(1)
+	, RefreshTime(10)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_NUCLEAR); //设置主界面图标
+	DataCH1 = new char[DataMaxlen];
+	DataCH2 = new char[DataMaxlen];
+	DataCH3 = new char[DataMaxlen];
+	DataCH4 = new char[DataMaxlen];
 }
 
 CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
@@ -86,6 +95,10 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 		closesocket(mySocket4); //关闭套接字
 	}
 	if (!m_UDPSocket) delete m_UDPSocket;
+	delete DataCH1;
+	delete DataCH2;
+	delete DataCH3;
+	delete DataCH4;
 }
 
 // 绑定变量与控件
@@ -102,6 +115,7 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_PORT3, sPort3);
 	DDX_Text(pDX, IDC_PORT4, sPort4);
 	DDX_Control(pDX, IDC_COMBO1, m_TriggerType);
+	DDX_Control(pDX, IDC_WAVE_MODE, m_WaveMode);
 	DDX_Text(pDX, IDC_TargetNum, m_targetID);
 	DDX_Text(pDX, IDC_UDPPORT, m_UDPPort);
 	DDX_Control(pDX, IDC_TAB1, m_Tab);
@@ -129,6 +143,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_UDP_BUTTON, &CXrays_64ChannelDlg::OnBnClickedUdpButton)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
 	ON_BN_CLICKED(IDC_TEST_BUTTON, &CXrays_64ChannelDlg::OnBnClickedTestButton)
+	ON_CBN_SELCHANGE(IDC_WAVE_MODE, &CXrays_64ChannelDlg::OnCbnSelchangeWaveMode)
 END_MESSAGE_MAP()
 
 
@@ -170,7 +185,10 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	m_NetStatusLED2.RefreshWindow(FALSE);//设置指示灯
 	m_NetStatusLED3.RefreshWindow(FALSE);//设置指示灯
 	m_NetStatusLED4.RefreshWindow(FALSE);//设置指示灯
-	m_TriggerType.SetCurSel(0); // 设置下拉框默认选项
+	
+	// 设置下拉框默认选项
+	m_TriggerType.SetCurSel(0); 
+	m_WaveMode.SetCurSel(0);
 	
 	// 添加状态栏
 	UINT nID[] = { 1001,1002,1003 };
@@ -179,9 +197,9 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	//添加状态栏面板，参数为ID数组和面板数量
 	m_statusBar.SetIndicators(nID, sizeof(nID) / sizeof(UINT));
 	//设置面板序号，ID，样式和宽度，SBPS_NORMAL为普通样式，固定宽度，SBPS_STRETCH为弹簧样式，会自动扩展它的空间
-	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, 80);
+	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, 200);
 	m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, 0);
-	m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, 80);
+	m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, 200);
 	//设置状态栏位置
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	//设置状态栏面板文本，参数为面板序号和对应文本
@@ -258,6 +276,7 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	// ---------------设置部分按钮初始化使能状态-------------
 	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
+	GetDlgItem(IDC_TEST_BUTTON)->EnableWindow(FALSE);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -584,31 +603,24 @@ UINT Recv_Th1(LPVOID p)
 	{
 		// 断开网络后关闭本线程
 		if (!dlg->connectStatus) return 0;
-
-		if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
+		
+		//if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
+		//{
+		const int dataLen = 10000; //接收的数据包长度
+		char mk[dataLen];
+		int nLength;
+		nLength = recv(dlg->mySocket, mk, dataLen, 0);
+		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
 		{
-			const int dataLen = 100; //接收的数据包长度
-			char mk[dataLen];
-
-			//连接网络后时常判断联网状态
-			int nLength;
-			//int recvTimeout = 4 * 1000;  //4s
-			//测量状态是等待超过recvTimeout就不再等待
-			//setsockopt(dlg->mySocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&recvTimeout, sizeof(int));
-			nLength = recv(dlg->mySocket, mk, dataLen, 0);
-			if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
-			{
-				return 0;
-			}
-			else {
-				dlg->GetDataStatus = TRUE;
-				CString fileName = dlg->m_targetID + _T("CH1");
-				dlg->SaveFile(fileName, mk, nLength);
-				CString info;
-				info.Format(_T("CH1 RECV:%d"), nLength);
-				dlg->m_page2->PrintLog(info);
-			}
+			return 0;
 		}
+		else {
+			dlg->GetDataStatus = TRUE;
+			CString fileName = dlg->m_targetID + _T("CH1");
+			dlg->SaveFile(fileName, mk, nLength);
+			//dlg->AddTCPData(1, mk, nLength);
+		}
+		//}
 	}
 	return 0;
 }
@@ -622,8 +634,8 @@ UINT Recv_Th2(LPVOID p)
 		// 断开网络后关闭本线程
 		if (!dlg->connectStatus) return 0;
 
-		if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
-		{
+		//if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
+		//{
 			const int dataLen = 10000; //接收的数据包长度
 			char mk[dataLen];
 
@@ -641,11 +653,9 @@ UINT Recv_Th2(LPVOID p)
 				dlg->GetDataStatus = TRUE;
 				CString fileName = dlg->m_targetID + _T("CH2");
 				dlg->SaveFile(fileName, mk, nLength);
-				CString info;
-				info.Format(_T("CH2 RECV:%d"), nLength);
-				dlg->m_page2->PrintLog2(info);
+				//dlg->AddTCPData(2, mk, nLength);
 			}
-		}
+		//}
 	}
 	return 0;
 }
@@ -659,8 +669,8 @@ UINT Recv_Th3(LPVOID p)
 		// 断开网络后关闭本线程
 		if (!dlg->connectStatus) return 0;
 
-		if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
-		{
+		//if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
+		//{
 			const int dataLen = 10000; //接收的数据包长度
 			char mk[dataLen];
 
@@ -678,8 +688,9 @@ UINT Recv_Th3(LPVOID p)
 				dlg->GetDataStatus = TRUE;
 				CString fileName = dlg->m_targetID + _T("CH3");
 				dlg->SaveFile(fileName, mk, nLength);
+				//dlg->AddTCPData(3, mk, nLength);
 			}
-		}
+		//}
 	}
 	return 0;
 }
@@ -693,8 +704,8 @@ UINT Recv_Th4(LPVOID p)
 		// 断开网络后关闭本线程
 		if (!dlg->connectStatus) return 0;
 
-		if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
-		{
+		//if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
+		//{
 			const int dataLen = 10000; //接收的数据包长度
 			char mk[dataLen];
 
@@ -712,10 +723,54 @@ UINT Recv_Th4(LPVOID p)
 				dlg->GetDataStatus = TRUE;
 				CString fileName = dlg->m_targetID + _T("CH4");
 				dlg->SaveFile(fileName, mk, nLength);
+				//dlg->AddTCPData(4, mk, nLength);
 			}
-		}
+		//}
 	}
 	return 0;
+}
+
+// 缓存网口数据
+void CXrays_64ChannelDlg::AddTCPData(int channel, char* tempChar, int len) {
+	switch(channel)
+	{
+		case 1:
+			for (int i = 0; i < len; i++) {
+				if (CH1_RECVLength + i < DataMaxlen)
+				{
+					DataCH1[CH1_RECVLength + i] = tempChar[i];
+				}
+			}
+			CH1_RECVLength += len;
+			break;
+		case 2:
+			for (int i = 0; i < len; i++) {
+				if (CH2_RECVLength + i < DataMaxlen)
+				{
+					DataCH1[CH2_RECVLength + i] = tempChar[i];
+				}
+			}
+			CH2_RECVLength += len;
+			break;
+		case 3:
+			for (int i = 0; i < len; i++) {
+				if (CH3_RECVLength + i < DataMaxlen)
+				{
+					DataCH3[CH3_RECVLength + i] = tempChar[i];
+				}
+			}
+			CH3_RECVLength += len;
+			break;
+		case 4:
+			for (int i = 0; i < len; i++) {
+				if (CH4_RECVLength + i < DataMaxlen)
+				{
+					DataCH4[CH4_RECVLength + i] = tempChar[i];
+				}
+			}
+			CH4_RECVLength += len;
+			break;
+	}
 }
 
 //定时器
@@ -758,6 +813,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				if (mySocket2 != NULL) send(mySocket2, Order::Stop, 12, 0);
 				if (mySocket3 != NULL) send(mySocket3, Order::Stop, 12, 0);
 				if (mySocket4 != NULL) send(mySocket4, Order::Stop, 12, 0);
+				// 重置部分数据
 				timer = 0;
 				GetDataStatus = FALSE;
 				MeasureStatus = FALSE;
@@ -789,12 +845,15 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				if (mySocket3 != NULL) send(mySocket3, Order::Stop, 12, 0);
 				if (mySocket4 != NULL) send(mySocket4, Order::Stop, 12, 0);
 
+				// 重置从网口接收的缓存数据
+				ResetTCPData();
+
 				//发送开始测量指令，采用硬件触发
 				if (mySocket != NULL) send(mySocket, Order::HardTouchStart, 12, 0);
 				if (mySocket2 != NULL) send(mySocket2, Order::HardTouchStart, 12, 0);
 				if (mySocket3 != NULL) send(mySocket3, Order::HardTouchStart, 12, 0);
 				if (mySocket4 != NULL) send(mySocket4, Order::HardTouchStart, 12, 0);
-				
+
 				//重置接受数据标志位
 				GetDataStatus = FALSE; 
 				//重置测量状态
@@ -836,7 +895,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		
 		// 打印日志
 		CString info;
-		info = _T("开始测量（手动测量），采用软件触发方式工作。");
+		info = _T("\r\n开始测量（手动测量），采用软件触发方式工作。");
 		m_page1->PrintLog(info);
 
 		// 按键互斥锁
@@ -857,7 +916,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 		//打印日志
 		CString info;
-		info = _T("已停止（手动）测量");
+		info = _T("\r\n已停止（手动）测量\r\n");
 		m_page1->PrintLog(info);
 
 		// 按键互斥锁
@@ -882,6 +941,11 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	CString strTemp;
 	GetDlgItemText(IDC_AutoMeasure, strTemp);
 	if (strTemp == _T("自动测量")) {
+		// 打印日志
+		CString info;
+		info = _T("\r\n开始自动测量。。。");
+		m_page1->PrintLog(info);
+
 		AutoMeasureStatus = TRUE;
 		SendParameterToTCP();
 		SetParameterInputStatus(FALSE);
@@ -914,6 +978,11 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
 		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+
+		// 打印日志
+		CString info;
+		info = _T("\r\n已停止自动测量。。。\r\n");
+		m_page1->PrintLog(info);
 	}
 
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
@@ -1004,4 +1073,10 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 		info = _T("刻度曲线已发送");
 		m_page1->PrintLog(info);
 	}
+}
+
+//选择能谱模式
+void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
+{
+	// TODO: 在此添加控件通知处理程序代码
 }

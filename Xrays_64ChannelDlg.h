@@ -38,7 +38,8 @@ public:
 	void SetTCPInputStatus(BOOL flag); //设置TCP的IP、PORT、复选框的输入使能状态
 	void SetParameterInputStatus(BOOL flag); //设置配置参数框的使能状态
 	void SaveFile(CString myID, const char* mk, int length); // 保存文件
-	void ClearLog(); // 清空日志
+	void AddTCPData(int channel, char* tempChar, int len); // 缓存网口数据
+	void ResetTCPData(); // 重置缓存数据
 
 	LEDButton m_NetStatusLED;
 	LEDButton m_NetStatusLED2;
@@ -49,6 +50,8 @@ public:
 	SOCKET mySocket2;
 	SOCKET mySocket3;
 	SOCKET mySocket4;
+
+	const int DataMaxlen;
 	BOOL connectStatus;
 	BOOL UDPStatus; //UDP工作状态
 	BOOL MeasureStatus; // 手动测量状态
@@ -59,6 +62,15 @@ public:
 	CString saveAsPath; //数据存储根路径
 	CString saveAsTargetPath; //数据存储炮号路径
 	CStatusBar m_statusBar;
+
+	char* DataCH1; // 网口接收的数据，缓存下来，接收完后再存储到文件中。
+	char* DataCH2;
+	char* DataCH3;
+	char* DataCH4;
+	int CH1_RECVLength;//接受数据长度
+	int CH2_RECVLength;//接受数据长度
+	int CH3_RECVLength;//接受数据长度
+	int CH4_RECVLength;//接受数据长度
 
 	RunningLog* m_page1;
 	UDP_RecieveLog* m_page2;
@@ -109,6 +121,8 @@ public:
 	int sPort4;
 	// 触发方式下拉框
 	CComboBox m_TriggerType;
+	// 能谱模式选择下拉框
+	CComboBox m_WaveMode;
 	// 炮号，一种打靶序列号
 	CString m_targetID;
 	// UDP端口号
@@ -120,4 +134,5 @@ public:
 	// 界面输入的能谱刷新时间，ms
 	int RefreshTime;
 	afx_msg void OnBnClickedTestButton();
+	afx_msg void OnCbnSelchangeWaveMode();
 };

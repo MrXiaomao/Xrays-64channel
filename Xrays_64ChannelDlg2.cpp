@@ -27,6 +27,9 @@ void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag) {
 	GetDlgItem(IDC_PORT2)->EnableWindow(flag);
 	GetDlgItem(IDC_PORT3)->EnableWindow(flag);
 	GetDlgItem(IDC_PORT4)->EnableWindow(flag);
+
+	//发送刻度数据,只有联网后才能使用
+	GetDlgItem(IDC_TEST_BUTTON)->EnableWindow(!flag);
 }
 
 //设置配置参数框的使能状态
@@ -35,6 +38,8 @@ void CXrays_64ChannelDlg::SetParameterInputStatus(BOOL flag) {
 	GetDlgItem(IDC_RefreshTimeEdit)->EnableWindow(flag); 
 	//能谱测量时间
 	GetDlgItem(IDC_MeasureTime)->EnableWindow(flag);
+	//能谱模式选择
+	GetDlgItem(IDC_WAVE_MODE)->EnableWindow(flag);
 }
 
 // 打开UDP通信
@@ -130,6 +135,19 @@ void CXrays_64ChannelDlg::OnEnKillfocusUDPPort()
 	ConfinePortRange(&m_UDPPort);
 }
 
+// 重置TCP网口接收的缓存数据
+void CXrays_64ChannelDlg::ResetTCPData()
+{
+	memset(DataCH1, 0, DataMaxlen);
+	memset(DataCH2, 0, DataMaxlen);
+	memset(DataCH3, 0, DataMaxlen);
+	memset(DataCH4, 0, DataMaxlen);
+	CH1_RECVLength = 0;
+	CH2_RECVLength = 0;
+	CH3_RECVLength = 0;
+	CH4_RECVLength = 0;
+}
+
 //限制端口号输入范围0~65535
 void CXrays_64ChannelDlg::ConfinePortRange(int* myPort) {
 	UpdateData(true);
@@ -155,10 +173,10 @@ void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(true);
 	int MaxTime = 60*1000; //单位ms
-	if ((RefreshTime <= 0) || (RefreshTime > MaxTime))
+	if ((RefreshTime <= 10) || (RefreshTime > MaxTime))
 	{
 		CString message;
-		message.Format(_T("能谱刷新时间范围为0~%dms\n"), MaxTime);
+		message.Format(_T("能谱刷新时间范围为10~%dms\n"), MaxTime);
 		MessageBox(message);
 		if (RefreshTime > MaxTime)
 		{
@@ -166,7 +184,7 @@ void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 		}
 		else
 		{
-			RefreshTime = 1;
+			RefreshTime = 10;
 		}
 		UpdateData(false);
 	}
@@ -250,15 +268,29 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	send(mySocket3, Order::TriggerIntervalTime, 12, 0);
 	send(mySocket4, Order::TriggerIntervalTime, 12, 0);
 
-	send(mySocket, Order::WorkMode, 12, 0);
-	send(mySocket2, Order::WorkMode, 12, 0);
-	send(mySocket3, Order::WorkMode, 12, 0);
-	send(mySocket4, Order::WorkMode, 12, 0);
+	if (m_WaveMode.GetCurSel() == 0) { //512道能谱
+		send(mySocket, Order::WorkMode0, 12, 0);
+		send(mySocket2, Order::WorkMode0, 12, 0);
+		send(mySocket3, Order::WorkMode0, 12, 0);
+		send(mySocket4, Order::WorkMode0, 12, 0);
+		CString info = _T("512道能谱工作模式");
+		m_page1->PrintLog(info);
+	}
+	else if (m_WaveMode.GetCurSel() == 1) { //16道能谱
+		send(mySocket, Order::WorkMode3, 12, 0);
+		send(mySocket2, Order::WorkMode3, 12, 0);
+		send(mySocket3, Order::WorkMode3, 12, 0);
+		send(mySocket4, Order::WorkMode3, 12, 0);
+		CString info = _T("16道能谱工作模式");
+		m_page1->PrintLog(info);
+	}
 
 	send(mySocket, Order::HardTouchStart, 12, 0);
 	send(mySocket2, Order::HardTouchStart, 12, 0);
 	send(mySocket3, Order::HardTouchStart, 12, 0);
 	send(mySocket4, Order::HardTouchStart, 12, 0);
+	CString info = _T("\"硬件触发\"工作模式");
+	m_page1->PrintLog(info);
 }
 
 //多页对话框选择

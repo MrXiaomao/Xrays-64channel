@@ -15,7 +15,9 @@ public:
 
 	static char TriggerIntervalTime[]; // 触发时间间隔
 
-	static char WorkMode[]; // 探测器传输模式指令
+	static char WorkMode0[]; // 探测器传输模式指令 512道能谱
+
+	static char WorkMode3[]; // 探测器传输模式指令 16道能谱
 
 	static char HardTouchStart[]; // 硬件触发——开始工作
 

@@ -22,6 +22,7 @@
 #define IDC_RefreshTimeEdit             1007
 #define IDC_COMBO1                      1008
 #define IDC_COMBO2                      1009
+#define IDC_WAVE_MODE                   1009
 #define IDC_COMBO3                      1010
 #define IDC_COMBO4                      1011
 #define IDC_CH1Threahold                1012
