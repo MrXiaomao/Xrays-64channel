@@ -201,10 +201,12 @@ void CXrays_64ChannelDlg::OnBnClickedSaveas()
 	// TODO: 在此添加控件通知处理程序代码
 	Json::Value myJson = ReadSetting(_T("Setting.json"));
 	CString dir;
-	dir = myJson["SaveDir"].asCString();
+	if (myJson["SaveDir"].isString()) {
+		dir = myJson["SaveDir"].asCString();
+	}
 
 	HWND hwnd = this->GetSafeHwnd();
-	if (SetSavePath(hwnd, dir, saveAsPath))
+	if (BrowserMyPath(hwnd, dir, saveAsPath))
 	{
 		// 写入参数文件
 		string pStr = _UnicodeToUtf8(saveAsPath);
@@ -297,6 +299,7 @@ void CXrays_64ChannelDlg::OnBnClickedClearLog()
 		break;
 	case 1:
 		m_page2->m_Information = _T("");
+		m_page2->m_Information2 = _T("");
 		m_page2->UpdateData(FALSE);
 		m_page2->MoveWindow(&rc);
 		break;

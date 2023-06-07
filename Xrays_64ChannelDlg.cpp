@@ -334,7 +334,7 @@ void CXrays_64ChannelDlg::OnConnect()
 			
 			// 发送刻度曲线
 			CString EnCalibrationFile = GetExeDir() + _T("\\刻度指令.txt");
-			SendCalibration(EnCalibrationFile);
+			//SendCalibration(EnCalibrationFile);
 
 			// 开启线程接收数据
 			AfxBeginThread(&Recv_Th1, 0); 
@@ -604,6 +604,9 @@ UINT Recv_Th1(LPVOID p)
 				dlg->GetDataStatus = TRUE;
 				CString fileName = dlg->m_targetID + _T("CH1");
 				dlg->SaveFile(fileName, mk, nLength);
+				CString info;
+				info.Format(_T("CH1 RECV:%d"), nLength);
+				dlg->m_page2->PrintLog(info);
 			}
 		}
 	}
@@ -638,6 +641,9 @@ UINT Recv_Th2(LPVOID p)
 				dlg->GetDataStatus = TRUE;
 				CString fileName = dlg->m_targetID + _T("CH2");
 				dlg->SaveFile(fileName, mk, nLength);
+				CString info;
+				info.Format(_T("CH2 RECV:%d"), nLength);
+				dlg->m_page2->PrintLog2(info);
 			}
 		}
 	}
@@ -731,7 +737,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				MeasureStatus = FALSE;
 
 				CString info = _T("炮号：") + m_targetID + _T("测量结束!测试数据存储路径：")
-					+ saveAsPath;
+					+ saveAsTargetPath;
 				m_page1->PrintLog(info);
 			}
 		}
@@ -747,7 +753,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			strInfo.Format(_T("timer = %d，MeasureTime = %d"), timer * TIMER_INTERVAL, MeasureTime);
 			m_statusBar.SetPaneText(1, strInfo);
 			
-			if (timer * TIMER_INTERVAL > MeasureTime) {
+			if (timer * TIMER_INTERVAL >= MeasureTime) {
 				if (mySocket != NULL) send(mySocket, Order::Stop, 12, 0);
 				if (mySocket2 != NULL) send(mySocket2, Order::Stop, 12, 0);
 				if (mySocket3 != NULL) send(mySocket3, Order::Stop, 12, 0);
@@ -788,6 +794,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				if (mySocket2 != NULL) send(mySocket2, Order::HardTouchStart, 12, 0);
 				if (mySocket3 != NULL) send(mySocket3, Order::HardTouchStart, 12, 0);
 				if (mySocket4 != NULL) send(mySocket4, Order::HardTouchStart, 12, 0);
+				
+				//重置接受数据标志位
+				GetDataStatus = FALSE; 
+				//重置测量状态
 				MeasureStatus = TRUE;
 			}
 		}
@@ -931,15 +941,10 @@ void CXrays_64ChannelDlg::OnBnClickedUdpButton()
 void CXrays_64ChannelDlg::OnBnClickedTestButton()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	CString fileName = _T("");
 
-	CFileDialog dlgFile(TRUE, NULL, NULL, OFN_HIDEREADONLY,
-		_T("文件 (*.txt)|*.txt||"), NULL);
+	CString fileName(_T(""));
+	ChooseFile(fileName);
 
-	if (dlgFile.DoModal())
-	{
-		fileName = dlgFile.GetPathName();
-	}
 	SendCalibration(fileName);
 }
 
@@ -947,15 +952,45 @@ void CXrays_64ChannelDlg::OnBnClickedTestButton()
 //fileName为发送文件路径（绝对路径）
 void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 {
+	CString info;
+	info = _T("刻度曲线指令发送中。。。");
+	m_page1->PrintLog(info);
+
 	// 若当前是联网状态，则发送数据
 	if (connectStatus) {
 		vector<CString> messageList = ReadEnCalibration(fileName);
 		char cmd[10000] = { 0 };
+		char cmd2[10000] = { 0 };
+		char cmd3[10000] = { 0 };
+		char cmd4[10000] = { 0 };
 		int iSize = 0;
 		
 		iSize = Str2Hex(messageList[0], cmd);
-		if (mySocket) send(mySocket, cmd, iSize, 0);
+		Str2Hex(messageList[1], cmd2);
+		Str2Hex(messageList[2], cmd3);
+		Str2Hex(messageList[3], cmd4);
+		// 将各个指令分开发送
+		for (int i = 0; i < iSize / 12; i++) {
+			char temp[13] = {0};
+			char temp2[13] = { 0 };
+			char temp3[13] = { 0 };
+			char temp4[13] = { 0 };
+			for (int j = 0; j < 12; j++) {
+				temp[j] = cmd[i * 12 + j];
+				temp2[j] = cmd2[i * 12 + j];
+				temp3[j] = cmd3[i * 12 + j];
+				temp4[j] = cmd4[i * 12 + j];
+			}
+			if (mySocket) send(mySocket, temp, 12, 0);
+			if (mySocket2) send(mySocket2, temp2, 12, 0);
+			if (mySocket3) send(mySocket3, temp3, 12, 0);
+			if (mySocket4) send(mySocket4, temp4, 12, 0);
+			Sleep(2);
+		}
 
+		/*
+		iSize = Str2Hex(messageList[0], cmd);
+		if (mySocket) send(mySocket, cmd, iSize, 0);
 		iSize = Str2Hex(messageList[1], cmd);
 		if (mySocket2) send(mySocket2, cmd, iSize, 0);
 
@@ -964,5 +999,9 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 		
 		iSize = Str2Hex(messageList[3], cmd);
 		if (mySocket4) send(mySocket4, cmd, iSize, 0);
+		*/
+		CString info;
+		info = _T("刻度曲线已发送");
+		m_page1->PrintLog(info);
 	}
 }

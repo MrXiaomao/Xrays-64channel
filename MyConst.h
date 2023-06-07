@@ -291,19 +291,10 @@ inline BOOL Mkdir(CString myPath) {
 // 对话框选择文件夹，设置文件存储路径
 // hwnd为窗口句柄，
 // defaultPath为默认文件夹路径，用来作为打开时的初始路径
-inline BOOL SetSavePath(HWND hwnd, CString defaultPath, CString& outPath)
+inline BOOL BrowserMyPath(HWND hwnd, CString defaultPath, CString& outPath)
 {
 	CString m_saveFilePath;
 	TCHAR   szPath[MAX_PATH] = { 0 };
-
-	// 判断默认路径是否存在
-	/*if (IsPathExit(defaultPath)) {
-		// Unicode环境下宽字符------->窄字符的转换
-		int nNum = WideCharToMultiByte(CP_ACP, 0, szPath, -1, 0, 0, NULL, NULL);
-		char* pBuffer = new char[nNum + 1];
-		WideCharToMultiByte(CP_ACP, 0, szPath, -1, pBuffer, nNum, NULL, NULL);
-	}
-	*/
 
 	LPITEMIDLIST   pItemIDList;
 	BROWSEINFO   info;
@@ -327,3 +318,21 @@ inline BOOL SetSavePath(HWND hwnd, CString defaultPath, CString& outPath)
 	return FALSE;
 }
 
+// 文件选择对话框，选择指定txt文件
+inline BOOL ChooseFile(CString& outPath) {
+	// 打开对话框，选择txt文件
+	CString fileName = _T("");
+
+	CFileDialog dlgFile(TRUE, NULL, NULL, OFN_HIDEREADONLY,
+		_T("文件 (*.txt)|*.txt||"), NULL);
+
+	if (dlgFile.DoModal())
+	{
+		fileName = dlgFile.GetPathName();
+	}
+	else {
+		return FALSE;
+	}
+	outPath = fileName;
+	return TRUE;
+}

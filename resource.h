@@ -47,6 +47,7 @@
 #define IDC_TAB1                        1030
 #define IDC_UDP_LOG                     1031
 #define IDC_LED4                        1031
+#define IDC_UDP_LOG2                    1032
 #define IDC_EDIT1                       1035
 #define IDC_RUNNING_LOG                 1035
 #define IDC_TEST_BUTTON                 1042
