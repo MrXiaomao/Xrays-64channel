@@ -11,7 +11,6 @@ public:
 	UDP_RecieveLog(CWnd* pParent = nullptr);   // 标准构造函数
 	virtual ~UDP_RecieveLog();
 	void PrintLog(CString info);
-	void PrintLog2(CString info);
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -25,6 +24,4 @@ protected:
 public:
 	CString m_Information;
 	CEdit m_LogEdit;
-	CString m_Information2;
-	CEdit m_LogEdit2;
 };

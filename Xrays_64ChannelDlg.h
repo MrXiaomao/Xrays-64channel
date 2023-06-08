@@ -37,7 +37,7 @@ public:
 	void ConfinePortRange(int* myPort); //限制端口号输入范围
 	void SetTCPInputStatus(BOOL flag); //设置TCP的IP、PORT、复选框的输入使能状态
 	void SetParameterInputStatus(BOOL flag); //设置配置参数框的使能状态
-	void SaveFile(CString myID, const char* mk, int length); // 保存文件
+	void SaveFile(CString myID, char* mk, int* length); // 保存文件
 	void AddTCPData(int channel, char* tempChar, int len); // 缓存网口数据
 	void ResetTCPData(); // 重置缓存数据
 

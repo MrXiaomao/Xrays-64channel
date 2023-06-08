@@ -17,6 +17,8 @@
 #define new DEBUG_NEW
 #endif
 
+CMutex Mutex; //mutex，线程锁
+
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
 class CAboutDlg : public CDialogEx
@@ -56,7 +58,7 @@ END_MESSAGE_MAP()
 
 CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_XRAYS64CHANNEL_DIALOG, pParent)
-	, DataMaxlen(50000) 
+	, DataMaxlen(5000) 
 	, connectStatus(FALSE)
 	, UDPStatus(FALSE)
 	, MeasureStatus(FALSE)
@@ -222,7 +224,7 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	//子控件大小
 	CRect rc;
 	m_Tab.GetClientRect(rc);
-	rc.top += 20;
+	rc.top += 30;
 	m_page1->MoveWindow(&rc);
 	m_page2->MoveWindow(&rc);
 
@@ -598,29 +600,31 @@ BOOL CXrays_64ChannelDlg::ConnectTCP4() {
 //线程1，接收TCP网口数据
 UINT Recv_Th1(LPVOID p)
 {
+	CSingleLock singleLock(&Mutex); //线程锁
 	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
 	while (1)
 	{
 		// 断开网络后关闭本线程
 		if (!dlg->connectStatus) return 0;
-		
-		//if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
-		//{
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
 		int nLength;
-		nLength = recv(dlg->mySocket, mk, dataLen, 0);
-		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+		nLength = recv(dlg->mySocket, mk, dataLen, 0); //阻塞模式
+		if (nLength == -1) 
 		{
 			return 0;
 		}
 		else {
-			dlg->GetDataStatus = TRUE;
-			CString fileName = dlg->m_targetID + _T("CH1");
-			//dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(1, mk, nLength);
+			singleLock.Lock(); //Mutex
+			if (singleLock.IsLocked())
+			{
+				dlg->GetDataStatus = TRUE; //线程锁的变量
+				CString fileName = dlg->m_targetID + _T("CH1");
+				dlg->SaveFile(fileName, mk, &nLength);
+				//dlg->AddTCPData(1, mk, nLength);
+				singleLock.Unlock(); //Mutex
+			}
 		}
-		//}
 	}
 	return 0;
 }
@@ -628,6 +632,7 @@ UINT Recv_Th1(LPVOID p)
 //线程2，接收TCP网口数据
 UINT Recv_Th2(LPVOID p)
 {
+	CSingleLock singleLock(&Mutex); //线程锁
 	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
 	while (1)
 	{
@@ -650,10 +655,15 @@ UINT Recv_Th2(LPVOID p)
 				return 0;
 			}
 			else {
-				dlg->GetDataStatus = TRUE;
-				CString fileName = dlg->m_targetID + _T("CH2");
-				dlg->SaveFile(fileName, mk, nLength);
-				//dlg->AddTCPData(2, mk, nLength);
+				singleLock.Lock(); //Mutex
+				if (singleLock.IsLocked())
+				{
+					dlg->GetDataStatus = TRUE;
+					CString fileName = dlg->m_targetID + _T("CH2");
+					dlg->SaveFile(fileName, mk, &nLength);
+					//dlg->AddTCPData(2, mk, nLength);
+					singleLock.Unlock(); //Mutex
+				}
 			}
 		//}
 	}
@@ -663,34 +673,37 @@ UINT Recv_Th2(LPVOID p)
 //线程3，接收TCP网口数据
 UINT Recv_Th3(LPVOID p)
 {
+	CSingleLock singleLock(&Mutex); //线程锁
 	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
 	while (1)
 	{
 		// 断开网络后关闭本线程
 		if (!dlg->connectStatus) return 0;
 
-		//if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
-		//{
-			const int dataLen = 10000; //接收的数据包长度
-			char mk[dataLen];
+		const int dataLen = 10000; //接收的数据包长度
+		char mk[dataLen];
 
-			//连接网络后时常判断联网状态
-			int nLength;
-			//int recvTimeout = 4 * 1000;  //4s
-			//测量状态是等待超过recvTimeout就不再等待
-			//setsockopt(dlg->mySocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&recvTimeout, sizeof(int));
-			nLength = recv(dlg->mySocket3, mk, dataLen, 0);
-			if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+		//连接网络后时常判断联网状态
+		int nLength;
+		//int recvTimeout = 4 * 1000;  //4s
+		//测量状态是等待超过recvTimeout就不再等待
+		//setsockopt(dlg->mySocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&recvTimeout, sizeof(int));
+		nLength = recv(dlg->mySocket3, mk, dataLen, 0);
+		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+		{
+			return 0;
+		}
+		else {
+			singleLock.Lock(); //Mutex
+			if (singleLock.IsLocked())
 			{
-				return 0;
-			}
-			else {
 				dlg->GetDataStatus = TRUE;
 				CString fileName = dlg->m_targetID + _T("CH3");
-				dlg->SaveFile(fileName, mk, nLength);
+				dlg->SaveFile(fileName, mk, &nLength);
 				//dlg->AddTCPData(3, mk, nLength);
+				singleLock.Unlock(); //Mutex
 			}
-		//}
+		}
 	}
 	return 0;
 }
@@ -698,79 +711,34 @@ UINT Recv_Th3(LPVOID p)
 //线程4，接收TCP网口数据
 UINT Recv_Th4(LPVOID p)
 {
+	CSingleLock singleLock(&Mutex); //线程锁
 	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
 	while (1)
 	{
 		// 断开网络后关闭本线程
 		if (!dlg->connectStatus) return 0;
+		const int dataLen = 10000; //接收的数据包长度
+		char mk[dataLen];
 
-		//if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
-		//{
-			const int dataLen = 10000; //接收的数据包长度
-			char mk[dataLen];
-
-			//连接网络后时常判断联网状态
-			int nLength;
-			//int recvTimeout = 4 * 1000;  //4s
-			//测量状态是等待超过recvTimeout就不再等待
-			//setsockopt(dlg->mySocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&recvTimeout, sizeof(int));
-			nLength = recv(dlg->mySocket4, mk, dataLen, 0);
-			if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+		//连接网络后时常判断联网状态
+		int nLength;
+		nLength = recv(dlg->mySocket4, mk, dataLen, 0); //阻塞模式，如果没有数据，则一直等待
+		if (nLength == -1) { 
+			return 0;
+		}
+		else {
+			singleLock.Lock(); //Mutex
+			if (singleLock.IsLocked())
 			{
-				return 0;
-			}
-			else {
 				dlg->GetDataStatus = TRUE;
 				CString fileName = dlg->m_targetID + _T("CH4");
-				dlg->SaveFile(fileName, mk, nLength);
+				dlg->SaveFile(fileName, mk, &nLength);
 				//dlg->AddTCPData(4, mk, nLength);
+				singleLock.Unlock(); //Mutex
 			}
-		//}
+		}
 	}
 	return 0;
-}
-
-// 缓存网口数据
-void CXrays_64ChannelDlg::AddTCPData(int channel, char* tempChar, int len) {
-	switch(channel)
-	{
-		case 1:
-			for (int i = 0; i < len; i++) {
-				if (CH1_RECVLength + i < DataMaxlen)
-				{
-					DataCH1[CH1_RECVLength + i] = tempChar[i];
-				}
-			}
-			CH1_RECVLength += len;
-			break;
-		case 2:
-			for (int i = 0; i < len; i++) {
-				if (CH2_RECVLength + i < DataMaxlen)
-				{
-					DataCH1[CH2_RECVLength + i] = tempChar[i];
-				}
-			}
-			CH2_RECVLength += len;
-			break;
-		case 3:
-			for (int i = 0; i < len; i++) {
-				if (CH3_RECVLength + i < DataMaxlen)
-				{
-					DataCH3[CH3_RECVLength + i] = tempChar[i];
-				}
-			}
-			CH3_RECVLength += len;
-			break;
-		case 4:
-			for (int i = 0; i < len; i++) {
-				if (CH4_RECVLength + i < DataMaxlen)
-				{
-					DataCH4[CH4_RECVLength + i] = tempChar[i];
-				}
-			}
-			CH4_RECVLength += len;
-			break;
-	}
 }
 
 //定时器
@@ -801,17 +769,16 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 		// 硬件触发后3秒定时发送关闭指令
 		if (GetDataStatus && MeasureStatus) {
 			timer++;
+
 			//状态栏显示
 			CString strInfo;
-			strInfo.Format(_T("timer = %d"), timer);
-			m_statusBar.SetPaneText(0, strInfo);
-			strInfo.Format(_T("timer = %d，MeasureTime = %d"), timer * TIMER_INTERVAL, MeasureTime);
+			strInfo.Format(_T("Receive data Timer = %d，MeasureTime = %d"), timer * TIMER_INTERVAL, MeasureTime);
 			m_statusBar.SetPaneText(1, strInfo);
-			
+
 			if (timer * TIMER_INTERVAL >= MeasureTime) {
-				if (mySocket != NULL) { 
-					send(mySocket, Order::Stop, 12, 0); 
-					Sleep(1); 
+				if (mySocket != NULL) {
+					send(mySocket, Order::Stop, 12, 0);
+					Sleep(1);
 				}
 				if (mySocket2 != NULL) {
 					send(mySocket2, Order::Stop, 12, 0);
@@ -827,11 +794,14 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				}
 				// 重置部分数据
 				timer = 0;
-				GetDataStatus = FALSE;
 				MeasureStatus = FALSE;
+				GetDataStatus = FALSE;
+				// 打印日志
+				CString info = _T("已发送停止测量指令");
+				m_page1->PrintLog(info);
 
-				CString info = _T("炮号：") + m_targetID + _T("测量结束！测试数据存储路径：")
-								+ saveAsPath;
+				info = _T("炮号：") + m_targetID + _T("测量结束！测试数据存储路径：")
+					+ saveAsPath;
 				m_page1->PrintLog(info);
 			}
 		}
@@ -871,6 +841,13 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 				// 重置从网口接收的缓存数据
 				ResetTCPData();
+				//重置接受数据标志位
+				GetDataStatus = FALSE;
+				//重置接受数据计数器
+				timer = 0;
+				//重置测量状态
+				MeasureStatus = TRUE;
+				m_getTargetChange = FALSE;
 
 				//发送开始测量指令，采用硬件触发
 				if (mySocket != NULL) {
@@ -889,11 +866,6 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					send(mySocket4, Order::HardTouchStart, 12, 0);
 					Sleep(5);
 				}
-
-				//重置接受数据标志位
-				GetDataStatus = FALSE; 
-				//重置测量状态
-				MeasureStatus = TRUE;
 			}
 		}
 		break;
@@ -983,6 +955,12 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		m_page1->PrintLog(info);
 
 		AutoMeasureStatus = TRUE;
+		// 重新初始化部分数据
+		timer = 0;
+		MeasureStatus = FALSE;
+		GetDataStatus = FALSE;
+		m_getTargetChange = FALSE;
+
 		SendParameterToTCP();
 		SetParameterInputStatus(FALSE);
 		SetDlgItemText(IDC_AutoMeasure, _T("停止测量"));

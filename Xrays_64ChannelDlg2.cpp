@@ -92,16 +92,19 @@ void CXrays_64ChannelDlg::CloseUDP() {
 }
 
 //保存TCP传输过来的测量数据
-void CXrays_64ChannelDlg::SaveFile(CString myID, const char* mk, int length) {
+//并将数据mk清空，length置零
+void CXrays_64ChannelDlg::SaveFile(CString myID, char* mk, int* length) {
 	CString filename = myID + _T(".dat");
 	CString wholePath = saveAsTargetPath + filename;
 	fstream datafile(wholePath, ios::out | ios::app | ios::binary);   // 追加
 	if (datafile.is_open()) {
-		for (int i = 0; i < length; i++) {
+		for (int i = 0; i < *length; i++) {
 			datafile << mk[i];
 		}
 		datafile.close();
 	}
+	memset(mk, 0, *length);
+	*length = 0;
 }
 
 //限制TCP端口输入范围
@@ -173,7 +176,7 @@ void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(true);
 	int MaxTime = 60*1000; //单位ms
-	if ((RefreshTime <= 10) || (RefreshTime > MaxTime))
+	if ((RefreshTime < 10) || (RefreshTime > MaxTime))
 	{
 		CString message;
 		message.Format(_T("能谱刷新时间范围为10~%dms\n"), MaxTime);
@@ -196,7 +199,7 @@ void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(true);
 	int MaxTime = 60 * 1000; //单位ms
-	if ((MeasureTime <= 0) || (MeasureTime > MaxTime))
+	if ((MeasureTime < 1) || (MeasureTime > MaxTime))
 	{
 		CString message;
 		message.Format(_T("能谱测量时间范围为0~%dms\n"), MaxTime);
@@ -285,10 +288,6 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 		m_page1->PrintLog(info);
 	}
 
-	send(mySocket, Order::HardTouchStart, 12, 0); Sleep(5);
-	send(mySocket2, Order::HardTouchStart, 12, 0); Sleep(5);
-	send(mySocket3, Order::HardTouchStart, 12, 0); Sleep(5);
-	send(mySocket4, Order::HardTouchStart, 12, 0); Sleep(5);
 	CString info = _T("\"硬件触发\"工作模式");
 	m_page1->PrintLog(info);
 }
@@ -331,11 +330,53 @@ void CXrays_64ChannelDlg::OnBnClickedClearLog()
 		break;
 	case 1:
 		m_page2->m_Information = _T("");
-		m_page2->m_Information2 = _T("");
 		m_page2->UpdateData(FALSE);
 		m_page2->MoveWindow(&rc);
 		break;
 	default:
+		break;
+	}
+}
+
+// 缓存网口数据
+void CXrays_64ChannelDlg::AddTCPData(int channel, char* tempChar, int len) {
+	switch (channel)
+	{
+	case 1:
+		for (int i = 0; i < len; i++) {
+			if (CH1_RECVLength + i < DataMaxlen)
+			{
+				DataCH1[CH1_RECVLength + i] = tempChar[i];
+			}
+		}
+		CH1_RECVLength += len;
+		break;
+	case 2:
+		for (int i = 0; i < len; i++) {
+			if (CH2_RECVLength + i < DataMaxlen)
+			{
+				DataCH1[CH2_RECVLength + i] = tempChar[i];
+			}
+		}
+		CH2_RECVLength += len;
+		break;
+	case 3:
+		for (int i = 0; i < len; i++) {
+			if (CH3_RECVLength + i < DataMaxlen)
+			{
+				DataCH3[CH3_RECVLength + i] = tempChar[i];
+			}
+		}
+		CH3_RECVLength += len;
+		break;
+	case 4:
+		for (int i = 0; i < len; i++) {
+			if (CH4_RECVLength + i < DataMaxlen)
+			{
+				DataCH4[CH4_RECVLength + i] = tempChar[i];
+			}
+		}
+		CH4_RECVLength += len;
 		break;
 	}
 }
