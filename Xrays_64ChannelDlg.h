@@ -51,6 +51,8 @@ public:
 	SOCKET mySocket3;
 	SOCKET mySocket4;
 
+	// 单个包：512能谱=516*4字节，（10ms刷新，10秒测量时长对应总包长=100*10*516*4）
+	// 16通道=20*4字节（1ms刷新，10秒测量时长对应总包长=1000*10*20*4）
 	const int DataMaxlen;
 	BOOL connectStatus;
 	BOOL UDPStatus; //UDP工作状态
