@@ -338,39 +338,39 @@ void CXrays_64ChannelDlg::AddTCPData(int channel, char* tempChar, int len) {
 	switch (channel)
 	{
 	case 1:
-		for (int i = 0; i < len; i++) {
+		/*for (int i = 0; i < len; i++) {
 			if (CH1_RECVLength + i < DataMaxlen)
 			{
 				DataCH1[CH1_RECVLength + i] = tempChar[i];
 			}
-		}
+		}*/
 		CH1_RECVLength += len;
 		break;
 	case 2:
-		for (int i = 0; i < len; i++) {
+		/*for (int i = 0; i < len; i++) {
 			if (CH2_RECVLength + i < DataMaxlen)
 			{
 				DataCH1[CH2_RECVLength + i] = tempChar[i];
 			}
-		}
+		}*/
 		CH2_RECVLength += len;
 		break;
 	case 3:
-		for (int i = 0; i < len; i++) {
+		/*for (int i = 0; i < len; i++) {
 			if (CH3_RECVLength + i < DataMaxlen)
 			{
 				DataCH3[CH3_RECVLength + i] = tempChar[i];
 			}
-		}
+		}*/
 		CH3_RECVLength += len;
 		break;
 	case 4:
-		for (int i = 0; i < len; i++) {
+		/*for (int i = 0; i < len; i++) {
 			if (CH4_RECVLength + i < DataMaxlen)
 			{
 				DataCH4[CH4_RECVLength + i] = tempChar[i];
 			}
-		}
+		}*/
 		CH4_RECVLength += len;
 		break;
 	}

@@ -101,6 +101,9 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 	delete DataCH2;
 	delete DataCH3;
 	delete DataCH4;
+
+	delete m_page1;
+	delete m_page2;
 }
 
 // 绑定变量与控件
@@ -199,7 +202,7 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	//添加状态栏面板，参数为ID数组和面板数量
 	m_statusBar.SetIndicators(nID, sizeof(nID) / sizeof(UINT));
 	//设置面板序号，ID，样式和宽度，SBPS_NORMAL为普通样式，固定宽度，SBPS_STRETCH为弹簧样式，会自动扩展它的空间
-	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, 200);
+	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, 400);
 	m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, 0);
 	m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, 200);
 	//设置状态栏位置
@@ -208,6 +211,9 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	m_statusBar.SetPaneText(0, L"aaa");
 	m_statusBar.SetPaneText(1, L"bbb");
 	m_statusBar.SetPaneText(2, L"ccc");
+
+	//开启定时器，第1个参数表示ID号，第二个参数表示刷新时间ms
+	SetTimer(4, 1000, NULL);
 
 	//----------------------------窗口切换-------------
 	m_page1 = new RunningLog;
@@ -623,7 +629,7 @@ UINT Recv_Th1(LPVOID p)
 			singleLock.Unlock(); //Mutex
 			CString fileName = dlg->m_targetID + _T("CH1");
 			dlg->SaveFile(fileName, mk, nLength);
-			//dlg->AddTCPData(1, mk, nLength);
+			dlg->AddTCPData(1, mk, nLength);
 		}
 	}
 	return 0;
@@ -656,6 +662,7 @@ UINT Recv_Th2(LPVOID p)
 			singleLock.Unlock(); //Mutex
 			CString fileName = dlg->m_targetID + _T("CH2");
 			dlg->SaveFile(fileName, mk, nLength);
+			dlg->AddTCPData(2, mk, nLength);
 		}
 	}
 	return 0;
@@ -689,6 +696,7 @@ UINT Recv_Th3(LPVOID p)
 			singleLock.Unlock(); //Mutex
 			CString fileName = dlg->m_targetID + _T("CH3");
 			dlg->SaveFile(fileName, mk, nLength);
+			dlg->AddTCPData(3, mk, nLength);
 		}
 	}
 	return 0;
@@ -720,6 +728,7 @@ UINT Recv_Th4(LPVOID p)
 			singleLock.Unlock(); //Mutex
 			CString fileName = dlg->m_targetID + _T("CH4");
 			dlg->SaveFile(fileName, mk, nLength);
+			dlg->AddTCPData(4, mk, nLength);
 		}
 	}
 	return 0;
@@ -731,6 +740,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 	switch (nIDEvent)
 	{
 	case 1:
+		//开始测量(手动测量)模式
 		if (GetDataStatus) {
 			timer++;
 			if (timer * TIMER_INTERVAL > MeasureTime) {
@@ -756,6 +766,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			//状态栏显示
 			CString strInfo;
+			strInfo.Format(_T("Receive data Length:CH1= %d,CH2=%d,CH3=%d,CH4=%d"),
+				CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
+			m_statusBar.SetPaneText(0, strInfo);
+
 			strInfo.Format(_T("Receive data Timer = %d，MeasureTime = %d"), timer * TIMER_INTERVAL, MeasureTime);
 			m_statusBar.SetPaneText(1, strInfo);
 
@@ -780,6 +794,8 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				timer = 0;
 				MeasureStatus = FALSE;
 				GetDataStatus = FALSE;
+				ResetTCPData();
+
 				// 打印日志
 				CString info = _T("已发送停止测量指令");
 				m_page1->PrintLog(info);
@@ -854,6 +870,14 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				CString info = _T("\"硬件触发\"工作模式");
 				m_page1->PrintLog(info);
 			}
+		}
+		break;
+	case 4:
+		//状态栏，软件界面的一些常规参数刷新
+		{
+			CTime t= CTime::GetCurrentTime();
+			CString strInfo = t.Format(_T("%Y-%m-%d %H:%M:%S"));
+			m_statusBar.SetPaneText(2, strInfo);
 		}
 		break;
 	default:
