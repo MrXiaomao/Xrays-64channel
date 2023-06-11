@@ -619,8 +619,8 @@ UINT Recv_Th1(LPVOID p)
 			if (singleLock.IsLocked())
 			{
 				dlg->GetDataStatus = TRUE; //线程锁的变量
-				singleLock.Unlock(); //Mutex
 			}
+			singleLock.Unlock(); //Mutex
 			CString fileName = dlg->m_targetID + _T("CH1");
 			dlg->SaveFile(fileName, mk, nLength);
 			//dlg->AddTCPData(1, mk, nLength);
@@ -639,34 +639,24 @@ UINT Recv_Th2(LPVOID p)
 		// 断开网络后关闭本线程
 		if (!dlg->connectStatus) return 0;
 
-		//if (dlg->MeasureStatus || dlg->AutoMeasureStatus)
-		//{
-			const int dataLen = 10000; //接收的数据包长度
-			char mk[dataLen];
-
-			//连接网络后时常判断联网状态
-			int nLength;
-			//int recvTimeout = 4 * 1000;  //4s
-			//测量状态是等待超过recvTimeout就不再等待
-			//setsockopt(dlg->mySocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&recvTimeout, sizeof(int));
-			nLength = recv(dlg->mySocket2, mk, dataLen, 0);
-			if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+		const int dataLen = 10000; //接收的数据包长度
+		char mk[dataLen];
+		int nLength;
+		nLength = recv(dlg->mySocket2, mk, dataLen, 0);
+		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+		{
+			return 0;
+		}
+		else {
+			singleLock.Lock(); //Mutex
+			if (singleLock.IsLocked())
 			{
-				return 0;
+				dlg->GetDataStatus = TRUE;	
 			}
-			else {
-				singleLock.Lock(); //Mutex
-				if (singleLock.IsLocked())
-				{
-					dlg->GetDataStatus = TRUE;	
-					singleLock.Unlock(); //Mutex
-				}
-				CString fileName = dlg->m_targetID + _T("CH2");
-				dlg->SaveFile(fileName, mk, nLength);
-				//dlg->AddTCPData(2, mk, nLength);
-				
-			}
-		//}
+			singleLock.Unlock(); //Mutex
+			CString fileName = dlg->m_targetID + _T("CH2");
+			dlg->SaveFile(fileName, mk, nLength);
+		}
 	}
 	return 0;
 }
@@ -684,11 +674,7 @@ UINT Recv_Th3(LPVOID p)
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
 
-		//连接网络后时常判断联网状态
 		int nLength;
-		//int recvTimeout = 4 * 1000;  //4s
-		//测量状态是等待超过recvTimeout就不再等待
-		//setsockopt(dlg->mySocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&recvTimeout, sizeof(int));
 		nLength = recv(dlg->mySocket3, mk, dataLen, 0);
 		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
 		{
@@ -699,11 +685,10 @@ UINT Recv_Th3(LPVOID p)
 			if (singleLock.IsLocked())
 			{
 				dlg->GetDataStatus = TRUE;
-				singleLock.Unlock(); //Mutex
 			}
+			singleLock.Unlock(); //Mutex
 			CString fileName = dlg->m_targetID + _T("CH3");
 			dlg->SaveFile(fileName, mk, nLength);
-			//dlg->AddTCPData(3, mk, nLength);
 		}
 	}
 	return 0;
@@ -721,7 +706,6 @@ UINT Recv_Th4(LPVOID p)
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
 
-		//连接网络后时常判断联网状态
 		int nLength;
 		nLength = recv(dlg->mySocket4, mk, dataLen, 0); //阻塞模式，如果没有数据，则一直等待
 		if (nLength == -1) { 
@@ -732,11 +716,10 @@ UINT Recv_Th4(LPVOID p)
 			if (singleLock.IsLocked())
 			{
 				dlg->GetDataStatus = TRUE;
-				singleLock.Unlock(); //Mutex
 			}
+			singleLock.Unlock(); //Mutex
 			CString fileName = dlg->m_targetID + _T("CH4");
 			dlg->SaveFile(fileName, mk, nLength);
-			//dlg->AddTCPData(4, mk, nLength);
 		}
 	}
 	return 0;
