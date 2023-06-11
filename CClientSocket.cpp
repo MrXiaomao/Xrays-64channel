@@ -39,7 +39,7 @@ void CClientSocket::OnReceive(int nErrorCode)
 			this->m_pMainDlg->m_getTargetChange = TRUE;
 			recBuf[nLength] = '\r\n'; // 追加一个换行符号
 			int saveLength = nLength + 1;
-			this->m_pMainDlg->SaveFile(this->m_pMainDlg->saveAsPath + _T("ShotNumber"), recBuf, &saveLength);
+			this->m_pMainDlg->SaveFile(this->m_pMainDlg->saveAsPath + _T("ShotNumber"), recBuf, saveLength);
 		}
 	}
 	//接受函数信息

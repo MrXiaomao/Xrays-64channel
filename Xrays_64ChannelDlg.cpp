@@ -619,11 +619,11 @@ UINT Recv_Th1(LPVOID p)
 			if (singleLock.IsLocked())
 			{
 				dlg->GetDataStatus = TRUE; //线程锁的变量
-				CString fileName = dlg->m_targetID + _T("CH1");
-				dlg->SaveFile(fileName, mk, &nLength);
-				//dlg->AddTCPData(1, mk, nLength);
 				singleLock.Unlock(); //Mutex
 			}
+			CString fileName = dlg->m_targetID + _T("CH1");
+			dlg->SaveFile(fileName, mk, nLength);
+			//dlg->AddTCPData(1, mk, nLength);
 		}
 	}
 	return 0;
@@ -658,12 +658,13 @@ UINT Recv_Th2(LPVOID p)
 				singleLock.Lock(); //Mutex
 				if (singleLock.IsLocked())
 				{
-					dlg->GetDataStatus = TRUE;
-					CString fileName = dlg->m_targetID + _T("CH2");
-					dlg->SaveFile(fileName, mk, &nLength);
-					//dlg->AddTCPData(2, mk, nLength);
+					dlg->GetDataStatus = TRUE;	
 					singleLock.Unlock(); //Mutex
 				}
+				CString fileName = dlg->m_targetID + _T("CH2");
+				dlg->SaveFile(fileName, mk, nLength);
+				//dlg->AddTCPData(2, mk, nLength);
+				
 			}
 		//}
 	}
@@ -698,11 +699,11 @@ UINT Recv_Th3(LPVOID p)
 			if (singleLock.IsLocked())
 			{
 				dlg->GetDataStatus = TRUE;
-				CString fileName = dlg->m_targetID + _T("CH3");
-				dlg->SaveFile(fileName, mk, &nLength);
-				//dlg->AddTCPData(3, mk, nLength);
 				singleLock.Unlock(); //Mutex
 			}
+			CString fileName = dlg->m_targetID + _T("CH3");
+			dlg->SaveFile(fileName, mk, nLength);
+			//dlg->AddTCPData(3, mk, nLength);
 		}
 	}
 	return 0;
@@ -731,11 +732,11 @@ UINT Recv_Th4(LPVOID p)
 			if (singleLock.IsLocked())
 			{
 				dlg->GetDataStatus = TRUE;
-				CString fileName = dlg->m_targetID + _T("CH4");
-				dlg->SaveFile(fileName, mk, &nLength);
-				//dlg->AddTCPData(4, mk, nLength);
 				singleLock.Unlock(); //Mutex
 			}
+			CString fileName = dlg->m_targetID + _T("CH4");
+			dlg->SaveFile(fileName, mk, nLength);
+			//dlg->AddTCPData(4, mk, nLength);
 		}
 	}
 	return 0;
@@ -866,6 +867,9 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					send(mySocket4, Order::HardTouchStart, 12, 0);
 					Sleep(5);
 				}
+
+				CString info = _T("\"硬件触发\"工作模式");
+				m_page1->PrintLog(info);
 			}
 		}
 		break;

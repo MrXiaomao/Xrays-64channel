@@ -93,18 +93,16 @@ void CXrays_64ChannelDlg::CloseUDP() {
 
 //保存TCP传输过来的测量数据
 //并将数据mk清空，length置零
-void CXrays_64ChannelDlg::SaveFile(CString myID, char* mk, int* length) {
+void CXrays_64ChannelDlg::SaveFile(CString myID, char* mk, int length) {
 	CString filename = myID + _T(".dat");
 	CString wholePath = saveAsTargetPath + filename;
 	fstream datafile(wholePath, ios::out | ios::app | ios::binary);   // 追加
 	if (datafile.is_open()) {
-		for (int i = 0; i < *length; i++) {
+		for (int i = 0; i < length; i++) {
 			datafile << mk[i];
 		}
 		datafile.close();
 	}
-	memset(mk, 0, *length);
-	*length = 0;
 }
 
 //限制TCP端口输入范围
@@ -287,9 +285,6 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 		CString info = _T("16道能谱工作模式");
 		m_page1->PrintLog(info);
 	}
-
-	CString info = _T("\"硬件触发\"工作模式");
-	m_page1->PrintLog(info);
 }
 
 //多页对话框选择
