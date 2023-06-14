@@ -112,8 +112,11 @@ public:
 	afx_msg void OnBnClickedSaveas();//保存文件，设置文件存储路径
 	afx_msg void OnBnClickedClearLog();// 清空日志
 	afx_msg void OnBnClickedUdpButton();//UDP开关
-	// 炮号，一种打靶序列号
-	//CStatic m_TargetID;
+
+	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnBnClickedTestButton();
+	afx_msg void OnCbnSelchangeWaveMode(); //选择能谱模式
+
 	// 网址IP
 	CIPAddressCtrl ServerIP;
 	// TCP端口号
@@ -129,12 +132,9 @@ public:
 	CString m_targetID;
 	// UDP端口号
 	int m_UDPPort;
-	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 	CTabCtrl m_Tab;
 	// 界面输入的能谱总测量时间,ms
 	int MeasureTime;
 	// 界面输入的能谱刷新时间，ms
 	int RefreshTime;
-	afx_msg void OnBnClickedTestButton();
-	afx_msg void OnCbnSelchangeWaveMode();
 };
