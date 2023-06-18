@@ -40,6 +40,7 @@ public:
 	void SaveFile(CString myID, char* mk, int length); // 保存文件
 	void AddTCPData(int channel, char* tempChar, int len); // 缓存网口数据
 	void ResetTCPData(); // 重置缓存数据
+	void SetSocketSize(SOCKET sock, int nsize); //设置Socket缓冲区的大小
 
 	LEDButton m_NetStatusLED;
 	LEDButton m_NetStatusLED2;
@@ -51,7 +52,7 @@ public:
 	SOCKET mySocket3;
 	SOCKET mySocket4;
 
-	// 单个包：512能谱=516*4字节，（10ms刷新，10秒测量时长对应总包长=100*10*516*4）
+	// 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
 	// 16通道=20*4字节（1ms刷新，10秒测量时长对应总包长=1000*10*20*4）
 	const int DataMaxlen;
 	BOOL connectStatus;

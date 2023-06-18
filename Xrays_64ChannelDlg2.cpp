@@ -372,3 +372,25 @@ void CXrays_64ChannelDlg::AddTCPData(int channel, char* tempChar, int len) {
 		break;
 	}
 }
+
+void CXrays_64ChannelDlg::SetSocketSize(SOCKET sock, int nsize)
+{
+	int nErrCode = 0;//返回值
+	unsigned int uiRcvBuf = 0;
+	unsigned int uiNewRcvBuf = 0;
+	int uiRcvBufLen = sizeof(uiRcvBuf);
+	nErrCode = getsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char*)&uiRcvBuf, &uiRcvBufLen);
+	if (SOCKET_ERROR == nErrCode)
+	{
+		MessageBox(_T("获取服务端设置SOCKET发送缓冲区大小失败"));
+		return;
+	}
+	//uiRcvBuf *= nsize;//设置系统发送数据为默认的倍数 uiRcvBuf=100kB
+	uiRcvBuf = nsize;
+	nErrCode = setsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char*)&uiRcvBuf, uiRcvBufLen);
+	if (SOCKET_ERROR == nErrCode)
+	{
+		MessageBox(_T("设置SOCKET发送缓冲区大小失败"));
+		return;
+	}
+}

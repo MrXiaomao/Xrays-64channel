@@ -439,7 +439,8 @@ BOOL CXrays_64ChannelDlg::ConnectTCP1(){
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
 	server_addr.sin_port = htons(sPort); //网关：5000
-
+	SetSocketSize(mySocket, 1048576*3); //1M=1024k=1048576字节
+	
 	// 3、检测网络是否连接,以及显示设备联网状况
 	if (connect(mySocket, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
 		m_NetStatusLED.RefreshWindow(FALSE);//打开指示灯
@@ -486,6 +487,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP2() {
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
 	server_addr.sin_port = htons(sPort2); //网关：5000
+	SetSocketSize(mySocket2, 1048576 * 3); //1M=1024k=1048576字节
 
 	// 3、检测网络是否连接,以及显示设备联网状况
 	if (connect(mySocket2, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
@@ -521,7 +523,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP3() {
 	CString StrSerIp;
 	GetDlgItemText(IDC_IPADDRESS3, StrSerIp);
 	char* pStrIP = CstringToWideCharArry(StrSerIp);
-
+	SetSocketSize(mySocket3, 1048576 * 3); //1M=1024k=1048576字节
 	// 写入配置文件
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	jsonSetting["IP_Detector3"] = pStrIP;
@@ -580,6 +582,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP4() {
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
 	server_addr.sin_port = htons(sPort4); //网关：5000
+	SetSocketSize(mySocket4, 1048576 * 3); //1M=1024k=1048576字节
 
 	// 3、检测网络是否连接,以及显示设备联网状况
 	if (connect(mySocket4, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
