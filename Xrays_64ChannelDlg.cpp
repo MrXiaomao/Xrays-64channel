@@ -523,7 +523,6 @@ BOOL CXrays_64ChannelDlg::ConnectTCP3() {
 	CString StrSerIp;
 	GetDlgItemText(IDC_IPADDRESS3, StrSerIp);
 	char* pStrIP = CstringToWideCharArry(StrSerIp);
-	SetSocketSize(mySocket3, 1048576 * 3); //1M=1024k=1048576字节
 	// 写入配置文件
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	jsonSetting["IP_Detector3"] = pStrIP;
@@ -535,6 +534,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP3() {
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
 	server_addr.sin_port = htons(sPort3); //网关：5000
+	SetSocketSize(mySocket3, 1048576 * 3); //1M=1024k=1048576字节
 
 	// 3、检测网络是否连接,以及显示设备联网状况
 	if (connect(mySocket3, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
@@ -587,7 +587,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP4() {
 	// 3、检测网络是否连接,以及显示设备联网状况
 	if (connect(mySocket4, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
 		m_NetStatusLED4.RefreshWindow(FALSE);//打开指示灯
-		MessageBox(_T("CH2连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
+		MessageBox(_T("CH4连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
             1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
 			3、检查工控机的网络适配器属性设置是否正确\n"));
 		// 打印日志
@@ -784,27 +784,16 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
 			m_statusBar.SetPaneText(0, strInfo);
 
-			strInfo.Format(_T("Receive data Timer = %d"), timer * TIMER_INTERVAL);
-			m_statusBar.SetPaneText(1, strInfo);
-
 			if (MeasureStatus && (timer * TIMER_INTERVAL >= MeasureTime)) {
-				if (mySocket != NULL) {
-					send(mySocket, Order::Stop, 12, 0);Sleep(1);
-				}
-				if (mySocket2 != NULL) {
-					send(mySocket2, Order::Stop, 12, 0);Sleep(1);
-				}
-				if (mySocket3 != NULL) {
-					send(mySocket3, Order::Stop, 12, 0);Sleep(1);
-				}
-				if (mySocket4 != NULL) {
-					send(mySocket4, Order::Stop, 12, 0);
-				}
+				send(mySocket, Order::Stop, 12, 0); Sleep(1);
+				send(mySocket2, Order::Stop, 12, 0); Sleep(1);
+				send(mySocket3, Order::Stop, 12, 0); Sleep(1);
+				send(mySocket4, Order::Stop, 12, 0); Sleep(1);
+				
 				// 重置部分数据
 				timer = 0;
 				MeasureStatus = FALSE;
 				GetDataStatus = FALSE;
-				//ResetTCPData();
 
 				// 打印日志
 				CString info = _T("已发送停止测量指令");
@@ -827,19 +816,12 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				saveAsTargetPath = saveAsPath + m_targetID;
 				saveAsTargetPath += "\\";
 				Mkdir(saveAsTargetPath);
+
 				// 发送停止指令，复位。以保证把上一次测量重置。				
-				if (mySocket != NULL) {
-					send(mySocket, Order::Stop, 12, 0);Sleep(1);
-				}
-				if (mySocket2 != NULL) {
-					send(mySocket2, Order::Stop, 12, 0);Sleep(1);
-				}
-				if (mySocket3 != NULL) {
-					send(mySocket3, Order::Stop, 12, 0);Sleep(1);
-				}
-				if (mySocket4 != NULL) {
-					send(mySocket4, Order::Stop, 12, 0);Sleep(1);
-				}
+				send(mySocket, Order::Stop, 12, 0); Sleep(1);
+				send(mySocket2, Order::Stop, 12, 0); Sleep(1);
+				send(mySocket3, Order::Stop, 12, 0); Sleep(1);
+				send(mySocket4, Order::Stop, 12, 0); Sleep(1);
 
 				// 重置从网口接收的缓存数据
 				ResetTCPData();
