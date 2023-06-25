@@ -96,7 +96,7 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 		closesocket(mySocket3); //关闭套接字
 		closesocket(mySocket4); //关闭套接字
 	}
-	if (!m_UDPSocket) delete m_UDPSocket;
+	if (m_UDPSocket != NULL) delete m_UDPSocket;
 	delete DataCH1;
 	delete DataCH2;
 	delete DataCH3;
@@ -147,7 +147,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CLEAR_LOG, &CXrays_64ChannelDlg::OnBnClickedClearLog)
 	ON_BN_CLICKED(IDC_UDP_BUTTON, &CXrays_64ChannelDlg::OnBnClickedUdpButton)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
-	ON_BN_CLICKED(IDC_TEST_BUTTON, &CXrays_64ChannelDlg::OnBnClickedTestButton)
+	ON_BN_CLICKED(IDC_TEST_BUTTON, &CXrays_64ChannelDlg::OnBnClickedCalibration)
 	ON_CBN_SELCHANGE(IDC_WAVE_MODE, &CXrays_64ChannelDlg::OnCbnSelchangeWaveMode)
 END_MESSAGE_MAP()
 
@@ -359,10 +359,6 @@ void CXrays_64ChannelDlg::OnConnect()
 			connectStatus = TRUE;
 			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
 			
-			// 发送刻度曲线
-			CString EnCalibrationFile = GetExeDir() + _T("\\刻度指令.txt");
-			//SendCalibration(EnCalibrationFile);
-
 			// 开启线程接收数据
 			AfxBeginThread(&Recv_Th1, 0); 
 			AfxBeginThread(&Recv_Th2, 0); 
@@ -375,6 +371,10 @@ void CXrays_64ChannelDlg::OnConnect()
 				GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 			}
 		}
+		else if (status1|| status2|| status3|| status4) {
+			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
+			SetTCPInputStatus(TRUE);
+		}
 		// 连接失败
 		else {
 			// 恢复各个输入框使能状态
@@ -382,7 +382,6 @@ void CXrays_64ChannelDlg::OnConnect()
 			SetTCPInputStatus(TRUE);
 			GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 			GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
-			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE);
 		}
 	}
 	else{
@@ -1037,10 +1036,8 @@ void CXrays_64ChannelDlg::OnBnClickedUdpButton()
 }
 
 // 获取刻度曲线数据文件的全路径
-void CXrays_64ChannelDlg::OnBnClickedTestButton()
+void CXrays_64ChannelDlg::OnBnClickedCalibration()
 {
-	// TODO: 在此添加控件通知处理程序代码
-
 	CString fileName(_T(""));
 	ChooseFile(fileName);
 

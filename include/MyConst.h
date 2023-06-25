@@ -158,7 +158,6 @@ inline int Str2Hex(CString str, char* data)
 	return rlen;
 }
 
-
 //十进制转十六进制,十进制的数转化为四字节长度的十六进制
 inline BOOL DecToHex(int decIn, char* pOut) {
 	if (decIn <= 0xFFFFFF)

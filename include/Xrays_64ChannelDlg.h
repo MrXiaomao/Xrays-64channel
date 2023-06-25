@@ -115,7 +115,7 @@ public:
 	afx_msg void OnBnClickedUdpButton();//UDP开关
 
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnBnClickedTestButton();
+	afx_msg void OnBnClickedCalibration();
 	afx_msg void OnCbnSelchangeWaveMode(); //选择能谱模式
 
 	// 网址IP
