@@ -251,34 +251,34 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	Order::WaveRefreshTime[9] = res[3];
 
 	//发送指令
-	send(mySocket, Order::WaveRefreshTime, 12, 0); Sleep(1);
-	send(mySocket2, Order::WaveRefreshTime, 12, 0); Sleep(1);
-	send(mySocket3, Order::WaveRefreshTime, 12, 0); Sleep(1);
-	send(mySocket4, Order::WaveRefreshTime, 12, 0); Sleep(1);
+	send(mySocket, (char *)Order::WaveRefreshTime, 12, 0); Sleep(1);
+	send(mySocket2, (char*)Order::WaveRefreshTime, 12, 0); Sleep(1);
+	send(mySocket3, (char*)Order::WaveRefreshTime, 12, 0); Sleep(1);
+	send(mySocket4, (char*)Order::WaveRefreshTime, 12, 0); Sleep(1);
 
-	send(mySocket, Order::TriggerThreshold, 12, 0); Sleep(1);
-	send(mySocket2, Order::TriggerThreshold, 12, 0); Sleep(1);
-	send(mySocket3, Order::TriggerThreshold, 12, 0); Sleep(1);
-	send(mySocket4, Order::TriggerThreshold, 12, 0); Sleep(1);
+	send(mySocket, (char*)Order::TriggerThreshold, 12, 0); Sleep(1);
+	send(mySocket2, (char*)Order::TriggerThreshold, 12, 0); Sleep(1);
+	send(mySocket3, (char*)Order::TriggerThreshold, 12, 0); Sleep(1);
+	send(mySocket4, (char*)Order::TriggerThreshold, 12, 0); Sleep(1);
 
-	send(mySocket, Order::TriggerIntervalTime, 12, 0); Sleep(1);
-	send(mySocket2, Order::TriggerIntervalTime, 12, 0); Sleep(1);
-	send(mySocket3, Order::TriggerIntervalTime, 12, 0); Sleep(1);
-	send(mySocket4, Order::TriggerIntervalTime, 12, 0); Sleep(1);
+	send(mySocket, (char*)Order::TriggerIntervalTime, 12, 0); Sleep(1);
+	send(mySocket2, (char*)Order::TriggerIntervalTime, 12, 0); Sleep(1);
+	send(mySocket3, (char*)Order::TriggerIntervalTime, 12, 0); Sleep(1);
+	send(mySocket4, (char*)Order::TriggerIntervalTime, 12, 0); Sleep(1);
 
 	if (m_WaveMode.GetCurSel() == 0) { //512道能谱
-		send(mySocket, Order::WorkMode0, 12, 0); Sleep(1);
-		send(mySocket2, Order::WorkMode0, 12, 0); Sleep(1);
-		send(mySocket3, Order::WorkMode0, 12, 0); Sleep(1);
-		send(mySocket4, Order::WorkMode0, 12, 0); Sleep(1);
+		send(mySocket, (char*)Order::WorkMode0, 12, 0); Sleep(1);
+		send(mySocket2, (char*)Order::WorkMode0, 12, 0); Sleep(1);
+		send(mySocket3, (char*)Order::WorkMode0, 12, 0); Sleep(1);
+		send(mySocket4, (char*)Order::WorkMode0, 12, 0); Sleep(1);
 		CString info = _T("512道能谱工作模式");
 		m_page1->PrintLog(info);
 	}
 	else if (m_WaveMode.GetCurSel() == 1) { //16道能谱
-		send(mySocket, Order::WorkMode3, 12, 0); Sleep(1);
-		send(mySocket2, Order::WorkMode3, 12, 0); Sleep(1);
-		send(mySocket3, Order::WorkMode3, 12, 0); Sleep(1);
-		send(mySocket4, Order::WorkMode3, 12, 0); Sleep(1);
+		send(mySocket, (char*)Order::WorkMode3, 12, 0); Sleep(1);
+		send(mySocket2, (char*)Order::WorkMode3, 12, 0); Sleep(1);
+		send(mySocket3, (char*)Order::WorkMode3, 12, 0); Sleep(1);
+		send(mySocket4, (char*)Order::WorkMode3, 12, 0); Sleep(1);
 		CString info = _T("16道能谱工作模式");
 		m_page1->PrintLog(info);
 	}

@@ -1,4 +1,6 @@
 ﻿#pragma once
+
+#include "afxwin.h"
 // #include"Afxcoll.h" //CByteArray
 // 控制硬件的指令集
 class Order
@@ -9,20 +11,20 @@ public:
 	//CByteArray WaveShape; //CByteArray    8位无符号整数 BYTE类型
 	//static char WaveShape[]; // 配置波形基本参数
 
-	static char WaveRefreshTime[]; //能谱刷新时间
+	static BYTE WaveRefreshTime[]; //能谱刷新时间
 
-	static char TriggerThreshold[]; // 触发阈值
+	static BYTE TriggerThreshold[]; // 触发阈值
 
-	static char TriggerIntervalTime[]; // 触发时间间隔
+	static BYTE TriggerIntervalTime[]; // 触发时间间隔
 
-	static char WorkMode0[]; // 探测器传输模式指令 512道能谱
+	static BYTE WorkMode0[]; // 探测器传输模式指令 512道能谱
 
-	static char WorkMode3[]; // 探测器传输模式指令 16道能谱
+	static BYTE WorkMode3[]; // 探测器传输模式指令 16道能谱
 
-	static char HardTouchStart[]; // 硬件触发——开始工作
+	static BYTE HardTouchStart[]; // 硬件触发——开始工作
 
-	static char SoftTouchStart[]; // 软件触发——开始工作
+	static BYTE SoftTouchStart[]; // 软件触发——开始工作
 
-	static char Stop[]; //停止工作
+	static BYTE Stop[]; //停止工作
 };
 

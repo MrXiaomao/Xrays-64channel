@@ -751,10 +751,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			if (MeasureStatus && (timer * TIMER_INTERVAL > MeasureTime)) 
 			{
-				send(mySocket, Order::Stop, 12, 0); Sleep(1);
-				send(mySocket2, Order::Stop, 12, 0); Sleep(1);
-				send(mySocket3, Order::Stop, 12, 0); Sleep(1);
-				send(mySocket4, Order::Stop, 12, 0); Sleep(1);
+				send(mySocket, (char *)Order::Stop, 12, 0); Sleep(1);
+				send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
+				send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
+				send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
 				SetDlgItemText(IDC_Start, _T("开始测量"));
 				timer = 0;
 				GetDataStatus = FALSE;
@@ -784,10 +784,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			m_statusBar.SetPaneText(0, strInfo);
 
 			if (MeasureStatus && (timer * TIMER_INTERVAL >= MeasureTime)) {
-				send(mySocket, Order::Stop, 12, 0); Sleep(1);
-				send(mySocket2, Order::Stop, 12, 0); Sleep(1);
-				send(mySocket3, Order::Stop, 12, 0); Sleep(1);
-				send(mySocket4, Order::Stop, 12, 0); Sleep(1);
+				send(mySocket, (char*)Order::Stop, 12, 0); Sleep(1);
+				send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
+				send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
+				send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
 				
 				// 重置部分数据
 				timer = 0;
@@ -817,10 +817,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				Mkdir(saveAsTargetPath);
 
 				// 发送停止指令，复位。以保证把上一次测量重置。				
-				send(mySocket, Order::Stop, 12, 0); Sleep(1);
-				send(mySocket2, Order::Stop, 12, 0); Sleep(1);
-				send(mySocket3, Order::Stop, 12, 0); Sleep(1);
-				send(mySocket4, Order::Stop, 12, 0); Sleep(1);
+				send(mySocket, (char*)Order::Stop, 12, 0); Sleep(1);
+				send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
+				send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
+				send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
 
 				// 重置从网口接收的缓存数据
 				ResetTCPData();
@@ -834,16 +834,16 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 				//发送开始测量指令，采用硬件触发
 				if (mySocket != NULL) {
-					send(mySocket, Order::HardTouchStart, 12, 0);Sleep(1);
+					send(mySocket, (char*)Order::HardTouchStart, 12, 0);Sleep(1);
 				}
 				if (mySocket2 != NULL) {
-					send(mySocket2, Order::HardTouchStart, 12, 0);Sleep(1);
+					send(mySocket2, (char*)Order::HardTouchStart, 12, 0);Sleep(1);
 				}
 				if (mySocket3 != NULL) {
-					send(mySocket3, Order::HardTouchStart, 12, 0);Sleep(1);
+					send(mySocket3, (char*)Order::HardTouchStart, 12, 0);Sleep(1);
 				}
 				if (mySocket4 != NULL) {
-					send(mySocket4, Order::HardTouchStart, 12, 0);Sleep(1);
+					send(mySocket4, (char*)Order::HardTouchStart, 12, 0);Sleep(1);
 				}
 
 				CString info = _T("\"硬件触发\"工作模式");
@@ -885,10 +885,10 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		ResetTCPData();
 
 		//向TCP发送开始指令
-		send(mySocket, Order::SoftTouchStart, 12, 0); Sleep(1);
-		send(mySocket2, Order::SoftTouchStart, 12, 0); Sleep(1);
-		send(mySocket3, Order::SoftTouchStart, 12, 0); Sleep(1);
-		send(mySocket4, Order::SoftTouchStart, 12, 0); Sleep(1);
+		send(mySocket, (char*)Order::SoftTouchStart, 12, 0); Sleep(1);
+		send(mySocket2, (char*)Order::SoftTouchStart, 12, 0); Sleep(1);
+		send(mySocket3, (char*)Order::SoftTouchStart, 12, 0); Sleep(1);
+		send(mySocket4, (char*)Order::SoftTouchStart, 12, 0); Sleep(1);
 		SetDlgItemText(IDC_Start, _T("停止测量"));
 		
 		//开启定时器，第1个参数表示ID号，第二个参数表示刷新时间ms
@@ -918,10 +918,10 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		SetParameterInputStatus(TRUE);
 
 		//往TCP发送停止指令
-		send(mySocket, Order::Stop, 12, 0); Sleep(1);
-		send(mySocket2, Order::Stop, 12, 0); Sleep(1);
-		send(mySocket3, Order::Stop, 12, 0); Sleep(1);
-		send(mySocket4, Order::Stop, 12, 0); Sleep(1);
+		send(mySocket, (char*)Order::Stop, 12, 0); Sleep(1);
+		send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
+		send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
+		send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
 		SetDlgItemText(IDC_Start, _T("开始测量"));
 		KillTimer(1);	//关闭定时器
 
@@ -981,19 +981,19 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		AutoMeasureStatus = FALSE;
 		SetParameterInputStatus(TRUE);
 		if (mySocket != NULL) {
-			send(mySocket, Order::Stop, 12, 0);
+			send(mySocket, (char*)Order::Stop, 12, 0);
 			Sleep(1);
 		}
 		if (mySocket2 != NULL) {
-			send(mySocket2, Order::Stop, 12, 0);
+			send(mySocket2, (char*)Order::Stop, 12, 0);
 			Sleep(1);
 		}
 		if (mySocket3 != NULL) {
-			send(mySocket3, Order::Stop, 12, 0);
+			send(mySocket3, (char*)Order::Stop, 12, 0);
 			Sleep(1);
 		}
 		if (mySocket4 != NULL) {
-			send(mySocket4, Order::Stop, 12, 0);
+			send(mySocket4, (char*)Order::Stop, 12, 0);
 			Sleep(1);
 		}
 
@@ -1055,10 +1055,10 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 	// 若当前是联网状态，则发送数据
 	if (connectStatus) {
 		vector<CString> messageList = ReadEnCalibration(fileName);
-		char cmd[2000] = { 0 }; //144条指令*12字节=1728字节
-		char cmd2[2000] = { 0 };
-		char cmd3[2000] = { 0 };
-		char cmd4[2000] = { 0 };
+		BYTE cmd[2000] = { 0 }; //144条指令*12字节=1728字节
+		BYTE cmd2[2000] = { 0 };
+		BYTE cmd3[2000] = { 0 };
+		BYTE cmd4[2000] = { 0 };
 		int iSize = 0;
 		
 		iSize = Str2Hex(messageList[0], cmd);
@@ -1067,20 +1067,20 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 		Str2Hex(messageList[3], cmd4);
 		// 将各个指令分开发送
 		for (int i = 0; i < iSize / 12; i++) {
-			char temp[13] = {0};
-			char temp2[13] = { 0 };
-			char temp3[13] = { 0 };
-			char temp4[13] = { 0 };
+			BYTE temp[13] = { 0 };
+			BYTE temp2[13] = { 0 };
+			BYTE temp3[13] = { 0 };
+			BYTE temp4[13] = { 0 };
 			for (int j = 0; j < 12; j++) {
 				temp[j] = cmd[i * 12 + j];
 				temp2[j] = cmd2[i * 12 + j];
 				temp3[j] = cmd3[i * 12 + j];
 				temp4[j] = cmd4[i * 12 + j];
 			}
-			if (mySocket) send(mySocket, temp, 12, 0); Sleep(2);
-			if (mySocket2) send(mySocket2, temp2, 12, 0); Sleep(2);
-			if (mySocket3) send(mySocket3, temp3, 12, 0); Sleep(2);
-			if (mySocket4) send(mySocket4, temp4, 12, 0); Sleep(2);
+			if (mySocket) send(mySocket, (char*)temp, 12, 0); Sleep(2);
+			if (mySocket2) send(mySocket2, (char*)temp2, 12, 0); Sleep(2);
+			if (mySocket3) send(mySocket3, (char*)temp3, 12, 0); Sleep(2);
+			if (mySocket4) send(mySocket4, (char*)temp4, 12, 0); Sleep(2);
 			Sleep(2);
 		}
 

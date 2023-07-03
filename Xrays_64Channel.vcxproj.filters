@@ -15,50 +15,41 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Xrays_64Channel.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Xrays_64ChannelDlg.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="LEDButton.h">
+    <ClInclude Include="include\CClientSocket.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="CClientSocket.h">
+    <ClInclude Include="include\LEDButton.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Order.h">
+    <ClInclude Include="include\MyConst.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="UDP_RecieveLog.h">
+    <ClInclude Include="include\Order.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="RunningLog.h">
+    <ClInclude Include="include\pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="MyConst.h">
+    <ClInclude Include="include\RunningLog.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\targetver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\UDP_RecieveLog.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Xrays_64Channel.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Xrays_64ChannelDlg.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Xrays_64Channel.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Xrays_64ChannelDlg.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="LEDButton.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="CClientSocket.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="src\lib_json\json_reader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -68,16 +59,31 @@
     <ClCompile Include="src\lib_json\json_writer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Oder.cpp">
+    <ClCompile Include="src\CClientSocket.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Xrays_64ChannelDlg2.cpp">
+    <ClCompile Include="src\LEDButton.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="UDP_RecieveLog.cpp">
+    <ClCompile Include="src\Oder.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="RunningLog.cpp">
+    <ClCompile Include="src\pch.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RunningLog.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UDP_RecieveLog.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Xrays_64Channel.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Xrays_64ChannelDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Xrays_64ChannelDlg2.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

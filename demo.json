@@ -1,0 +1,22 @@
+{
+	"Age" : 20,
+	"Family" : 
+	{
+		"Father" : "yiyi",
+		"brother" : 
+		[
+			"aa",
+			"bb",
+			"cc"
+		]
+	},
+	"Gateway_Detector" : "192.168.1.1",
+	"IP_Detector" : "192.168.0.176",
+	"IP_Relay" : "192.168.1.120",
+	"Port_Detector" : "6006",
+	"Port_Relay" : "192.168.1.1",
+	"SaveDir" : "C:/Users/DELL/Desktop/\u5de5\u4f5c\u4e8b\u9879/12-\u8f90\u5c04\u6c14\u8def\u76d1\u6d4b/4-\u8f6f\u4ef6\u754c\u9762\u8d44\u6599/QT\u754c\u9762",
+	"SavePictureDir" : "C:/Users/DELL/Desktop/\u5de5\u4f5c\u4e8b\u9879/12-\u8f90\u5c04\u6c14\u8def\u76d1\u6d4b/4-\u8f6f\u4ef6\u754c\u9762\u8d44\u6599/QT\u754c\u9762/GammaMonitor",
+	"ThresholdA" : "12",
+	"ThresholdB" : "12"
+}

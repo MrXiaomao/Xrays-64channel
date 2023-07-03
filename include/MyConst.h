@@ -8,16 +8,16 @@
 using namespace std;
 
 // By maoxiaoqing 1207402640@qq.com 
-// ¸ÃÎÄ¼ş´æ·Å³£ÓÃµÄÒ»Ğ©¼òµ¥º¯Êı£¬¹©ÆäËûÄ£¿éµ÷ÓÃ¡£
+// è¯¥æ–‡ä»¶å­˜æ”¾å¸¸ç”¨çš„ä¸€äº›ç®€å•å‡½æ•°ï¼Œä¾›å…¶ä»–æ¨¡å—è°ƒç”¨ã€‚
 
 
-// ÅĞ¶ÏÎÄ¼ş¼ĞÂ·¾¶ÊÇ·ñ´æÔÚ
+// åˆ¤æ–­æ–‡ä»¶å¤¹è·¯å¾„æ˜¯å¦å­˜åœ¨
 inline BOOL IsPathExit(CString strPath) {
 	CFileFind fFile;
 	BOOL bRet = fFile.FindFile(strPath);
 	if (bRet)
 	{
-		//std::cout << "CFileFind:" << "ÎÄ¼ş»òÕßÎÄ¼ş¼Ğ²éÕÒ³É¹¦" << std::endl;
+		//std::cout << "CFileFind:" << "æ–‡ä»¶æˆ–è€…æ–‡ä»¶å¤¹æŸ¥æ‰¾æˆåŠŸ" << std::endl;
 		//std::cout << std::endl;
 		while (bRet)
 		{
@@ -29,7 +29,7 @@ inline BOOL IsPathExit(CString strPath) {
 
 			if (fFile.IsDirectory())
 			{
-				//std::cout << "CFileFind:" << "ÎÄ¼ş¼Ğ²éÕÒ³É¹¦" << std::endl;
+				//std::cout << "CFileFind:" << "æ–‡ä»¶å¤¹æŸ¥æ‰¾æˆåŠŸ" << std::endl;
 				return TRUE;
 			}
 		}
@@ -37,13 +37,13 @@ inline BOOL IsPathExit(CString strPath) {
 	return FALSE;
 }
 
-// ÅĞ¶ÏÎÄ¼şÊÇ·ñ´æÔÚ
+// åˆ¤æ–­æ–‡ä»¶æ˜¯å¦å­˜åœ¨
 inline BOOL IsFileExit(CString wholePath) {
 	CFileFind fFile;
 	BOOL bRet = fFile.FindFile(wholePath);
 	if (bRet)
 	{
-		//std::cout << "CFileFind:" << "ÎÄ¼ş»òÕßÎÄ¼ş¼Ğ²éÕÒ³É¹¦" << std::endl;
+		//std::cout << "CFileFind:" << "æ–‡ä»¶æˆ–è€…æ–‡ä»¶å¤¹æŸ¥æ‰¾æˆåŠŸ" << std::endl;
 		while (bRet)
 		{
 			bRet = fFile.FindNextFile();
@@ -54,7 +54,7 @@ inline BOOL IsFileExit(CString wholePath) {
 
 			if (!fFile.IsDirectory())
 			{
-				//std::cout << "CFileFind:" << "ÎÄ¼ş²éÕÒ³É¹¦" << std::endl;
+				//std::cout << "CFileFind:" << "æ–‡ä»¶æŸ¥æ‰¾æˆåŠŸ" << std::endl;
 				return TRUE;
 			}
 		}
@@ -62,7 +62,7 @@ inline BOOL IsFileExit(CString wholePath) {
 	return FALSE;
 }
 
-// CStringÀàĞÍµÄunicode×Ö·û´®×ªchar
+// CStringç±»å‹çš„unicodeå­—ç¬¦ä¸²è½¬char
 inline int UnicodeToChar(CString& strIn, char* pOut, int nLen)
 {
 	if (NULL == pOut) {
@@ -79,7 +79,7 @@ inline int UnicodeToChar(CString& strIn, char* pOut, int nLen)
 	return len;
 }
 
-// CStringÀàĞÍµÄunicode×Ö·û´®×ªÎªstringÀàĞÍµÄutf-8×Ö·û´®
+// CStringç±»å‹çš„unicodeå­—ç¬¦ä¸²è½¬ä¸ºstringç±»å‹çš„utf-8å­—ç¬¦ä¸²
 inline string _UnicodeToUtf8(CString Unicodestr)
 {
 	wchar_t* unicode = Unicodestr.AllocSysString();
@@ -93,41 +93,43 @@ inline string _UnicodeToUtf8(CString Unicodestr)
 	return result;
 }
 
-// CStringÀàĞÍµÄunicode×Ö·û´®×ªÎªchar
+// CStringç±»å‹çš„unicodeå­—ç¬¦ä¸²è½¬ä¸ºchar
 inline char* CstringToWideCharArry(CString CstrText)
 {
 	int lth = WideCharToMultiByte(CP_ACP, 0, CstrText, CstrText.GetLength(), NULL, 0, NULL, NULL);
 	char* pStr = (char*)malloc((lth + 1) * sizeof(char));
 	ASSERT(pStr != NULL);
-	memset(pStr, 0, (lth + 1) * sizeof(char)); // ³õÊ¼»¯Îª0
+	memset(pStr, 0, (lth + 1) * sizeof(char)); // åˆå§‹åŒ–ä¸º0
 	WideCharToMultiByte(CP_ACP, 0, CstrText.GetBuffer(), CstrText.GetLength(), (LPSTR)pStr, lth, NULL, NULL);
 	*(pStr + lth + 1) = '\0';
 	return pStr;
 } 
 
-//HexCharº¯ÊıµÄ¹¦ÄÜÊÇ½«16½øÖÆ×Ö·ûÓÉASCIIÂë×ªÎªÏàÓ¦´óĞ¡µÄ16½øÖÆÊı
+//HexCharå‡½æ•°çš„åŠŸèƒ½æ˜¯å°†16è¿›åˆ¶å­—ç¬¦ç”±ASCIIç è½¬ä¸ºç›¸åº”å¤§å°çš„16è¿›åˆ¶æ•°
 inline char HexChar(char c)
 {
 	if ((c >= '0') && (c <= '9'))
-		return c - '0';//½«?0-9µÄ??Êı?y×Ö??×Ö??·û¡è?×ª?aÎªaÊ®??Áù?¡§?½ø?ÖÆ?¸ñ?Ê½??
+		return c - '0';//å°†0-9çš„æ•°å­—å­—ç¬¦è½¬åŒ–ä¸ºåå…­è¿›åˆ¶æ ¼å¼
 	else if ((c >= 'A') && (c <= 'F'))
-		return c - 'A' + 10;//½«?A-FµÄ??×Ö??·û¡è?×ª?aÎªaÊ®??Áù?¡§?½ø?ÖÆ?¸ñ?Ê½??Àı¡èyÈç¡§?×Ö??·û¡è?'C'-'A'+10=12=0x0C
+		return c - 'A' + 10;//å°†A-Fçš„å­—ç¬¦è½¬åŒ–ä¸ºåå…­è¿›åˆ¶æ ¼å¼ä¾‹å¦‚OC C'-'A'+10=12=0x0C
 	else if ((c >= 'a') && (c <= 'f'))
-		return c - 'a' + 10;//½«?a-fµÄ??×Ö??·û¡è?×ª?aÎªaÊ®??Áù?¡§?½ø?ÖÆ?¸ñ?Ê½??
+		return c - 'a' + 10;//å°†a-fçš„å­—ç¬¦è½¬åŒ–ä¸ºåå…­è¿›åˆ¶æ ¼å¼
 	else
 		return 0x10;
 }
 
-//Str2Hexº¯ÊıµÄ¹¦ÄÜÔòÊÇ½«Èç¡°66 03 ...¡±ĞÎÊ½µÄ×Ö·û´®ÒÔ¿Õ¸ñÎª¼ä¸ô×ª»»Îª¶ÔÓ¦µÄ16½øÖÆÊı
-//²¢´æ·ÅÔÚBYTEĞÍ(typdef unsigned char BYTE)Êı×éÖĞ£¬
-//dataÊı×é×÷Îª·¢ËÍ»º³åÊı×éĞ´Èë´®¿Ú¼´¿É¡£
-inline int Str2Hex(CString str, char* data)
+//Str2Hexå‡½æ•°çš„åŠŸèƒ½åˆ™æ˜¯å°†å¦‚â€œ66 03 ...â€å½¢å¼çš„å­—ç¬¦ä¸²ä»¥ç©ºæ ¼ä¸ºé—´éš”è½¬æ¢ä¸ºå¯¹åº”çš„16è¿›åˆ¶æ•°
+//å¹¶å­˜æ”¾åœ¨BYTEå‹(typdef unsigned char BYTE)æ•°ç»„ä¸­ï¼Œ
+//dataæ•°ç»„ä½œä¸ºå‘é€ç¼“å†²æ•°ç»„å†™å…¥ä¸²å£å³å¯ã€‚
+inline int Str2Hex(CString cRcv, BYTE* data)
 {
+	std::string str2;
+	str2 = _bstr_t(cRcv).operator const char* ();
 	int t, t1;
-	int rlen = 0, len = str.GetLength();
+	int rlen = 0, len = cRcv.GetLength();
 	if (len == 1)
 	{
-		char h = str[0];
+		char h = str2[0];
 		t = HexChar(h);
 		data[0] = t;
 		rlen++;
@@ -135,7 +137,7 @@ inline int Str2Hex(CString str, char* data)
 	//data.SetSize(len/2);
 	for (int i = 0; i < len;)
 	{
-		char l, h = str[i];
+		char l, h = str2[i];
 		if (h == ' ')
 		{
 			i++;
@@ -144,10 +146,10 @@ inline int Str2Hex(CString str, char* data)
 		i++;
 		if (i >= len)
 			break;
-		l = str[i];
+		l = str2[i];
 		t = HexChar(h);
 		t1 = HexChar(l);
-		if ((t == 16) || (t1 == 16))//ÅĞD¶Ï?Îªa·Ç¡è?·¨¡è?¡ìµÄ??16½ø?ÖÆ?Êı?y
+		if ((t == 16) || (t1 == 16))//åˆ¤æ–­æ˜¯å¦ä¸ºéæ³•çš„åå…­è¿›åˆ¶
 			break;
 		else
 			t = t * 16 + t1;
@@ -158,7 +160,7 @@ inline int Str2Hex(CString str, char* data)
 	return rlen;
 }
 
-//Ê®½øÖÆ×ªÊ®Áù½øÖÆ,Ê®½øÖÆµÄÊı×ª»¯ÎªËÄ×Ö½Ú³¤¶ÈµÄÊ®Áù½øÖÆ
+//åè¿›åˆ¶è½¬åå…­è¿›åˆ¶,åè¿›åˆ¶çš„æ•°è½¬åŒ–ä¸ºå››å­—èŠ‚é•¿åº¦çš„åå…­è¿›åˆ¶
 inline BOOL DecToHex(int decIn, char* pOut) {
 	if (decIn <= 0xFFFFFF)
 	{
@@ -171,7 +173,7 @@ inline BOOL DecToHex(int decIn, char* pOut) {
 	return TRUE;
 }
 
-// ¶ÁÈ¡ÅäÖÃÎÄ¼ş
+// è¯»å–é…ç½®æ–‡ä»¶
 inline Json::Value ReadSetting(CString fileName)
 {
 	char* file = CstringToWideCharArry(fileName);
@@ -190,7 +192,7 @@ inline Json::Value ReadSetting(CString fileName)
 	Json::Reader reader;
 	Json::Value root;
 
-	//´ÓÎÄ¼şÖĞ¶ÁÈ¡£¬±£Ö¤µ±Ç°ÎÄ¼şÓĞdemo.jsonÎÄ¼ş
+	//ä»æ–‡ä»¶ä¸­è¯»å–ï¼Œä¿è¯å½“å‰æ–‡ä»¶æœ‰demo.jsonæ–‡ä»¶
 	ifstream in("Setting.json", ios::binary);
 	if (!in.is_open())
 	{
@@ -200,17 +202,17 @@ inline Json::Value ReadSetting(CString fileName)
 
 	if (reader.parse(in, root))
 	{
-		//¶ÁÈ¡¸ù½ÚµãĞÅÏ¢
+		//è¯»å–æ ¹èŠ‚ç‚¹ä¿¡æ¯
 		string IP = root["IP_Detector"].asString();
 		int port = root["Port_Detector"].asInt();
 
 
-		//¶ÁÈ¡×Ó½ÚµãĞÅÏ¢
+		//è¯»å–å­èŠ‚ç‚¹ä¿¡æ¯
 		string friend_name = root["friends"]["friend_name"].asString();
 		int friend_age = root["friends"]["friend_age"].asInt();
 		string friend_sex = root["friends"]["friend_sex"].asString();
 
-		//¶ÁÈ¡Êı×éĞÅÏ¢
+		//è¯»å–æ•°ç»„ä¿¡æ¯
 		for (unsigned int i = 0; i < root["hobby"].size(); i++)
 		{
 			string ach = root["hobby"][i].asString();
@@ -221,7 +223,7 @@ inline Json::Value ReadSetting(CString fileName)
 	*/
 }
 
-// Ğ´ÈëÅäÖÃÎÄ¼ş£¬Êµ¼ÊÉÏÊÇĞŞ¸ÄÅäÖÃÎÄ¼ş
+// å†™å…¥é…ç½®æ–‡ä»¶ï¼Œå®é™…ä¸Šæ˜¯ä¿®æ”¹é…ç½®æ–‡ä»¶
 inline void WriteSetting(CString fileName, Json::Value jsonData)
 {
 	char* file = CstringToWideCharArry(fileName);
@@ -236,7 +238,7 @@ inline void WriteSetting(CString fileName, Json::Value jsonData)
 	os.close();
 }
 
-// ¶ÁÈ¡ÄÜÁ¿¿Ì¶ÈÊı¾İ
+// è¯»å–èƒ½é‡åˆ»åº¦æ•°æ®
 inline vector<CString> ReadEnCalibration(CString fileWholePath) {
 
 	vector<CString> v_msg;
@@ -250,7 +252,7 @@ inline vector<CString> ReadEnCalibration(CString fileWholePath) {
 		int txtLine = 0;
 		while (myFile.ReadString(myStr)) {
 			txtLine++;
-			if (txtLine % 3 == 2) //ÈıĞĞÎªÒ»×é£¬µÚ¶şĞĞÎªÒª·¢ËÍµÄÊı¾İĞĞ
+			if (txtLine % 3 == 2) //ä¸‰è¡Œä¸ºä¸€ç»„ï¼Œç¬¬äºŒè¡Œä¸ºè¦å‘é€çš„æ•°æ®è¡Œ
 			{
 				v_msg.push_back(myStr);
 			}
@@ -264,7 +266,7 @@ inline vector<CString> ReadEnCalibration(CString fileWholePath) {
 	return v_msg;
 }
 
-// »ñÈ¡µ±Ç°³ÌĞò£¨.exeÎÄ¼ş£©ËùÔÚÂ·¾¶
+// è·å–å½“å‰ç¨‹åºï¼ˆ.exeæ–‡ä»¶ï¼‰æ‰€åœ¨è·¯å¾„
 inline CString GetExeDir() {
 	HMODULE module = GetModuleHandle(0);
 	TCHAR pFileName[MAX_PATH] = { 0 };
@@ -277,19 +279,19 @@ inline CString GetExeDir() {
 		return csFullName.Left(nPos);
 }
 
-//´´½¨ÎÄ¼ş¼Ğ
+//åˆ›å»ºæ–‡ä»¶å¤¹
 inline BOOL Mkdir(CString myPath) {
 	if (!PathIsDirectory(myPath))
 	{
-		CreateDirectory(myPath, 0);//²»´æÔÚÔò´´½¨
+		CreateDirectory(myPath, 0);//ä¸å­˜åœ¨åˆ™åˆ›å»º
 		return TRUE;
 	}
 	return FALSE;
 }
 
-// ¶Ô»°¿òÑ¡ÔñÎÄ¼ş¼Ğ£¬ÉèÖÃÎÄ¼ş´æ´¢Â·¾¶
-// hwndÎª´°¿Ú¾ä±ú£¬
-// defaultPathÎªÄ¬ÈÏÎÄ¼ş¼ĞÂ·¾¶£¬ÓÃÀ´×÷Îª´ò¿ªÊ±µÄ³õÊ¼Â·¾¶
+// å¯¹è¯æ¡†é€‰æ‹©æ–‡ä»¶å¤¹ï¼Œè®¾ç½®æ–‡ä»¶å­˜å‚¨è·¯å¾„
+// hwndä¸ºçª—å£å¥æŸ„ï¼Œ
+// defaultPathä¸ºé»˜è®¤æ–‡ä»¶å¤¹è·¯å¾„ï¼Œç”¨æ¥ä½œä¸ºæ‰“å¼€æ—¶çš„åˆå§‹è·¯å¾„
 inline BOOL BrowserMyPath(HWND hwnd, CString defaultPath, CString& outPath)
 {
 	CString m_saveFilePath;
@@ -299,10 +301,10 @@ inline BOOL BrowserMyPath(HWND hwnd, CString defaultPath, CString& outPath)
 	BROWSEINFO   info;
 	::ZeroMemory(&info, sizeof(info));
 	info.hwndOwner = hwnd;
-	info.lpszTitle = _T("ÇëÑ¡ÔñÂ·¾¶: ");
+	info.lpszTitle = _T("è¯·é€‰æ‹©è·¯å¾„: ");
 	info.pszDisplayName = szPath;
-	info.ulFlags = BIF_NEWDIALOGSTYLE; // ´°¿Ú¿ÉÒÔµ÷Õû´óĞ¡,²¢ÓĞĞÂ½¨ÎÄ¼ş¼Ğ°´Å¥
-	//info.pidlRoot = CSIDL_DESKTOP; //Ö¸¶¨ÎÄ¼ş¼ĞµÄ¸ùÄ¿Â¼£¬´Ë´¦Îª×ÀÃæ
+	info.ulFlags = BIF_NEWDIALOGSTYLE; // çª—å£å¯ä»¥è°ƒæ•´å¤§å°,å¹¶æœ‰æ–°å»ºæ–‡ä»¶å¤¹æŒ‰é’®
+	//info.pidlRoot = CSIDL_DESKTOP; //æŒ‡å®šæ–‡ä»¶å¤¹çš„æ ¹ç›®å½•ï¼Œæ­¤å¤„ä¸ºæ¡Œé¢
 
 	if (pItemIDList = ::SHBrowseForFolder(&info))
 	{
@@ -317,13 +319,13 @@ inline BOOL BrowserMyPath(HWND hwnd, CString defaultPath, CString& outPath)
 	return FALSE;
 }
 
-// ÎÄ¼şÑ¡Ôñ¶Ô»°¿ò£¬Ñ¡ÔñÖ¸¶¨txtÎÄ¼ş
+// æ–‡ä»¶é€‰æ‹©å¯¹è¯æ¡†ï¼Œé€‰æ‹©æŒ‡å®štxtæ–‡ä»¶
 inline BOOL ChooseFile(CString& outPath) {
-	// ´ò¿ª¶Ô»°¿ò£¬Ñ¡ÔñtxtÎÄ¼ş
+	// æ‰“å¼€å¯¹è¯æ¡†ï¼Œé€‰æ‹©txtæ–‡ä»¶
 	CString fileName = _T("");
 
 	CFileDialog dlgFile(TRUE, NULL, NULL, OFN_HIDEREADONLY,
-		_T("ÎÄ¼ş (*.txt)|*.txt||"), NULL);
+		_T("æ–‡ä»¶ (*.txt)|*.txt||"), NULL);
 
 	if (dlgFile.DoModal())
 	{
