@@ -735,7 +735,7 @@ UINT Recv_Th4(LPVOID p)
 
 //定时器
 void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
-	// 计时3000ms。定时结束后向网口发送停止指令
+	// 计时MeasureTime=3000ms。定时结束后向网口发送停止指令
 	switch (nIDEvent)
 	{
 	case 1:
@@ -812,7 +812,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			//若处于自动测量状态，创建对应炮号文件夹，并发送开始测量指令
 			if (AutoMeasureStatus) {
 				//创建对应炮号文件夹
-				saveAsTargetPath = saveAsPath + m_targetID;
+				CString pathPostfix;
+				//(.4表示将占用4位，如果数字超过4位将输出所有数字，不会截断)
+				pathPostfix.Format(_T("_%.3d_%.4d"), RefreshTime, MeasureTime/1000);
+				saveAsTargetPath = saveAsPath + m_targetID + pathPostfix;
 				saveAsTargetPath += "\\";
 				Mkdir(saveAsTargetPath);
 
