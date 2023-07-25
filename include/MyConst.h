@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "afx.h"
 #include "afxwin.h"
@@ -103,7 +103,7 @@ inline char* CstringToWideCharArry(CString CstrText)
 	WideCharToMultiByte(CP_ACP, 0, CstrText.GetBuffer(), CstrText.GetLength(), (LPSTR)pStr, lth, NULL, NULL);
 	*(pStr + lth + 1) = '\0';
 	return pStr;
-} 
+}
 
 //HexChar函数的功能是将16进制字符由ASCII码转为相应大小的16进制数
 inline char HexChar(char c)

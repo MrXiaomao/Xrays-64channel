@@ -65,6 +65,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, AutoMeasureStatus(FALSE)
 	, GetDataStatus(FALSE)
 	, m_getTargetChange(FALSE)
+	, sendStopFlag(FALSE)
 	, timer(0)
 	, CH1_RECVLength(0)
 	, CH2_RECVLength(0)
@@ -431,6 +432,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP1(){
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	jsonSetting["IP_Detector1"] = pStrIP;
 	jsonSetting["Port_Detector1"] = sPort;
+	jsonSetting["CH1_RECVLength"] = 0;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 	
 	// 设置网络参数
@@ -479,6 +481,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP2() {
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	jsonSetting["IP_Detector2"] = pStrIP;
 	jsonSetting["Port_Detector2"] = sPort2;
+	jsonSetting["CH2_RECVLength"] = 0;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
 	// 设置网络参数
@@ -526,6 +529,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP3() {
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	jsonSetting["IP_Detector3"] = pStrIP;
 	jsonSetting["Port_Detector3"] = sPort3;
+	jsonSetting["CH3_RECVLength"] = 0;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
 	// 设置网络参数
@@ -574,6 +578,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP4() {
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	jsonSetting["IP_Detector4"] = pStrIP;
 	jsonSetting["Port_Detector4"] = sPort4;
+	jsonSetting["CH4_RECVLength"] = 0;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
 	// 设置网络参数
@@ -751,24 +756,52 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			if (MeasureStatus && (timer * TIMER_INTERVAL > MeasureTime)) 
 			{
-				send(mySocket, (char *)Order::Stop, 12, 0); Sleep(1);
-				send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
-				send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
-				send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
-				SetDlgItemText(IDC_Start, _T("开始测量"));
-				timer = 0;
-				GetDataStatus = FALSE;
-				MeasureStatus = FALSE;
+				if (!sendStopFlag) {
+					send(mySocket, (char*)Order::Stop, 12, 0); Sleep(1);
+					send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
+					send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
+					send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
+					sendStopFlag = TRUE;
+					// 打印日志
+					CString info = _T("已发送停止测量指令,请耐心等待数据完全接收！");
+					m_page1->PrintLog(info);
+				}
+				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 
-				//往TCP发送的控制板配置参数允许输入
-				SetParameterInputStatus(TRUE);
+				//在这规定时间内四个线程均没有接收到新的数据，即全部stop了
+				if (CH1_RECVLength == jsonSetting["CH1_RECVLength"].asInt() 
+					&& CH2_RECVLength == jsonSetting["CH2_RECVLength"].asInt()
+				 	&& CH3_RECVLength == jsonSetting["CH3_RECVLength"].asInt() 
+					&& CH4_RECVLength == jsonSetting["CH4_RECVLength"].asInt())
+				{
+					SetDlgItemText(IDC_Start, _T("开始测量"));
+					timer = 0;
+					GetDataStatus = FALSE;
+					MeasureStatus = FALSE;
+					sendStopFlag = FALSE;
 
-				// 按键互斥锁打开
-				GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
-				
-				// 打印日志
-				CString info = _T("已发送停止测量指令");
-				m_page1->PrintLog(info);
+					//往TCP发送的控制板配置参数允许输入
+					SetParameterInputStatus(TRUE);
+
+					// 按键互斥锁打开
+					GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+
+					if (CH1_RECVLength + CH2_RECVLength + CH3_RECVLength + CH4_RECVLength > 0) {
+						// 打印日志
+						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
+						m_page1->PrintLog(info);
+					}
+				}
+			}			
+			
+			if (timer % 10 == 0)//每间隔10个timer记录一次
+			{	// 写入配置文件
+				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+				jsonSetting["CH1_RECVLength"] = CH1_RECVLength;
+				jsonSetting["CH2_RECVLength"] = CH2_RECVLength;
+				jsonSetting["CH3_RECVLength"] = CH3_RECVLength;
+				jsonSetting["CH4_RECVLength"] = CH4_RECVLength;
+				WriteSetting(_T("Setting.json"), jsonSetting);
 			}
 		}
 		break;
@@ -784,19 +817,47 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			m_statusBar.SetPaneText(0, strInfo);
 
 			if (MeasureStatus && (timer * TIMER_INTERVAL >= MeasureTime)) {
-				send(mySocket, (char*)Order::Stop, 12, 0); Sleep(1);
-				send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
-				send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
-				send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
-				
-				// 重置部分数据
-				timer = 0;
-				MeasureStatus = FALSE;
-				GetDataStatus = FALSE;
+				if (!sendStopFlag) {
+					send(mySocket, (char*)Order::Stop, 12, 0); Sleep(1);
+					send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
+					send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
+					send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
+					sendStopFlag = TRUE;
 
-				// 打印日志
-				CString info = _T("已发送停止测量指令");
-				m_page1->PrintLog(info);
+					// 打印日志
+					CString info = _T("已发送停止测量指令");
+					m_page1->PrintLog(info);
+				}
+
+				//在规定时间内四个线程均没有接收到新的数据，即全部stop了
+				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+				if (CH1_RECVLength == jsonSetting["CH1_RECVLength"].asInt()
+					&& CH2_RECVLength == jsonSetting["CH2_RECVLength"].asInt()
+					&& CH3_RECVLength == jsonSetting["CH3_RECVLength"].asInt()
+					&& CH4_RECVLength == jsonSetting["CH4_RECVLength"].asInt())
+				{
+					// 重置部分数据
+					timer = 0;
+					MeasureStatus = FALSE;
+					GetDataStatus = FALSE;
+					sendStopFlag = FALSE;
+
+					if (CH1_RECVLength + CH2_RECVLength + CH3_RECVLength + CH4_RECVLength> 0) {
+						// 打印日志
+						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
+						m_page1->PrintLog(info);
+					}
+				}
+			}
+
+			if (timer % 10 == 0)//每间隔10个timer记录一次
+			{	// 写入配置文件
+				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+				jsonSetting["CH1_RECVLength"] = CH1_RECVLength;
+				jsonSetting["CH2_RECVLength"] = CH2_RECVLength;
+				jsonSetting["CH3_RECVLength"] = CH3_RECVLength;
+				jsonSetting["CH4_RECVLength"] = CH4_RECVLength;
+				WriteSetting(_T("Setting.json"), jsonSetting);
 			}
 		}
 		break;
@@ -820,10 +881,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				Mkdir(saveAsTargetPath);
 
 				// 发送停止指令，复位。以保证把上一次测量重置。				
-				send(mySocket, (char*)Order::Stop, 12, 0); Sleep(1);
-				send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
-				send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
-				send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
+				send(mySocket, (char*)Order::Stop, 12, 0); Sleep(5);
+				send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(5);
+				send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(5);
+				send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(5);
 
 				// 重置从网口接收的缓存数据
 				ResetTCPData();
@@ -834,6 +895,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				//重置测量状态
 				MeasureStatus = TRUE;
 				m_getTargetChange = FALSE;
+				sendStopFlag = FALSE;
 
 				//发送开始测量指令，采用硬件触发
 				if (mySocket != NULL) {

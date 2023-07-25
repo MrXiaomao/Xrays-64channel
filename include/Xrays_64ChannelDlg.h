@@ -61,6 +61,7 @@ public:
 	BOOL AutoMeasureStatus; // 自动测量状态
 	BOOL GetDataStatus; // 是否接受到TCP网口的数据
 	BOOL m_getTargetChange; // 检测炮号是否变化
+	BOOL sendStopFlag; // 用来告知是否发送停止指令的标志，防止重复发送停止指令
 	int timer; // 计时器，满三秒后则发送停止测量
 	CString saveAsPath; //数据存储根路径
 	CString saveAsTargetPath; //数据存储炮号路径
