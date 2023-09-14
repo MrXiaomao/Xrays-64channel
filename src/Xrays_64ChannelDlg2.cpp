@@ -6,7 +6,7 @@
 #include "Xrays_64ChannelDlg.h"
 #include "afxdialogex.h"
 #include "Order.h"
-
+#include "Log.h"
 #include "afx.h"
 // 该文件存放不常用函数，以及功能函数
 
@@ -45,6 +45,7 @@ void CXrays_64ChannelDlg::SetParameterInputStatus(BOOL flag) {
 // 打开UDP通信
 void CXrays_64ChannelDlg::OpenUDP()
 {
+	CLog::WriteMsg(_T("尝试打开UDP！"));
 	UpdateData(TRUE); //读取界面控件的输入值
 	// 读取配置参数并设置到相应控件上
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
@@ -83,6 +84,7 @@ void CXrays_64ChannelDlg::OpenUDP()
 
 void CXrays_64ChannelDlg::CloseUDP() {
 	if (m_UDPSocket != NULL) delete m_UDPSocket;
+	m_UDPSocket = NULL;
 	CString info = _T("UDP网络已关闭");
 	m_page1->PrintLog(info);
 	m_page2->PrintLog(info);
@@ -271,7 +273,8 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 		send(mySocket2, (char*)Order::WorkMode0, 12, 0); Sleep(1);
 		send(mySocket3, (char*)Order::WorkMode0, 12, 0); Sleep(1);
 		send(mySocket4, (char*)Order::WorkMode0, 12, 0); Sleep(1);
-		CString info = _T("512道能谱工作模式");
+		CString info;
+		info.Format(_T("能谱刷新时间:%dms,512道能谱工作模式"), RefreshTime);
 		m_page1->PrintLog(info);
 	}
 	else if (m_WaveMode.GetCurSel() == 1) { //16道能谱
@@ -279,7 +282,8 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 		send(mySocket2, (char*)Order::WorkMode3, 12, 0); Sleep(1);
 		send(mySocket3, (char*)Order::WorkMode3, 12, 0); Sleep(1);
 		send(mySocket4, (char*)Order::WorkMode3, 12, 0); Sleep(1);
-		CString info = _T("16道能谱工作模式");
+		CString info;
+		info.Format(_T("能谱刷新时间:%dms,16道能谱工作模式"), RefreshTime);
 		m_page1->PrintLog(info);
 	}
 }

@@ -48,6 +48,9 @@
     <ClInclude Include="include\Xrays_64ChannelDlg.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="include\Log.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lib_json\json_reader.cpp">
@@ -84,6 +87,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\Xrays_64ChannelDlg2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Log.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -5,7 +5,7 @@
 #include "Xrays_64Channel.h"
 #include "RunningLog.h"
 #include "afxdialogex.h"
-
+#include "Log.h"
 
 // RunningLog 对话框
 
@@ -40,6 +40,8 @@ void RunningLog::PrintLog(CString info)
 	CTime t = CTime::GetCurrentTime();
 	CString strTime = t.Format(_T("[%Y-%m-%d %H:%M:%S]# "));
 	m_Information = m_Information + strTime + info + _T("\r\n");
+	CLog::SetPrefix(_T("RunningLog::PrintLog"));
+	CLog::WriteMsg(info);
 	UpdateData(FALSE);
 	m_LogEdit.LineScroll(m_LogEdit.GetLineCount()); //每次刷新后都显示最底部
 }

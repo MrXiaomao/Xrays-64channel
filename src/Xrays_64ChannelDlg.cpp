@@ -10,6 +10,7 @@
 #include "Xrays_64ChannelDlg.h"
 #include "afxdialogex.h"
 #include "Order.h"
+#include "Log.h"
 //定时器时间间隔
 const int TIMER_INTERVAL = 100;
 
@@ -58,7 +59,8 @@ END_MESSAGE_MAP()
 
 CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_XRAYS64CHANNEL_DIALOG, pParent)
-	, DataMaxlen(5000) 
+	, m_UDPSocket(NULL)
+	, DataMaxlen(5000)
 	, connectStatus(FALSE)
 	, UDPStatus(FALSE)
 	, MeasureStatus(FALSE)
@@ -67,13 +69,15 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, m_getTargetChange(FALSE)
 	, sendStopFlag(FALSE)
 	, timer(0)
+	, saveAsPath("")
+	, saveAsTargetPath("")
 	, CH1_RECVLength(0)
 	, CH2_RECVLength(0)
 	, CH3_RECVLength(0)
 	, CH4_RECVLength(0)
+	, m_page1(NULL)
+	, m_page2(NULL)
 	, m_currentTab(0)
-	, saveAsPath("")
-	, saveAsTargetPath("")
 	, sPort(5000), sPort2(6000), sPort3(7000), sPort4(8000)
 	, m_targetID(_T("00000"))
 	, m_UDPPort(12100)
@@ -85,11 +89,19 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	DataCH2 = new char[DataMaxlen];
 	DataCH3 = new char[DataMaxlen];
 	DataCH4 = new char[DataMaxlen];
+
+	// 1、创建套接字
+	mySocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	mySocket2 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	mySocket3 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	mySocket4 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	
+	CLog::WriteMsg(_T("打开软件，软件环境初始化！"));
 }
 
 CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 {
-	//KillTimer(3); //炮号刷新的计时器
+	CLog::WriteMsg(_T("正在退出软件，释放相关资源！"));
 	if (connectStatus) {
 		connectStatus = FALSE; // 用来控制关闭线程
 		closesocket(mySocket); //关闭套接字
@@ -105,6 +117,7 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 
 	delete m_page1;
 	delete m_page2;
+	CLog::WriteMsg(_T("退出软件，软件关闭成功！"));
 }
 
 // 绑定变量与控件
@@ -160,7 +173,7 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	CDialogEx::OnInitDialog();
 
 	// 将“关于...”菜单项添加到系统菜单中。
-
+	
 	// IDM_ABOUTBOX 必须在系统命令范围内。
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
@@ -196,6 +209,9 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	m_TriggerType.SetCurSel(0); 
 	m_WaveMode.SetCurSel(0);
 	
+	CRect rectDlg;
+	GetClientRect(rectDlg);//获得窗体的大小
+
 	// 添加状态栏
 	UINT nID[] = { 1001,1002,1003 };
 	//创建状态栏
@@ -203,9 +219,9 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	//添加状态栏面板，参数为ID数组和面板数量
 	m_statusBar.SetIndicators(nID, sizeof(nID) / sizeof(UINT));
 	//设置面板序号，ID，样式和宽度，SBPS_NORMAL为普通样式，固定宽度，SBPS_STRETCH为弹簧样式，会自动扩展它的空间
-	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, 600);
-	m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, 0);
-	m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, 150);
+	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, int(0.6 * rectDlg.Width()));
+	m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, int(0.2 * rectDlg.Width()));
+	m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, int(0.2 * rectDlg.Width()));
 	//设置状态栏位置
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	//设置状态栏面板文本，参数为面板序号和对应文本
@@ -287,6 +303,7 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 	GetDlgItem(IDC_TEST_BUTTON)->EnableWindow(FALSE);
 
+	CLog::WriteMsg(_T("软件加载完成！"));
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -351,6 +368,7 @@ void CXrays_64ChannelDlg::OnConnect()
 	CString strTemp;
 	GetDlgItemText(IDC_CONNECT1, strTemp);
 	if (strTemp == _T("连接网络")) {
+		CLog::WriteMsg(_T("点击“连接网络按钮”，尝试连接TCP网络！"));
 		BOOL status1 = ConnectTCP1();
 		BOOL status2 = ConnectTCP2();
 		BOOL status3 = ConnectTCP3();
@@ -371,10 +389,12 @@ void CXrays_64ChannelDlg::OnConnect()
 			if (UDPStatus) {
 				GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 			}
+			CLog::WriteMsg(_T("TCP网络连接成功！"));
 		}
 		else if (status1|| status2|| status3|| status4) {
 			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
 			SetTCPInputStatus(TRUE);
+			CLog::WriteMsg(_T("TCP网络部分连接失败！"));
 		}
 		// 连接失败
 		else {
@@ -383,6 +403,7 @@ void CXrays_64ChannelDlg::OnConnect()
 			SetTCPInputStatus(TRUE);
 			GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 			GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
+			CLog::WriteMsg(_T("TCP网络全部连接成功！"));
 		}
 	}
 	else{
@@ -416,8 +437,7 @@ void CXrays_64ChannelDlg::OnConnect()
 }
 
 BOOL CXrays_64ChannelDlg::ConnectTCP1(){
-	// 1、创建套接字
-	mySocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	// 1、套接字检测
 	if (mySocket == NULL) {
 		MessageBox(_T("ClientSocket1创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
 		return FALSE;
@@ -465,8 +485,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP1(){
 }
 
 BOOL CXrays_64ChannelDlg::ConnectTCP2() {
-	// 1、创建套接字
-	mySocket2 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	// 1、套接字检测
 	if (mySocket2 == NULL) {
 		MessageBox(_T("ClientSocket2创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
 		return FALSE;
@@ -514,8 +533,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP2() {
 }
 
 BOOL CXrays_64ChannelDlg::ConnectTCP3() {
-	// 1、创建套接字
-	mySocket3 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	// 1、套接字检测
 	if (mySocket3 == NULL) {
 		MessageBox(_T("ClientSocket3创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
 		return FALSE;
@@ -562,8 +580,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP3() {
 }
 
 BOOL CXrays_64ChannelDlg::ConnectTCP4() {
-	// 1、创建套接字
-	mySocket4 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	// 1、套接字检测
 	if (mySocket4 == NULL) {
 		MessageBox(_T("ClientSocket2创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
 		return FALSE;
@@ -750,7 +767,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			//状态栏显示
 			CString strInfo;
-			strInfo.Format(_T("Receive data Length:CH1= %d,CH2=%d,CH3=%d,CH4=%d"),
+			strInfo.Format(_T("Data Length:CH1= %d,CH2=%d,CH3=%d,CH4=%d"),
 				CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
 			m_statusBar.SetPaneText(0, strInfo);
 
@@ -763,7 +780,8 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
 					sendStopFlag = TRUE;
 					// 打印日志
-					CString info = _T("已发送停止测量指令,请耐心等待数据完全接收！");
+					CString info;
+					info.Format(_T("测量时间：%dms, 已发送停止测量指令,请耐心等待数据完全接收！"), MeasureTime);
 					m_page1->PrintLog(info);
 				}
 				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
@@ -790,7 +808,11 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 						// 打印日志
 						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
 						m_page1->PrintLog(info);
+						info.Format(_T("Data Length : CH1 = % d, CH2 = % d, CH3 = % d, CH4 = % d"),
+							CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
+						m_page1->PrintLog(info);
 					}
+					KillTimer(1);	//测量结束，关闭定时器
 				}
 			}			
 			
@@ -812,7 +834,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			//状态栏显示
 			CString strInfo;
-			strInfo.Format(_T("Receive data Length:CH1= %d,CH2=%d,CH3=%d,CH4=%d"),
+			strInfo.Format(_T("Data Length:CH1= %d,CH2=%d,CH3=%d,CH4=%d"),
 				CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
 			m_statusBar.SetPaneText(0, strInfo);
 
@@ -825,7 +847,8 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					sendStopFlag = TRUE;
 
 					// 打印日志
-					CString info = _T("已发送停止测量指令");
+					CString info;
+					info.Format(_T("测量时间：%dms, 已发送停止测量指令,请耐心等待数据完全接收！"), MeasureTime);
 					m_page1->PrintLog(info);
 				}
 
@@ -845,6 +868,9 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					if (CH1_RECVLength + CH2_RECVLength + CH3_RECVLength + CH4_RECVLength> 0) {
 						// 打印日志
 						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
+						m_page1->PrintLog(info);
+						info.Format(_T("Data Length : CH1 = % d, CH2 = % d, CH3 = % d, CH4 = % d"),
+							CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
 						m_page1->PrintLog(info);
 					}
 				}
@@ -912,6 +938,8 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				}
 
 				CString info = _T("\"硬件触发\"工作模式");
+				m_page1->PrintLog(info);
+				info.Format(_T("计时器timer = %d"),timer);
 				m_page1->PrintLog(info);
 			}
 		}
