@@ -90,12 +90,6 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	DataCH3 = new char[DataMaxlen];
 	DataCH4 = new char[DataMaxlen];
 
-	// 1、创建套接字
-	mySocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	mySocket2 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	mySocket3 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	mySocket4 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	
 	CLog::WriteMsg(_T("打开软件，软件环境初始化！"));
 }
 
@@ -437,7 +431,8 @@ void CXrays_64ChannelDlg::OnConnect()
 }
 
 BOOL CXrays_64ChannelDlg::ConnectTCP1(){
-	// 1、套接字检测
+	// 1、创建套接字
+	mySocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (mySocket == NULL) {
 		MessageBox(_T("ClientSocket1创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
 		return FALSE;
@@ -455,14 +450,14 @@ BOOL CXrays_64ChannelDlg::ConnectTCP1(){
 	jsonSetting["CH1_RECVLength"] = 0;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 	
-	// 设置网络参数
+	// 3、设置网络参数
 	sockaddr_in server_addr;
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
 	server_addr.sin_port = htons(sPort); //网关：5000
-	SetSocketSize(mySocket, 1048576*3); //1M=1024k=1048576字节
+	SetSocketSize(mySocket, 1048576*3); //1M=1024k=1048576字节，缓存区大小
 	
-	// 3、检测网络是否连接,以及显示设备联网状况
+	// 4、检测网络是否连接,以及显示设备联网状况
 	if (connect(mySocket, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
 		m_NetStatusLED.RefreshWindow(FALSE);//打开指示灯
 		MessageBox(_T("CH1连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
@@ -485,7 +480,8 @@ BOOL CXrays_64ChannelDlg::ConnectTCP1(){
 }
 
 BOOL CXrays_64ChannelDlg::ConnectTCP2() {
-	// 1、套接字检测
+	// 1、创建套接字
+	mySocket2 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (mySocket2 == NULL) {
 		MessageBox(_T("ClientSocket2创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
 		return FALSE;
@@ -503,14 +499,14 @@ BOOL CXrays_64ChannelDlg::ConnectTCP2() {
 	jsonSetting["CH2_RECVLength"] = 0;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
-	// 设置网络参数
+	// 3、设置网络参数
 	sockaddr_in server_addr;
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
 	server_addr.sin_port = htons(sPort2); //网关：5000
-	SetSocketSize(mySocket2, 1048576 * 3); //1M=1024k=1048576字节
+	SetSocketSize(mySocket2, 1048576 * 3); //1M=1024k=1048576字节，缓存区大小
 
-	// 3、检测网络是否连接,以及显示设备联网状况
+	// 4、检测网络是否连接,以及显示设备联网状况
 	if (connect(mySocket2, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
 		m_NetStatusLED2.RefreshWindow(FALSE);//打开指示灯
 		MessageBox(_T("CH2连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
@@ -533,7 +529,8 @@ BOOL CXrays_64ChannelDlg::ConnectTCP2() {
 }
 
 BOOL CXrays_64ChannelDlg::ConnectTCP3() {
-	// 1、套接字检测
+	// 1、创建套接字
+	mySocket3 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (mySocket3 == NULL) {
 		MessageBox(_T("ClientSocket3创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
 		return FALSE;
@@ -550,14 +547,14 @@ BOOL CXrays_64ChannelDlg::ConnectTCP3() {
 	jsonSetting["CH3_RECVLength"] = 0;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
-	// 设置网络参数
+	// 3、设置网络参数
 	sockaddr_in server_addr;
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
 	server_addr.sin_port = htons(sPort3); //网关：5000
-	SetSocketSize(mySocket3, 1048576 * 3); //1M=1024k=1048576字节
+	SetSocketSize(mySocket3, 1048576 * 3); //1M=1024k=1048576字节，缓存区大小
 
-	// 3、检测网络是否连接,以及显示设备联网状况
+	// 4、检测网络是否连接,以及显示设备联网状况
 	if (connect(mySocket3, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
 		m_NetStatusLED3.RefreshWindow(FALSE);//打开指示灯
 		MessageBox(_T("CH3连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
@@ -580,7 +577,8 @@ BOOL CXrays_64ChannelDlg::ConnectTCP3() {
 }
 
 BOOL CXrays_64ChannelDlg::ConnectTCP4() {
-	// 1、套接字检测
+	// 1、创建套接字
+	mySocket4 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (mySocket4 == NULL) {
 		MessageBox(_T("ClientSocket2创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
 		return FALSE;
@@ -598,14 +596,14 @@ BOOL CXrays_64ChannelDlg::ConnectTCP4() {
 	jsonSetting["CH4_RECVLength"] = 0;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
-	// 设置网络参数
+	// 3、设置网络参数
 	sockaddr_in server_addr;
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
 	server_addr.sin_port = htons(sPort4); //网关：5000
-	SetSocketSize(mySocket4, 1048576 * 3); //1M=1024k=1048576字节
+	SetSocketSize(mySocket4, 1048576 * 3); //1M=1024k=1048576字节，缓存区大小
 
-	// 3、检测网络是否连接,以及显示设备联网状况
+	// 4、检测网络是否连接,以及显示设备联网状况
 	if (connect(mySocket4, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
 		m_NetStatusLED4.RefreshWindow(FALSE);//打开指示灯
 		MessageBox(_T("CH4连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
@@ -938,8 +936,6 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				}
 
 				CString info = _T("\"硬件触发\"工作模式");
-				m_page1->PrintLog(info);
-				info.Format(_T("计时器timer = %d"),timer);
 				m_page1->PrintLog(info);
 			}
 		}
