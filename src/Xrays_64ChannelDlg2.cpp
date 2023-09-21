@@ -71,8 +71,8 @@ void CXrays_64ChannelDlg::OpenUDP()
 	SetDlgItemInt(IDC_UDPPORT, uiPort);
 	CString info;
 	info.Format(_T("UDP已打开，端口号为:%d"), uiPort);
-	m_page1->PrintLog(info);
-	m_page2->PrintLog(info);
+	m_page1.PrintLog(info);
+	m_page2.PrintLog(info);
 	
 	UDPStatus = TRUE;
 	GetDlgItem(IDC_UDPPORT)->EnableWindow(FALSE);
@@ -86,8 +86,8 @@ void CXrays_64ChannelDlg::CloseUDP() {
 	if (m_UDPSocket != NULL) delete m_UDPSocket;
 	m_UDPSocket = NULL;
 	CString info = _T("UDP网络已关闭");
-	m_page1->PrintLog(info);
-	m_page2->PrintLog(info);
+	m_page1.PrintLog(info);
+	m_page2.PrintLog(info);
 	UDPStatus = FALSE;
 	GetDlgItem(IDC_UDPPORT)->EnableWindow(TRUE);
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
@@ -233,7 +233,7 @@ void CXrays_64ChannelDlg::OnBnClickedSaveas()
 
 		// 打印日志信息
 		CString info = _T("实验数据保存路径：") + saveAsPath;
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 		UpdateData(FALSE);
 	}
 }
@@ -275,7 +275,7 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 		send(mySocket4, (char*)Order::WorkMode0, 12, 0); Sleep(1);
 		CString info;
 		info.Format(_T("能谱刷新时间:%dms,512道能谱工作模式"), RefreshTime);
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 	}
 	else if (m_WaveMode.GetCurSel() == 1) { //16道能谱
 		send(mySocket, (char*)Order::WorkMode3, 12, 0); Sleep(1);
@@ -284,7 +284,7 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 		send(mySocket4, (char*)Order::WorkMode3, 12, 0); Sleep(1);
 		CString info;
 		info.Format(_T("能谱刷新时间:%dms,16道能谱工作模式"), RefreshTime);
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 	}
 }
 
@@ -292,22 +292,21 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 void CXrays_64ChannelDlg::OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	// TODO: 在此添加控件通知处理程序代码
-	*pResult = 0;
 	m_currentTab = m_Tab.GetCurSel();
 	switch (m_currentTab)
 	{
 	case 0:
-		m_page1->ShowWindow(SW_SHOW);
-		m_page2->ShowWindow(SW_HIDE);
-		m_page1->UpdateData(FALSE);
+		m_page1.ShowWindow(SW_SHOW);
+		m_page2.ShowWindow(SW_HIDE);
+		//m_page1.UpdateData(FALSE);
 		break;
 	case 1:
-		m_page1->ShowWindow(SW_HIDE);
-		m_page2->ShowWindow(SW_SHOW);
-		m_page2->UpdateData(FALSE);
+		m_page1.ShowWindow(SW_HIDE);
+		m_page2.ShowWindow(SW_SHOW);
+		//m_page2.UpdateData(FALSE);
 		break;
-	}
 	*pResult = 0;
+	}
 }
 
 //清除当前日志（系统日志，UDP接受日志）
@@ -320,14 +319,14 @@ void CXrays_64ChannelDlg::OnBnClickedClearLog()
 	switch (m_currentTab)
 	{
 	case 0:
-		m_page1->m_Information = _T("");
-		m_page1->UpdateData(FALSE);
-		m_page1->MoveWindow(&rc);
+		m_page1.m_Information = _T("");
+		m_page1.UpdateData(FALSE);
+		// m_page1.MoveWindow(&rc);
 		break;
 	case 1:
-		m_page2->m_Information = _T("");
-		m_page2->UpdateData(FALSE);
-		m_page2->MoveWindow(&rc);
+		m_page2.m_Information = _T("");
+		m_page2.UpdateData(FALSE);
+		// m_page2.MoveWindow(&rc);
 		break;
 	default:
 		break;
@@ -377,6 +376,7 @@ void CXrays_64ChannelDlg::AddTCPData(int channel, char* tempChar, int len) {
 	}
 }
 
+// 设置网口缓存区大小
 void CXrays_64ChannelDlg::SetSocketSize(SOCKET sock, int nsize)
 {
 	int nErrCode = 0;//返回值
@@ -397,4 +397,52 @@ void CXrays_64ChannelDlg::SetSocketSize(SOCKET sock, int nsize)
 		MessageBox(_T("设置SOCKET发送缓冲区大小失败"));
 		return;
 	}
+}
+
+void CXrays_64ChannelDlg::OnSize(UINT nType, int cx, int cy)
+{
+	CDialogEx::OnSize(nType, cx, cy);
+	ResizeBar();
+	m_layout.OnSize(cx, cy);
+
+	if(m_page1.GetSafeHwnd() || m_page2.GetSafeHwnd())
+	{
+		CRect rctab;
+		CRect reItem;
+		int m_nWidth, m_nHeight;
+
+		m_Tab.GetClientRect(&rctab);
+
+		m_nWidth = rctab.right - rctab.left;
+		m_nHeight = rctab.bottom-rctab.top;
+
+		m_Tab.GetItemRect(0,&reItem);
+		rctab.DeflateRect(0, reItem.bottom, 0,0);
+
+		m_page1.MoveWindow(&rctab);
+		m_page2.MoveWindow(&rctab);
+	}
+}
+
+// 窗口尺寸变化后，重新绘制状态栏
+void CXrays_64ChannelDlg::ResizeBar() {
+	CRect rectDlg;
+	GetClientRect(rectDlg);//获得窗体的大小
+	//判断状态栏是否被创建
+	if (IsWindow(m_statusBar.m_hWnd))
+	{
+		//设置面板序号，ID，样式和宽度，SBPS_NORMAL为普通样式，固定宽度，SBPS_STRETCH为弹簧样式，会自动扩展它的空间
+		m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, int(0.6 * rectDlg.Width()));
+		m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, int(0.2 * rectDlg.Width()));
+		m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, int(0.2 * rectDlg.Width()));
+		RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
+	}
+}
+
+
+void CXrays_64ChannelDlg::OnSizing(UINT fwSide, LPRECT pRect)
+{
+	CDialogEx::OnSizing(fwSide, pRect);
+	//	EASYSIZE_MINSIZE(600,400,fwSide,pRect);
+	// TODO: 在此处添加消息处理程序代码
 }

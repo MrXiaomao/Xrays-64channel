@@ -190,6 +190,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\CClientSocket.h" />
+    <ClInclude Include="include\Layout.h" />
+    <ClInclude Include="include\LayoutInit.h" />
+    <ClInclude Include="include\LayoutInit_Runner.h" />
+    <ClInclude Include="include\LayoutInit_UDPLog.h" />
     <ClInclude Include="include\LEDButton.h" />
     <ClInclude Include="include\Log.h" />
     <ClInclude Include="include\MyConst.h" />
@@ -204,6 +208,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\CClientSocket.cpp" />
+    <ClCompile Include="src\Layout.cpp" />
     <ClCompile Include="src\LEDButton.cpp" />
     <ClCompile Include="src\lib_json\json_reader.cpp" />
     <ClCompile Include="src\lib_json\json_value.cpp" />

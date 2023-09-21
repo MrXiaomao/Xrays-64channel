@@ -26,7 +26,11 @@ public:
 	CXrays_64ChannelDlg(CWnd* pParent = nullptr);	// 标准构造函数
 	virtual ~CXrays_64ChannelDlg();
 
-	void OpenUDP(); // 打开UDP通信
+	void InitBarSettings(); //初始化状态栏
+	void InitTabSettings(); //初始化Tab对话框
+	void InitOtherSettings(); // 初始化界面其他控件参数
+	void ResizeBar(); //重新绘制状态栏
+	void OpenUDP(); //打开UDP通信
 	void CloseUDP(); //关闭UDP通信，以及相应资源
 	void SendParameterToTCP(); //发送配置参数
 	void SendCalibration(CString fileName); //发送刻度曲线
@@ -63,9 +67,9 @@ public:
 	BOOL m_getTargetChange; // 检测炮号是否变化
 	BOOL sendStopFlag; // 用来告知是否发送停止指令的标志，防止重复发送停止指令
 	int timer; // 计时器，满三秒后则发送停止测量
-	CString saveAsPath; //数据存储根路径
-	CString saveAsTargetPath; //数据存储炮号路径
-	CStatusBar m_statusBar;
+	CString saveAsPath; // 数据存储根路径
+	CString saveAsTargetPath; // 数据存储炮号路径
+	CStatusBar m_statusBar; // 状态栏
 
 	char* DataCH1; // 网口接收的数据，缓存下来，接收完后再存储到文件中。
 	char* DataCH2;
@@ -76,8 +80,10 @@ public:
 	int CH3_RECVLength;//接受数据长度
 	int CH4_RECVLength;//接受数据长度
 
-	RunningLog* m_page1;
-	UDP_RecieveLog* m_page2;
+	RunningLog m_page1;
+	UDP_RecieveLog m_page2;
+	CRect m_rect;
+	CLayout m_layout;
 	int m_currentTab;
 
 // 对话框数据
@@ -100,6 +106,8 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
+	afx_msg void OnSize(UINT nType, int cx, int cy); //变化后的尺寸
+	afx_msg void OnSizing(UINT fwSide, LPRECT pRect); //鼠标拖动时的尺寸变化
 	afx_msg void OnConnect(); // 连接网络
 	afx_msg void OnEnKillfocusPort1();
 	afx_msg void OnEnKillfocusPort2();

@@ -24,7 +24,7 @@ void CClientSocket::OnReceive(int nErrorCode)
 
 	// ÈÕÖ¾¼ÇÂ¼
 	CString tempStr(recBuf);
-	this->m_pMainDlg->m_page2->PrintLog(_T("RECV ASCII: ") + tempStr);
+	this->m_pMainDlg->m_page2.PrintLog(_T("RECV ASCII: ") + tempStr);
 
 	if (recBuf[0] == '+' && recBuf[1] == 'P' && recBuf[2] == 'L' && recBuf[3] == 'S') {
 		//int tmp = '0';

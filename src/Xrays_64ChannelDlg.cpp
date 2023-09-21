@@ -11,6 +11,8 @@
 #include "afxdialogex.h"
 #include "Order.h"
 #include "Log.h"
+#include "LayoutInit.h"
+
 //定时器时间间隔
 const int TIMER_INTERVAL = 100;
 
@@ -75,8 +77,6 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, CH2_RECVLength(0)
 	, CH3_RECVLength(0)
 	, CH4_RECVLength(0)
-	, m_page1(NULL)
-	, m_page2(NULL)
 	, m_currentTab(0)
 	, sPort(5000), sPort2(6000), sPort3(7000), sPort4(8000)
 	, m_targetID(_T("00000"))
@@ -111,6 +111,7 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 
 	delete m_page1;
 	delete m_page2;
+	KillTimer(4);
 	CLog::WriteMsg(_T("退出软件，软件关闭成功！"));
 }
 
@@ -141,6 +142,8 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_WM_TIMER()
+	ON_WM_SIZE()
+	ON_WM_SIZING()
 	ON_BN_CLICKED(IDC_CONNECT1, &CXrays_64ChannelDlg::OnConnect)
 	ON_EN_KILLFOCUS(IDC_PORT1, &CXrays_64ChannelDlg::OnEnKillfocusPort1)
 	ON_EN_KILLFOCUS(IDC_PORT2, &CXrays_64ChannelDlg::OnEnKillfocusPort2)
@@ -186,26 +189,33 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 		}
 	}
 
-	// 设置此对话框的图标。  当应用程序主窗口不是对话框时，框架将自动
-	//  执行此操作
+	// 设置此对话框的图标。  当应用程序主窗口不是对话框时，框架将自动执行此操作
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+	InitLayout(m_layout, this);
 	UpdateData(TRUE); //表示写数据，将窗口控制变量写入内存（更新数据）
 	//UpdateData(FALSE); //表示读数据，即显示窗口读取内存的数据以供实时显示
-	m_NetStatusLED.RefreshWindow(FALSE);//设置指示灯
-	m_NetStatusLED2.RefreshWindow(FALSE);//设置指示灯
-	m_NetStatusLED3.RefreshWindow(FALSE);//设置指示灯
-	m_NetStatusLED4.RefreshWindow(FALSE);//设置指示灯
 	
-	// 设置下拉框默认选项
-	m_TriggerType.SetCurSel(0); 
-	m_WaveMode.SetCurSel(0);
 	
+	//---------------初始化状态栏---------------
+	InitBarSettings();
+
+	//----------------------------Tab窗口-------------
+	InitTabSettings();
+
+	//-------------------读取配置参数，初始化界面其他控件-----------
+	InitOtherSettings();
+
+	CLog::WriteMsg(_T("软件加载完成！"));
+	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
+}
+
+
+void CXrays_64ChannelDlg::InitBarSettings(){
 	CRect rectDlg;
 	GetClientRect(rectDlg);//获得窗体的大小
-
 	// 添加状态栏
 	UINT nID[] = { 1001,1002,1003 };
 	//创建状态栏
@@ -222,49 +232,64 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	m_statusBar.SetPaneText(0, L"aaa");
 	m_statusBar.SetPaneText(1, L"bbb");
 	m_statusBar.SetPaneText(2, L"ccc");
-
-	//开启定时器，第1个参数表示ID号，第二个参数表示刷新时间ms
+	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
+	//开启定时器，刷新状态栏参数
 	SetTimer(4, 1000, NULL);
+}
 
-	//----------------------------窗口切换-------------
-	m_page1 = new RunningLog;
-	m_page2 = new UDP_RecieveLog;
+
+void CXrays_64ChannelDlg::InitTabSettings(){
+
 	//为Tab Control增加两个页面   
 	m_Tab.InsertItem(0, _T("系统运行日志"));
 	m_Tab.InsertItem(1, _T("UDP运行日志"));
 
 	//创建两个对话框   
-	m_page1->Create(IDD_RunningLog, &m_Tab);
-	m_page2->Create(IDD_UDP_RecieveLog, &m_Tab);
+	m_page1.Create(IDD_RunningLog, &m_Tab);
+	m_page2.Create(IDD_UDP_RecieveLog, &m_Tab);
 	
-	//设定在Tab内显示的范围
-	//子控件大小
+	//设定在Tab内显示的范围,子控件大小
 	CRect rc;
-	m_Tab.GetClientRect(rc);
-	int itemHigh = 20;
-	TabCtrl_SetItemSize(m_Tab, 150, itemHigh);
+	m_Tab.GetClientRect(&rc);
+	int itemHigh = 25;
+	TabCtrl_SetItemSize(m_Tab, 150, itemHigh); //标题的尺寸
 	rc.top += itemHigh;
 	rc.bottom -= 5;
 	rc.left += 3;
 	rc.right -= 10;
 
-	m_page1->MoveWindow(&rc);
-	m_page2->MoveWindow(&rc);
+	m_page1.MoveWindow(&rc);
+	m_page2.MoveWindow(&rc);
 
 	//显示初始页面   
-	m_page1->ShowWindow(SW_SHOW);
-	m_page2->ShowWindow(SW_HIDE);
+	m_page1.ShowWindow(TRUE);
+	m_page2.ShowWindow(FALSE);
+
+	m_Tab.SetCurSel(0);
+	GetClientRect(&m_rect);
+}
+
+
+void CXrays_64ChannelDlg::InitOtherSettings(){
+	m_NetStatusLED.RefreshWindow(FALSE);//设置指示灯
+	m_NetStatusLED2.RefreshWindow(FALSE);//设置指示灯
+	m_NetStatusLED3.RefreshWindow(FALSE);//设置指示灯
+	m_NetStatusLED4.RefreshWindow(FALSE);//设置指示灯
+	
+	// 设置下拉框默认选项
+	m_TriggerType.SetCurSel(0); 
+	m_WaveMode.SetCurSel(0);
 
 	CString strPath = GetExeDir();
 	if (IsPathExit(strPath)) {
 		saveAsPath = strPath;
 		CString str = saveAsPath += "\\";
 		CString info = _T("实验数据默认保存路径：") + str;
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 	}
 	else {
 		CString info = _T("获取实验数据默认保存路径失败");
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 	}
 	
 	// ------------------读取配置参数并设置到相应控件上---------------------
@@ -302,10 +327,8 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 	GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE);
-
-	CLog::WriteMsg(_T("软件加载完成！"));
-	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
+
 
 void CXrays_64ChannelDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
@@ -430,7 +453,7 @@ void CXrays_64ChannelDlg::OnConnect()
 		SetTCPInputStatus(TRUE);
 		GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
-		m_page1->PrintLog(_T("TCP网络(CH1,CH2,CH3,CH4)已断开"));
+		m_page1.PrintLog(_T("TCP网络(CH1,CH2,CH3,CH4)已断开"));
 	}
 	// 恢复各个输入框使能状态
 	GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); // 恢复按钮使能
@@ -473,13 +496,13 @@ BOOL CXrays_64ChannelDlg::ConnectTCP1(){
 		CString info;
 		info.Format(_T("，端口号：%d"), sPort);
 		info = _T("CH1连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 		return FALSE;
 	}
 	CString info;
 	info.Format(_T("，端口号：%d"), sPort);
 	info = _T("CH1已连接，网址IP：") + StrSerIp + info;
-	m_page1->PrintLog(info);
+	m_page1.PrintLog(info);
 
 	m_NetStatusLED.RefreshWindow(TRUE);//打开指示灯
 	return TRUE;
@@ -522,13 +545,13 @@ BOOL CXrays_64ChannelDlg::ConnectTCP2() {
 		CString info;
 		info.Format(_T("，端口号：%d"), sPort2);
 		info = _T("CH2连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 		return FALSE;
 	}
 	CString info;
 	info.Format(_T("，端口号：%d"), sPort2);
 	info = _T("CH2已连接，网址IP：") + StrSerIp + info;
-	m_page1->PrintLog(info);
+	m_page1.PrintLog(info);
 
 	m_NetStatusLED2.RefreshWindow(TRUE);//打开指示灯
 	return TRUE;
@@ -570,13 +593,13 @@ BOOL CXrays_64ChannelDlg::ConnectTCP3() {
 		CString info;
 		info.Format(_T("，端口号：%d"), sPort3);
 		info = _T("CH3连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 		return FALSE;
 	}
 	CString info;
 	info.Format(_T("，端口号：%d"), sPort3);
 	info = _T("CH3已连接，网址IP：") + StrSerIp + info;
-	m_page1->PrintLog(info);
+	m_page1.PrintLog(info);
 
 	m_NetStatusLED3.RefreshWindow(TRUE);//打开指示灯
 	return TRUE;
@@ -619,13 +642,13 @@ BOOL CXrays_64ChannelDlg::ConnectTCP4() {
 		CString info;
 		info.Format(_T("，端口号：%d"), sPort4);
 		info = _T("CH4连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 		return FALSE;
 	}
 	CString info;
 	info.Format(_T("，端口号：%d"), sPort4);
 	info = _T("CH4已连接，网址IP：") + StrSerIp + info;
-	m_page1->PrintLog(info);
+	m_page1.PrintLog(info);
 
 	m_NetStatusLED4.RefreshWindow(TRUE);//打开指示灯
 	return TRUE;
@@ -786,7 +809,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					// 打印日志
 					CString info;
 					info.Format(_T("测量时间：%dms, 已发送停止测量指令,请耐心等待数据完全接收！"), MeasureTime);
-					m_page1->PrintLog(info);
+					m_page1.PrintLog(info);
 				}
 				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 
@@ -811,10 +834,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					if (CH1_RECVLength + CH2_RECVLength + CH3_RECVLength + CH4_RECVLength > 0) {
 						// 打印日志
 						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
-						m_page1->PrintLog(info);
+						m_page1.PrintLog(info);
 						info.Format(_T("Data Length : CH1 = % d, CH2 = % d, CH3 = % d, CH4 = % d"),
 							CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
-						m_page1->PrintLog(info);
+						m_page1.PrintLog(info);
 					}
 					KillTimer(1);	//测量结束，关闭定时器
 				}
@@ -853,7 +876,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					// 打印日志
 					CString info;
 					info.Format(_T("测量时间：%dms, 已发送停止测量指令,请耐心等待数据完全接收！"), MeasureTime);
-					m_page1->PrintLog(info);
+					m_page1.PrintLog(info);
 				}
 
 				//在规定时间内四个线程均没有接收到新的数据，即全部stop了
@@ -872,10 +895,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					if (CH1_RECVLength + CH2_RECVLength + CH3_RECVLength + CH4_RECVLength> 0) {
 						// 打印日志
 						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
-						m_page1->PrintLog(info);
+						m_page1.PrintLog(info);
 						info.Format(_T("Data Length : CH1 = % d, CH2 = % d, CH3 = % d, CH4 = % d"),
 							CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
-						m_page1->PrintLog(info);
+						m_page1.PrintLog(info);
 					}
 				}
 			}
@@ -897,7 +920,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			//刷新炮号相关显示以及日志
 			m_getTargetChange = FALSE;
 			CString info = _T("炮号已刷新：") + m_targetID;
-			m_page1->PrintLog(info);
+			m_page1.PrintLog(info);
 			UpdateData(FALSE);
 
 			//若处于自动测量状态，创建对应炮号文件夹，并发送开始测量指令
@@ -942,7 +965,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				}
 
 				CString info = _T("\"硬件触发\"工作模式");
-				m_page1->PrintLog(info);
+				m_page1.PrintLog(info);
 			}
 		}
 		break;
@@ -994,7 +1017,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		CString info;
 		info = _T("\r\n开始测量（手动测量），软件触发，开始时间：");
 		info += t.Format(_T("%Y-%m-%d %H:%M:%S"));
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 
 		CString strInfo = t.Format(_T("%Y-%m-%d_%H-%M-%S"));
 		saveAsTargetPath = saveAsPath + strInfo;
@@ -1002,7 +1025,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		Mkdir(saveAsTargetPath);
 
 		info = _T("测试数据存储路径:") + saveAsTargetPath;
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 
 		// 按键互斥锁
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
@@ -1028,7 +1051,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		//打印日志
 		CString info;
 		info = _T("\r\n已停止（手动）测量\r\n");
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 
 		// 按键互斥锁
 		GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
@@ -1060,7 +1083,7 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		// 打印日志
 		CString info;
 		info = _T("\r\n开始自动测量。。。");
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 
 		AutoMeasureStatus = TRUE;
 		// 重新初始化部分数据
@@ -1118,7 +1141,7 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		// 打印日志
 		CString info;
 		info = _T("\r\n已停止自动测量。。。\r\n");
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 	}
 
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
@@ -1157,7 +1180,7 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 {
 	CString info;
 	info = _T("刻度曲线指令发送中。。。");
-	m_page1->PrintLog(info);
+	m_page1.PrintLog(info);
 
 	// 若当前是联网状态，则发送数据
 	if (connectStatus) {
@@ -1193,7 +1216,7 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 
 		CString info;
 		info = _T("刻度曲线已发送");
-		m_page1->PrintLog(info);
+		m_page1.PrintLog(info);
 	}
 }
 

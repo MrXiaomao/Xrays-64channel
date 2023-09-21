@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-
+#include "Layout.h"
 // RunningLog 对话框
 
 class RunningLog : public CDialog
@@ -12,6 +12,9 @@ public:
 	virtual ~RunningLog();
 
 	void PrintLog(CString info);
+	
+	CRect m_rect;
+	CLayout m_layoutRunner;
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -23,6 +26,9 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 public:
+	virtual BOOL OnInitDialog();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	// 记录接受的日志信息
 	CString m_Information;
 	CEdit m_LogEdit;

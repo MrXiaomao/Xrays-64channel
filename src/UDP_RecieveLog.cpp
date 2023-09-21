@@ -6,6 +6,7 @@
 #include "UDP_RecieveLog.h"
 #include "afxdialogex.h"
 #include "Log.h"
+#include "LayoutInit_UDPLog.h"
 
 // UDP_RecieveLog 对话框
 
@@ -31,7 +32,27 @@ void UDP_RecieveLog::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(UDP_RecieveLog, CDialog)
+	ON_WM_SIZE()
 END_MESSAGE_MAP()
+
+
+BOOL UDP_RecieveLog::OnInitDialog()
+{
+	CDialog::OnInitDialog();
+
+	// TODO:  在此添加额外的初始化
+	InitLayoutUDPLog(m_layoutUDP, this);
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+	// 异常: OCX 属性页应返回 FALSE
+}
+
+
+void UDP_RecieveLog::OnSize(UINT nType, int cx, int cy)
+{
+	CDialog::OnSize(nType, cx, cy);
+	m_layoutUDP.OnSize(cx, cy);
+}
 
 
 // UDP_RecieveLog 消息处理程序
