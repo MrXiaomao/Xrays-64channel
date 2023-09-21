@@ -155,7 +155,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CLEAR_LOG, &CXrays_64ChannelDlg::OnBnClickedClearLog)
 	ON_BN_CLICKED(IDC_UDP_BUTTON, &CXrays_64ChannelDlg::OnBnClickedUdpButton)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
-	ON_BN_CLICKED(IDC_TEST_BUTTON, &CXrays_64ChannelDlg::OnBnClickedCalibration)
+	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
 	ON_CBN_SELCHANGE(IDC_WAVE_MODE, &CXrays_64ChannelDlg::OnCbnSelchangeWaveMode)
 END_MESSAGE_MAP()
 
@@ -241,7 +241,13 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	//子控件大小
 	CRect rc;
 	m_Tab.GetClientRect(rc);
-	rc.top += 30;
+	int itemHigh = 20;
+	TabCtrl_SetItemSize(m_Tab, 150, itemHigh);
+	rc.top += itemHigh;
+	rc.bottom -= 5;
+	rc.left += 3;
+	rc.right -= 10;
+
 	m_page1->MoveWindow(&rc);
 	m_page2->MoveWindow(&rc);
 
@@ -295,7 +301,7 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	// ---------------设置部分按钮初始化使能状态-------------
 	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
-	GetDlgItem(IDC_TEST_BUTTON)->EnableWindow(FALSE);
+	GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE);
 
 	CLog::WriteMsg(_T("软件加载完成！"));
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -1000,6 +1006,11 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 		// 按键互斥锁
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
+		GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE); //自动测量
+		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
+		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(FALSE); //连接UDP网络
+		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
+		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
 	}
 	else {
 		MeasureStatus = FALSE;
@@ -1021,6 +1032,11 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 		// 按键互斥锁
 		GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+		GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
+		GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
+		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
+		GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+		GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 	}
 	
 	GetDlgItem(IDC_Start)->EnableWindow(TRUE);
@@ -1062,9 +1078,10 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 
 		// 锁死其他相关按键
 		GetDlgItem(IDC_Start)->EnableWindow(FALSE); //手动测量
-		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接UDP网络
+		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接TCP网络
 		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(FALSE); //连接UDP网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
+		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
 	}
 	else {
 		AutoMeasureStatus = FALSE;
@@ -1096,6 +1113,7 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
 		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+		GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 
 		// 打印日志
 		CString info;
@@ -1128,7 +1146,7 @@ void CXrays_64ChannelDlg::OnBnClickedUdpButton()
 void CXrays_64ChannelDlg::OnBnClickedCalibration()
 {
 	CString fileName(_T(""));
-	ChooseFile(fileName);
+	if(!ChooseFile(fileName)) return;
 
 	SendCalibration(fileName);
 }

@@ -2,6 +2,7 @@
 
 #include "afx.h"
 #include "afxwin.h"
+#include "windows.h"
 #include <iostream>
 #include <fstream>
 #include "json/json.h"
@@ -180,7 +181,11 @@ inline Json::Value ReadSetting(CString fileName)
 	Json::Value root;
 	std::ifstream ifs;
 	ifs.open(file);
-
+	if (!ifs.is_open()) {
+		CString msg;
+		msg.Format(_T("%s文件打开失败,请检查当前路径下存在该文件"), fileName);
+		MessageBox(NULL, msg, _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
+	}
 	Json::CharReaderBuilder builder;
 	builder["collectComments"] = true;
 	JSONCPP_STRING errs;
@@ -327,7 +332,7 @@ inline BOOL ChooseFile(CString& outPath) {
 	CFileDialog dlgFile(TRUE, NULL, NULL, OFN_HIDEREADONLY,
 		_T("文件 (*.txt)|*.txt||"), NULL);
 
-	if (dlgFile.DoModal())
+	if (dlgFile.DoModal()== IDOK)
 	{
 		fileName = dlgFile.GetPathName();
 	}

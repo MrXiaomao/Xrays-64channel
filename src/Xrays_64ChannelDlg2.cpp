@@ -29,7 +29,7 @@ void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag) {
 	GetDlgItem(IDC_PORT4)->EnableWindow(flag);
 
 	//发送刻度数据,只有联网后才能使用
-	GetDlgItem(IDC_TEST_BUTTON)->EnableWindow(!flag);
+	GetDlgItem(IDC_CALIBRATION)->EnableWindow(!flag);
 }
 
 //设置配置参数框的使能状态
@@ -89,7 +89,7 @@ void CXrays_64ChannelDlg::CloseUDP() {
 	m_page1->PrintLog(info);
 	m_page2->PrintLog(info);
 	UDPStatus = FALSE;
-	GetDlgItem(IDC_UDPPORT)->EnableWindow(FALSE);
+	GetDlgItem(IDC_UDPPORT)->EnableWindow(TRUE);
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 }
 
