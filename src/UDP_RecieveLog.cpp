@@ -6,7 +6,7 @@
 #include "UDP_RecieveLog.h"
 #include "afxdialogex.h"
 #include "Log.h"
-#include "LayoutInit_UDPLog.h"
+#include "LayoutInit.h"
 
 // UDP_RecieveLog 对话框
 

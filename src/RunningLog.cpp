@@ -6,7 +6,7 @@
 #include "RunningLog.h"
 #include "afxdialogex.h"
 #include "Log.h"
-#include "LayoutInit_Runner.h"
+#include "LayoutInit.h"
 // RunningLog 对话框
 
 IMPLEMENT_DYNAMIC(RunningLog, CDialog)
@@ -42,9 +42,7 @@ BOOL RunningLog::OnInitDialog()
 
 	// TODO:  在此添加额外的初始化
 	InitLayoutRunner(m_layoutRunner,this);
-	//m_layoutRunner.Initial(this);
-	//m_layoutRunner.RegisterControl(IDC_RUNNING_LOG, CLayout::e_stretch_all);
-	
+
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// 异常: OCX 属性页应返回 FALSE
 }

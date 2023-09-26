@@ -21,9 +21,9 @@ public:
 
 	static BYTE WorkMode3[]; // 探测器传输模式指令 16道能谱
 
-	static BYTE HardTouchStart[]; // 硬件触发——开始工作
+	static BYTE StartHardTrigger[]; // 硬件触发——开始工作
 
-	static BYTE SoftTouchStart[]; // 软件触发——开始工作
+	static BYTE StartSoftTrigger[]; // 软件触发——开始工作
 
 	static BYTE Stop[]; //停止工作
 };

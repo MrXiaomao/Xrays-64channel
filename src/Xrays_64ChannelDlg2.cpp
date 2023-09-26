@@ -253,35 +253,35 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	Order::WaveRefreshTime[9] = res[3];
 
 	//发送指令
-	send(mySocket, (char *)Order::WaveRefreshTime, 12, 0); Sleep(1);
-	send(mySocket2, (char*)Order::WaveRefreshTime, 12, 0); Sleep(1);
-	send(mySocket3, (char*)Order::WaveRefreshTime, 12, 0); Sleep(1);
-	send(mySocket4, (char*)Order::WaveRefreshTime, 12, 0); Sleep(1);
+	MySend(mySocket, Order::WaveRefreshTime, 12, 0, 1);
+	MySend(mySocket2, Order::WaveRefreshTime, 12, 0, 1);
+	MySend(mySocket3, Order::WaveRefreshTime, 12, 0, 1);
+	MySend(mySocket4, Order::WaveRefreshTime, 12, 0, 1);
 
-	send(mySocket, (char*)Order::TriggerThreshold, 12, 0); Sleep(1);
-	send(mySocket2, (char*)Order::TriggerThreshold, 12, 0); Sleep(1);
-	send(mySocket3, (char*)Order::TriggerThreshold, 12, 0); Sleep(1);
-	send(mySocket4, (char*)Order::TriggerThreshold, 12, 0); Sleep(1);
+	MySend(mySocket, Order::TriggerThreshold, 12, 0, 1);
+	MySend(mySocket2, Order::TriggerThreshold, 12, 0, 1);
+	MySend(mySocket3, Order::TriggerThreshold, 12, 0, 1);
+	MySend(mySocket4, Order::TriggerThreshold, 12, 0, 1);
 
-	send(mySocket, (char*)Order::TriggerIntervalTime, 12, 0); Sleep(1);
-	send(mySocket2, (char*)Order::TriggerIntervalTime, 12, 0); Sleep(1);
-	send(mySocket3, (char*)Order::TriggerIntervalTime, 12, 0); Sleep(1);
-	send(mySocket4, (char*)Order::TriggerIntervalTime, 12, 0); Sleep(1);
+	MySend(mySocket, Order::TriggerIntervalTime, 12, 0, 1);
+	MySend(mySocket2, Order::TriggerIntervalTime, 12, 0, 1);
+	MySend(mySocket3, Order::TriggerIntervalTime, 12, 0, 1);
+	MySend(mySocket4, Order::TriggerIntervalTime, 12, 0, 1);
 
 	if (m_WaveMode.GetCurSel() == 0) { //512道能谱
-		send(mySocket, (char*)Order::WorkMode0, 12, 0); Sleep(1);
-		send(mySocket2, (char*)Order::WorkMode0, 12, 0); Sleep(1);
-		send(mySocket3, (char*)Order::WorkMode0, 12, 0); Sleep(1);
-		send(mySocket4, (char*)Order::WorkMode0, 12, 0); Sleep(1);
+		MySend(mySocket, Order::WorkMode0, 12, 0, 1);
+		MySend(mySocket2, Order::WorkMode0, 12, 0, 1);
+		MySend(mySocket3, Order::WorkMode0, 12, 0, 1);
+		MySend(mySocket4, Order::WorkMode0, 12, 0, 1);
 		CString info;
 		info.Format(_T("能谱刷新时间:%dms,512道能谱工作模式"), RefreshTime);
 		m_page1.PrintLog(info);
 	}
 	else if (m_WaveMode.GetCurSel() == 1) { //16道能谱
-		send(mySocket, (char*)Order::WorkMode3, 12, 0); Sleep(1);
-		send(mySocket2, (char*)Order::WorkMode3, 12, 0); Sleep(1);
-		send(mySocket3, (char*)Order::WorkMode3, 12, 0); Sleep(1);
-		send(mySocket4, (char*)Order::WorkMode3, 12, 0); Sleep(1);
+		MySend(mySocket, Order::WorkMode3, 12, 0, 1);
+		MySend(mySocket2, Order::WorkMode3, 12, 0, 1);
+		MySend(mySocket3, Order::WorkMode3, 12, 0, 1);
+		MySend(mySocket4, Order::WorkMode3, 12, 0, 1);
 		CString info;
 		info.Format(_T("能谱刷新时间:%dms,16道能谱工作模式"), RefreshTime);
 		m_page1.PrintLog(info);
@@ -326,7 +326,6 @@ void CXrays_64ChannelDlg::OnBnClickedClearLog()
 	case 1:
 		m_page2.m_Information = _T("");
 		m_page2.UpdateData(FALSE);
-		// m_page2.MoveWindow(&rc);
 		break;
 	default:
 		break;
@@ -347,30 +346,12 @@ void CXrays_64ChannelDlg::AddTCPData(int channel, char* tempChar, int len) {
 		CH1_RECVLength += len;
 		break;
 	case 2:
-		/*for (int i = 0; i < len; i++) {
-			if (CH2_RECVLength + i < DataMaxlen)
-			{
-				DataCH1[CH2_RECVLength + i] = tempChar[i];
-			}
-		}*/
 		CH2_RECVLength += len;
 		break;
 	case 3:
-		/*for (int i = 0; i < len; i++) {
-			if (CH3_RECVLength + i < DataMaxlen)
-			{
-				DataCH3[CH3_RECVLength + i] = tempChar[i];
-			}
-		}*/
 		CH3_RECVLength += len;
 		break;
 	case 4:
-		/*for (int i = 0; i < len; i++) {
-			if (CH4_RECVLength + i < DataMaxlen)
-			{
-				DataCH4[CH4_RECVLength + i] = tempChar[i];
-			}
-		}*/
 		CH4_RECVLength += len;
 		break;
 	}
@@ -402,7 +383,9 @@ void CXrays_64ChannelDlg::SetSocketSize(SOCKET sock, int nsize)
 void CXrays_64ChannelDlg::OnSize(UINT nType, int cx, int cy)
 {
 	CDialogEx::OnSize(nType, cx, cy);
+	//对状态栏位置重新布局
 	ResizeBar();
+	// 对界面控件重新布局
 	m_layout.OnSize(cx, cy);
 
 	if(m_page1.GetSafeHwnd() || m_page2.GetSafeHwnd())
@@ -445,4 +428,9 @@ void CXrays_64ChannelDlg::OnSizing(UINT fwSide, LPRECT pRect)
 	CDialogEx::OnSizing(fwSide, pRect);
 	//	EASYSIZE_MINSIZE(600,400,fwSide,pRect);
 	// TODO: 在此处添加消息处理程序代码
+}
+
+void CXrays_64ChannelDlg::MySend(SOCKET &socket, BYTE *msg, int msgLength, int flags, int sleepTime) {
+	send(socket, (char*)msg, msgLength, flags);
+	Sleep(sleepTime);
 }

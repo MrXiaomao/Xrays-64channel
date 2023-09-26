@@ -45,6 +45,15 @@ public:
 	void AddTCPData(int channel, char* tempChar, int len); // 缓存网口数据
 	void ResetTCPData(); // 重置缓存数据
 	void SetSocketSize(SOCKET sock, int nsize); //设置Socket缓冲区的大小
+	
+	/*网口发送数据到FPGA
+	* socket 网口
+	* msg 发送信息
+	* msgLength 数据长度
+	* flags 标志位
+	* sleepTime 发送后程序的延迟时间长度，单位ms
+	*/
+	void MySend(SOCKET &socket, BYTE *msg, int msgLength, int flags, int sleepTime=1);
 
 	LEDButton m_NetStatusLED;
 	LEDButton m_NetStatusLED2;

@@ -801,10 +801,11 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			if (MeasureStatus && (timer * TIMER_INTERVAL > MeasureTime)) 
 			{
 				if (!sendStopFlag) {
-					send(mySocket, (char*)Order::Stop, 12, 0); Sleep(1);
-					send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
-					send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
-					send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
+					MySend(mySocket, Order::Stop, 12, 0, 1);
+					MySend(mySocket2, Order::Stop, 12, 0, 1);
+					MySend(mySocket3, Order::Stop, 12, 0, 1);
+					MySend(mySocket4, Order::Stop, 12, 0, 1);
+
 					sendStopFlag = TRUE;
 					// 打印日志
 					CString info;
@@ -855,7 +856,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 		}
 		break;
 	case 2:
-		// 硬件触发后3秒定时发送关闭指令
+		// 硬件触发后3秒定时发送关闭指令，手动测量定时器
 		if (GetDataStatus) {
 			timer++;
 
@@ -867,10 +868,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			if (MeasureStatus && (timer * TIMER_INTERVAL >= MeasureTime)) {
 				if (!sendStopFlag) {
-					send(mySocket, (char*)Order::Stop, 12, 0); Sleep(1);
-					send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
-					send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
-					send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
+					MySend(mySocket, Order::Stop, 12, 0, 1);
+					MySend(mySocket2, Order::Stop, 12, 0, 1);
+					MySend(mySocket3, Order::Stop, 12, 0, 1);
+					MySend(mySocket4, Order::Stop, 12, 0, 1);
 					sendStopFlag = TRUE;
 
 					// 打印日志
@@ -915,7 +916,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 		}
 		break;
 	case 3:
-		//定时检测炮号是否刷新
+		//定时检测炮号是否刷新,自动测量定时器
 		if (m_getTargetChange) {
 			//刷新炮号相关显示以及日志
 			m_getTargetChange = FALSE;
@@ -934,10 +935,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				Mkdir(saveAsTargetPath);
 
 				// 发送停止指令，复位。以保证把上一次测量重置。				
-				send(mySocket, (char*)Order::Stop, 12, 0); Sleep(5);
-				send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(5);
-				send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(5);
-				send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(5);
+				MySend(mySocket, Order::Stop, 12, 0, 3);
+				MySend(mySocket2, Order::Stop, 12, 0, 3);
+				MySend(mySocket3, Order::Stop, 12, 0, 3);
+				MySend(mySocket4, Order::Stop, 12, 0, 3);
 
 				// 重置从网口接收的缓存数据
 				ResetTCPData();
@@ -951,18 +952,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				sendStopFlag = FALSE;
 
 				//发送开始测量指令，采用硬件触发
-				if (mySocket != NULL) {
-					send(mySocket, (char*)Order::HardTouchStart, 12, 0);Sleep(1);
-				}
-				if (mySocket2 != NULL) {
-					send(mySocket2, (char*)Order::HardTouchStart, 12, 0);Sleep(1);
-				}
-				if (mySocket3 != NULL) {
-					send(mySocket3, (char*)Order::HardTouchStart, 12, 0);Sleep(1);
-				}
-				if (mySocket4 != NULL) {
-					send(mySocket4, (char*)Order::HardTouchStart, 12, 0);Sleep(1);
-				}
+				MySend(mySocket, Order::StartHardTrigger, 12, 0, 1);
+				MySend(mySocket2, Order::StartHardTrigger, 12, 0, 1);
+				MySend(mySocket3, Order::StartHardTrigger, 12, 0, 1);
+				MySend(mySocket4, Order::StartHardTrigger, 12, 0, 1);
 
 				CString info = _T("\"硬件触发\"工作模式");
 				m_page1.PrintLog(info);
@@ -1003,10 +996,11 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		ResetTCPData();
 
 		//向TCP发送开始指令
-		send(mySocket, (char*)Order::SoftTouchStart, 12, 0); Sleep(1);
-		send(mySocket2, (char*)Order::SoftTouchStart, 12, 0); Sleep(1);
-		send(mySocket3, (char*)Order::SoftTouchStart, 12, 0); Sleep(1);
-		send(mySocket4, (char*)Order::SoftTouchStart, 12, 0); Sleep(1);
+		MySend(mySocket, Order::StartSoftTrigger, 12, 0);
+		MySend(mySocket2, Order::StartSoftTrigger, 12, 0);
+		MySend(mySocket3, Order::StartSoftTrigger, 12, 0);
+		MySend(mySocket4, Order::StartSoftTrigger, 12, 0);
+
 		SetDlgItemText(IDC_Start, _T("停止测量"));
 		
 		//开启定时器，第1个参数表示ID号，第二个参数表示刷新时间ms
@@ -1041,10 +1035,10 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		SetParameterInputStatus(TRUE);
 
 		//往TCP发送停止指令
-		send(mySocket, (char*)Order::Stop, 12, 0); Sleep(1);
-		send(mySocket2, (char*)Order::Stop, 12, 0); Sleep(1);
-		send(mySocket3, (char*)Order::Stop, 12, 0); Sleep(1);
-		send(mySocket4, (char*)Order::Stop, 12, 0); Sleep(1);
+		MySend(mySocket, Order::Stop, 12, 0, 1);
+		MySend(mySocket2, Order::Stop, 12, 0, 1);
+		MySend(mySocket3, Order::Stop, 12, 0, 1);
+		MySend(mySocket4, Order::Stop, 12, 0, 1);
 		SetDlgItemText(IDC_Start, _T("开始测量"));
 		KillTimer(1);	//关闭定时器
 
@@ -1109,23 +1103,11 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	else {
 		AutoMeasureStatus = FALSE;
 		SetParameterInputStatus(TRUE);
-		if (mySocket != NULL) {
-			send(mySocket, (char*)Order::Stop, 12, 0);
-			Sleep(1);
-		}
-		if (mySocket2 != NULL) {
-			send(mySocket2, (char*)Order::Stop, 12, 0);
-			Sleep(1);
-		}
-		if (mySocket3 != NULL) {
-			send(mySocket3, (char*)Order::Stop, 12, 0);
-			Sleep(1);
-		}
-		if (mySocket4 != NULL) {
-			send(mySocket4, (char*)Order::Stop, 12, 0);
-			Sleep(1);
-		}
-
+		MySend(mySocket, Order::Stop, 12, 0, 1);
+		MySend(mySocket2, Order::Stop, 12, 0, 1);
+		MySend(mySocket3, Order::Stop, 12, 0, 1);
+		MySend(mySocket4, Order::Stop, 12, 0, 1);
+		
 		SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
 
 		//关闭定时器
@@ -1207,11 +1189,10 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 				temp3[j] = cmd3[i * 12 + j];
 				temp4[j] = cmd4[i * 12 + j];
 			}
-			if (mySocket) send(mySocket, (char*)temp, 12, 0); Sleep(2);
-			if (mySocket2) send(mySocket2, (char*)temp2, 12, 0); Sleep(2);
-			if (mySocket3) send(mySocket3, (char*)temp3, 12, 0); Sleep(2);
-			if (mySocket4) send(mySocket4, (char*)temp4, 12, 0); Sleep(2);
-			Sleep(2);
+			if (mySocket) MySend(mySocket, temp, 12, 0, 2);
+			if (mySocket2) MySend(mySocket2, temp2, 12, 0, 2);
+			if (mySocket3) MySend(mySocket3, temp3, 12, 0, 2);
+			if (mySocket4) MySend(mySocket4, temp4, 12, 0, 2);
 		}
 
 		CString info;

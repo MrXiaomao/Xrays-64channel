@@ -54,13 +54,7 @@
     <ClInclude Include="include\Layout.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="include\LayoutInit_Runner.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="include\LayoutInit.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="include\LayoutInit_UDPLog.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

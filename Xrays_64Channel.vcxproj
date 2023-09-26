@@ -192,8 +192,6 @@
     <ClInclude Include="include\CClientSocket.h" />
     <ClInclude Include="include\Layout.h" />
     <ClInclude Include="include\LayoutInit.h" />
-    <ClInclude Include="include\LayoutInit_Runner.h" />
-    <ClInclude Include="include\LayoutInit_UDPLog.h" />
     <ClInclude Include="include\LEDButton.h" />
     <ClInclude Include="include\Log.h" />
     <ClInclude Include="include\MyConst.h" />
