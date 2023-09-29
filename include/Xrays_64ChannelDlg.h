@@ -46,14 +46,16 @@ public:
 	void ResetTCPData(); // 重置缓存数据
 	void SetSocketSize(SOCKET sock, int nsize); //设置Socket缓冲区的大小
 	
-	/*网口发送数据到FPGA
+	/*网口发送数据到FPGA，阻塞式发送，直到检测到指令反馈成功或者等待超时才退出。
 	* socket 网口
 	* msg 发送信息
 	* msgLength 数据长度
 	* flags 标志位
-	* sleepTime 发送后程序的延迟时间长度，单位ms
+	* sleepTime 发送后程序的延迟时间长度，单位：ms
+	* maxTime 最大等待时间，单位：s
 	*/
-	void MySend(SOCKET &socket, BYTE *msg, int msgLength, int flags, int sleepTime=1);
+	BOOL MySend(SOCKET socket, BYTE *msg, int msgLength, int flags, 
+		int sleepTime=1, int maxWaitingTime=3600);
 
 	LEDButton m_NetStatusLED;
 	LEDButton m_NetStatusLED2;
@@ -75,7 +77,15 @@ public:
 	BOOL GetDataStatus; // 是否接受到TCP网口的数据
 	BOOL m_getTargetChange; // 检测炮号是否变化
 	BOOL sendStopFlag; // 用来告知是否发送停止指令的标志，防止重复发送停止指令
-	int timer; // 计时器，满三秒后则发送停止测量
+	
+	BOOL ifFeedback; //用于判断当前接收数据是否为指令反馈。
+	BOOL TCPfeedback; // 发送数据后，网口指令反馈状态.无反馈则禁止发送下一条指令。
+	char* LastSendMsg; // 上一次发送的指令
+	char* RecvMsg; // 网口接收数据
+	int recievedFBLength; //已接收网口接收反馈指令长度
+	int FeedbackLen; //指令反馈字节长度
+
+	int timer; // 计时器，满测量时长后则发送停止测量
 	CString saveAsPath; // 数据存储根路径
 	CString saveAsTargetPath; // 数据存储炮号路径
 	CStatusBar m_statusBar; // 状态栏

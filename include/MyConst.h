@@ -174,6 +174,20 @@ inline BOOL DecToHex(int decIn, char* pOut) {
 	return TRUE;
 }
 
+//char*转16进制字符串
+inline CString Char2HexCString(char* cData, int len)
+{
+	CString sHex;
+	CString sTemp;
+	for (int i = 0; i < len; i++)
+	{
+		sTemp.Format(_T("%02X"), cData[i]);
+		sHex += sTemp.Right(2);
+		sHex += " ";
+	}
+	return sHex;
+}
+
 // 读取配置文件
 inline Json::Value ReadSetting(CString fileName)
 {
