@@ -1,7 +1,6 @@
 
 #include "pch.h"
 #include "Log.h"
-//#include <locale>  //用于处理UNICODE的中文写入文件
 #include "MyConst.h"
 
 #include <fstream>

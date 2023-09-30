@@ -8,15 +8,16 @@
 #include "Order.h"
 #include "Log.h"
 #include "afx.h"
-// ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Å²ï¿½ï¿½ï¿½ï¿½Ãºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½Üºï¿½ï¿½ï¿½
+// ¸ÃÎÄ¼þ´æ·Å²»³£ÓÃº¯Êý£¬ÒÔ¼°¹¦ÄÜº¯Êý
 
-// ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
+// ÎÄ¼þ²Ù×÷
 #include <iostream>
 #include <fstream>
 using namespace std;
 
-// ï¿½ï¿½ï¿½ï¿½TCPï¿½ï¿½IPï¿½ï¿½PORTï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½×´Ì¬
-void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag) {
+// ÉèÖÃTCPµÄIP¡¢PORT¡¢¸´Ñ¡¿òµÄÊäÈëÊ¹ÄÜ×´Ì¬
+void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag)
+{
 	// IP
 	GetDlgItem(IDC_IPADDRESS1)->EnableWindow(flag);
 	GetDlgItem(IDC_IPADDRESS2)->EnableWindow(flag);
@@ -28,64 +29,69 @@ void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag) {
 	GetDlgItem(IDC_PORT3)->EnableWindow(flag);
 	GetDlgItem(IDC_PORT4)->EnableWindow(flag);
 
-	//ï¿½ï¿½ï¿½Í¿Ì¶ï¿½ï¿½ï¿½ï¿½ï¿½,Ö»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+	//·¢ËÍ¿Ì¶ÈÊý¾Ý,Ö»ÓÐÁªÍøºó²ÅÄÜÊ¹ÓÃ
 	GetDlgItem(IDC_CALIBRATION)->EnableWindow(!flag);
 }
 
-//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½×´Ì¬
-void CXrays_64ChannelDlg::SetParameterInputStatus(BOOL flag) {
-	//ï¿½ï¿½ï¿½ï¿½Ë¢ï¿½ï¿½Ê±ï¿½ï¿½
-	GetDlgItem(IDC_RefreshTimeEdit)->EnableWindow(flag); 
-	//ï¿½ï¿½ï¿½×²ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+//ÉèÖÃÅäÖÃ²ÎÊý¿òµÄÊ¹ÄÜ×´Ì¬
+void CXrays_64ChannelDlg::SetParameterInputStatus(BOOL flag)
+{
+	//ÄÜÆ×Ë¢ÐÂÊ±¼ä
+	GetDlgItem(IDC_RefreshTimeEdit)->EnableWindow(flag);
+	//ÄÜÆ×²âÁ¿Ê±¼ä
 	GetDlgItem(IDC_MeasureTime)->EnableWindow(flag);
-	//ï¿½ï¿½ï¿½ï¿½Ä£Ê½Ñ¡ï¿½ï¿½
+	//ÄÜÆ×Ä£Ê½Ñ¡Ôñ
 	GetDlgItem(IDC_WAVE_MODE)->EnableWindow(flag);
 }
 
-// ï¿½ï¿½UDPÍ¨ï¿½ï¿½
+// ´ò¿ªUDPÍ¨ÐÅ
 void CXrays_64ChannelDlg::OpenUDP()
 {
-	CLog::WriteMsg(_T("ï¿½ï¿½ï¿½Ô´ï¿½UDPï¿½ï¿½"));
-	UpdateData(TRUE); //ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
-	// ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ã²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½Ó¦ï¿½Ø¼ï¿½ï¿½ï¿½
+	CLog::WriteMsg(_T("³¢ÊÔ´ò¿ªUDP£¡"));
+	UpdateData(TRUE); //¶ÁÈ¡½çÃæ¿Ø¼þµÄÊäÈëÖµ
+	// ¶ÁÈ¡ÅäÖÃ²ÎÊý²¢ÉèÖÃµ½ÏàÓ¦¿Ø¼þÉÏ
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-	//ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
+	//ÅäÖÃÎÄ¼þ²»´æÔÚ£¬ÔòÉú³ÉÅäÖÃÎÄ¼þ
 	jsonSetting["Port_UDP"] = m_UDPPort;
-	WriteSetting(_T("Setting.json"),jsonSetting);
+	WriteSetting(_T("Setting.json"), jsonSetting);
 
-	//--------------1.ï¿½ï¿½ï¿½ï¿½UDPSocket------------
-	if (!m_UDPSocket) delete m_UDPSocket;
-	m_UDPSocket = new CClientSocket(this);//ï¿½ï¿½Ê¼ï¿½ï¿½,ï¿½Â´ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ô»ï¿½ï¿½ï¿½Socket
+	//--------------1.´´½¨UDPSocket------------
+	if (!m_UDPSocket)
+		delete m_UDPSocket;
+	m_UDPSocket = new CClientSocket(this); //³õÊ¼»¯,ÐÂ´´½¨Ò»¸ö¶Ô»°¿òSocket
 	m_UDPSocket->Create(m_UDPPort, SOCK_DGRAM, NULL);
 
-	//--------------2.ï¿½ï¿½È¡Socketï¿½ó¶¨µï¿½ipï¿½Í¶Ë¿ï¿½--------------
-	//ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½IPï¿½Í¶Ë¿Úºï¿½
+	//--------------2.»ñÈ¡Socket°ó¶¨µÄipºÍ¶Ë¿Ú--------------
+	//»ñÈ¡±¾»úµÄIPºÍ¶Ë¿ÚºÅ
 	CString strIp;
 	UINT uiPort;
 
-	//ï¿½ï¿½È¡ï¿½ï¿½ï¿½ØµÄ·ï¿½ï¿½ï¿½ÅºÍ¶Ë¿Úºï¿½
+	//»ñÈ¡±¾µØµÄ·þÎñºÅºÍ¶Ë¿ÚºÅ
 	m_UDPSocket->GetSockName(strIp, uiPort);
 
-	//ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ØµÄ¶Ë¿ÚºÅºï¿½IPï¿½ï¿½
-	//SetDlgItemText(IDC_UDPIP, strIp);
+	//ÏÔÊ¾±¾µØµÄ¶Ë¿ÚºÅºÍIPºÅ
+	// SetDlgItemText(IDC_UDPIP, strIp);
 	SetDlgItemInt(IDC_UDPPORT, uiPort);
 	CString info;
-	info.Format(_T("UDPï¿½Ñ´ò¿ª£ï¿½ï¿½Ë¿Úºï¿½Îª:%d"), uiPort);
+	info.Format(_T("UDPUDPÒÑ´ò¿ª£¬¶Ë¿ÚºÅÎª:%d"), uiPort);
 	m_page1.PrintLog(info);
 	m_page2.PrintLog(info);
-	
+
 	UDPStatus = TRUE;
 	GetDlgItem(IDC_UDPPORT)->EnableWindow(FALSE);
-	// UDPï¿½ï¿½TCPï¿½ï¿½ï¿½ò¿ªºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½
-	if (connectStatus) { 
+	// UDPºÍTCP¶¼´ò¿ªºó²ÅÔÊÐíÊ¹ÓÃ×Ô¶¯²âÁ¿
+	if (connectStatus)
+	{
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 	}
 }
 
-void CXrays_64ChannelDlg::CloseUDP() {
-	if (m_UDPSocket != NULL) delete m_UDPSocket;
+void CXrays_64ChannelDlg::CloseUDP()
+{
+	if (m_UDPSocket != NULL)
+		delete m_UDPSocket;
 	m_UDPSocket = NULL;
-	CString info = _T("UDPï¿½ï¿½ï¿½ï¿½ï¿½Ñ¹Ø±ï¿½");
+	CString info = _T("UDPÍøÂçÒÑ¹Ø±Õ");
 	m_page1.PrintLog(info);
 	m_page2.PrintLog(info);
 	UDPStatus = FALSE;
@@ -93,50 +99,53 @@ void CXrays_64ChannelDlg::CloseUDP() {
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 }
 
-//ï¿½ï¿½ï¿½ï¿½TCPï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-void CXrays_64ChannelDlg::SaveFile(CString myID, char* mk, int length) {
-	if (length < 1) return;
+//±£´æTCP´«Êä¹ýÀ´µÄ²âÁ¿Êý¾Ý
+void CXrays_64ChannelDlg::SaveFile(CString myID, char *mk, int length)
+{
+	if (length < 1)
+		return;
 	CString filename = myID + _T(".dat");
 	CString wholePath = saveAsTargetPath + filename;
-	fstream datafile(wholePath, ios::out | ios::app | ios::binary);   // ×·ï¿½ï¿½
-	if (datafile.is_open()) {
+	fstream datafile(wholePath, ios::out | ios::app | ios::binary); // ×·¼Ó
+	if (datafile.is_open())
+	{
 		datafile.write(mk, length);
 		datafile.close();
 	}
 }
 
-//ï¿½ï¿½ï¿½ï¿½TCPï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ë·¶Î§
+//ÏÞÖÆTCP¶Ë¿ÚÊäÈë·¶Î§
 void CXrays_64ChannelDlg::OnEnKillfocusPort1()
 {
 	ConfinePortRange(&sPort);
 }
 
-//ï¿½ï¿½ï¿½ï¿½TCPï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ë·¶Î§
+//ÏÞÖÆTCP¶Ë¿ÚÊäÈë·¶Î§
 void CXrays_64ChannelDlg::OnEnKillfocusPort2()
 {
 	ConfinePortRange(&sPort2);
 }
 
-//ï¿½ï¿½ï¿½ï¿½TCPï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ë·¶Î§
+//ÏÞÖÆTCP¶Ë¿ÚÊäÈë·¶Î§
 void CXrays_64ChannelDlg::OnEnKillfocusPort3()
 {
 	ConfinePortRange(&sPort3);
 }
 
-//ï¿½ï¿½ï¿½ï¿½TCPï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ë·¶Î§
+//ÏÞÖÆTCP¶Ë¿ÚÊäÈë·¶Î§
 void CXrays_64ChannelDlg::OnEnKillfocusPort4()
 {
 	ConfinePortRange(&sPort4);
 }
 
-//ï¿½ï¿½ï¿½ï¿½UDPï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ë·¶Î§
+//ÏÞÖÆUDP¶Ë¿ÚÊäÈë·¶Î§
 void CXrays_64ChannelDlg::OnEnKillfocusUDPPort()
 {
-	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
 	ConfinePortRange(&m_UDPPort);
 }
 
-// ï¿½ï¿½ï¿½ï¿½TCPï¿½ï¿½ï¿½Ú½ï¿½ï¿½ÕµÄ»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+// ÖØÖÃTCPÍø¿Ú½ÓÊÕµÄ»º´æÊý¾Ý
 void CXrays_64ChannelDlg::ResetTCPData()
 {
 	memset(DataCH1, 0, DataMaxlen);
@@ -149,12 +158,13 @@ void CXrays_64ChannelDlg::ResetTCPData()
 	CH4_RECVLength = 0;
 }
 
-//ï¿½ï¿½ï¿½Æ¶Ë¿Úºï¿½ï¿½ï¿½ï¿½ë·¶Î§0~65535
-void CXrays_64ChannelDlg::ConfinePortRange(int* myPort) {
+//ÏÞÖÆ¶Ë¿ÚºÅÊäÈë·¶Î§0~65535
+void CXrays_64ChannelDlg::ConfinePortRange(int *myPort)
+{
 	UpdateData(true);
 	if ((*myPort < 0) || (*myPort > 65535))
 	{
-		MessageBox(_T("ï¿½Ë¿ÚµÄ·ï¿½Î§Îª0~65535\n"));
+		MessageBox(_T("¶Ë¿ÚµÄ·¶Î§Îª0~65535\n"));
 		if (*myPort > 65535)
 		{
 			*myPort = 65535;
@@ -167,17 +177,17 @@ void CXrays_64ChannelDlg::ConfinePortRange(int* myPort) {
 	}
 }
 
-//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë¢ï¿½ï¿½Ê±ï¿½ä·¶Î§,ï¿½ï¿½Î»msï¿½ï¿½
-//ï¿½ï¿½ï¿½ï¿½Ë¢ï¿½ï¿½Ê±ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½FPGAï¿½É¼ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+//ÏÞÖÆÄÜÆ×Ë¢ÐÂÊ±¼ä·¶Î§,µ¥Î»ms£¬
+//ÄÜÆ×Ë¢ÐÂÊ±¼äÖ¸µÄÊÇFPGA²É¼¯Ò»¸öÄÜÆ×Êý¾ÝËùÓÃÊ±¼ä
 void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 {
-	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
 	UpdateData(true);
-	int MaxTime = 60*1000; //ï¿½ï¿½Î»ms
+	int MaxTime = 60 * 1000; //µ¥Î»ms
 	if ((RefreshTime < 10) || (RefreshTime > MaxTime))
 	{
 		CString message;
-		message.Format(_T("ï¿½ï¿½ï¿½ï¿½Ë¢ï¿½ï¿½Ê±ï¿½ä·¶Î§Îª10~%dms\n"), MaxTime);
+		message.Format(_T("ÄÜÆ×Ë¢ÐÂÊ±¼ä·¶Î§Îª10~%dms\n"), MaxTime);
 		MessageBox(message);
 		if (RefreshTime > MaxTime)
 		{
@@ -191,16 +201,16 @@ void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 	}
 }
 
-//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×²ï¿½ï¿½ï¿½Ê±ï¿½ä·¶Î§ï¿½ï¿½ï¿½ï¿½Î»ms
+//ÏÞÖÆÄÜÆ×²âÁ¿Ê±¼ä·¶Î§£¬µ¥Î»ms
 void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 {
-	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
 	UpdateData(true);
-	int MaxTime = 60 * 1000; //ï¿½ï¿½Î»ms
+	int MaxTime = 60 * 1000; //µ¥Î»ms
 	if ((MeasureTime < 1) || (MeasureTime > MaxTime))
 	{
 		CString message;
-		message.Format(_T("ï¿½ï¿½ï¿½×²ï¿½ï¿½ï¿½Ê±ï¿½ä·¶Î§Îª0~%dms\n"), MaxTime);
+		message.Format(_T("ÄÜÆ×²âÁ¿Ê±¼ä·¶Î§Îª0~%dms\n"), MaxTime);
 		MessageBox(message);
 		if (MeasureTime > MaxTime)
 		{
@@ -214,106 +224,109 @@ void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 	}
 }
 
-//ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½æ´¢Â·ï¿½ï¿½
+//ÉèÖÃÎÄ¼þ´æ´¢Â·¾¶
 void CXrays_64ChannelDlg::OnBnClickedSaveas()
 {
-	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
 	Json::Value myJson = ReadSetting(_T("Setting.json"));
 	CString dir;
-	if (myJson["SaveDir"].isString()) {
+	if (myJson["SaveDir"].isString())
+	{
 		dir = myJson["SaveDir"].asCString();
 	}
 
 	HWND hwnd = this->GetSafeHwnd();
 	if (BrowserMyPath(hwnd, dir, saveAsPath))
 	{
-		// Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
+		// Ð´Èë²ÎÊýÎÄ¼þ
 		string pStr = _UnicodeToUtf8(saveAsPath);
 		myJson["SaveDir"] = pStr;
 		WriteSetting(_T("Setting.json"), myJson);
 
-		// ï¿½ï¿½Ó¡ï¿½ï¿½Ö¾ï¿½ï¿½Ï¢
-		CString info = _T("Êµï¿½ï¿½ï¿½ï¿½ï¿½Ý±ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½") + saveAsPath;
+		// ´òÓ¡ÈÕÖ¾ÐÅÏ¢
+		CString info = _T("ÊµÑéÊý¾Ý±£´æÂ·¾¶£º") + saveAsPath;
 		m_page1.PrintLog(info);
 		UpdateData(FALSE);
 	}
 }
 
-//ï¿½ï¿½ï¿½Ã²ï¿½ï¿½ï¿½,Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ°å·¢ï¿½Í²ï¿½ï¿½ï¿½
+//ÅäÖÃ²ÎÊý,Í¨¹ýÍø¿ÚÏò¿ØÖÆ°å·¢ËÍ²ÎÊý
 void CXrays_64ChannelDlg::SendParameterToTCP()
 {
-	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-	// ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
+	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
+	// ¶ÁÈ¡½çÃæ²ÎÊý²¢ÐÞ¸ÄÖ¸Áî
 	UpdateData(TRUE);
 	char res[5];
-	//ï¿½ï¿½ï¿½ï¿½Ë¢ï¿½ï¿½Ê±ï¿½ï¿½
+	//ÄÜÆ×Ë¢ÐÂÊ±¼ä
 	DecToHex(RefreshTime, res);
 	Order::WaveRefreshTime[6] = res[0];
 	Order::WaveRefreshTime[7] = res[1];
 	Order::WaveRefreshTime[8] = res[2];
 	Order::WaveRefreshTime[9] = res[3];
 
-	//ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+	//·¢ËÍÖ¸Áî
 	MySend(mySocket, Order::WaveRefreshTime, 12, 0, 1);
-	//MySend(mySocket2, Order::WaveRefreshTime, 12, 0, 1);
-	//MySend(mySocket3, Order::WaveRefreshTime, 12, 0, 1);
-	//MySend(mySocket4, Order::WaveRefreshTime, 12, 0, 1);
+	// MySend(mySocket2, Order::WaveRefreshTime, 12, 0, 1);
+	// MySend(mySocket3, Order::WaveRefreshTime, 12, 0, 1);
+	// MySend(mySocket4, Order::WaveRefreshTime, 12, 0, 1);
 
 	MySend(mySocket, Order::TriggerThreshold, 12, 0, 1);
-	//MySend(mySocket2, Order::TriggerThreshold, 12, 0, 1);
-	//MySend(mySocket3, Order::TriggerThreshold, 12, 0, 1);
-	//MySend(mySocket4, Order::TriggerThreshold, 12, 0, 1);
+	// MySend(mySocket2, Order::TriggerThreshold, 12, 0, 1);
+	// MySend(mySocket3, Order::TriggerThreshold, 12, 0, 1);
+	// MySend(mySocket4, Order::TriggerThreshold, 12, 0, 1);
 
 	MySend(mySocket, Order::TriggerIntervalTime, 12, 0, 1);
-	//MySend(mySocket2, Order::TriggerIntervalTime, 12, 0, 1);
-	//MySend(mySocket3, Order::TriggerIntervalTime, 12, 0, 1);
-	//MySend(mySocket4, Order::TriggerIntervalTime, 12, 0, 1);
+	// MySend(mySocket2, Order::TriggerIntervalTime, 12, 0, 1);
+	// MySend(mySocket3, Order::TriggerIntervalTime, 12, 0, 1);
+	// MySend(mySocket4, Order::TriggerIntervalTime, 12, 0, 1);
 
-	if (m_WaveMode.GetCurSel() == 0) { //512ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	if (m_WaveMode.GetCurSel() == 0)
+	{ //512µÀÄÜÆ×
 		MySend(mySocket, Order::WorkMode0, 12, 0, 1);
-		//MySend(mySocket2, Order::WorkMode0, 12, 0, 1);
-		//MySend(mySocket3, Order::WorkMode0, 12, 0, 1);
-		//MySend(mySocket4, Order::WorkMode0, 12, 0, 1);
+		// MySend(mySocket2, Order::WorkMode0, 12, 0, 1);
+		// MySend(mySocket3, Order::WorkMode0, 12, 0, 1);
+		// MySend(mySocket4, Order::WorkMode0, 12, 0, 1);
 		CString info;
-		info.Format(_T("ï¿½ï¿½ï¿½ï¿½Ë¢ï¿½ï¿½Ê±ï¿½ï¿½:%dms,512ï¿½ï¿½ï¿½ï¿½ï¿½×¹ï¿½ï¿½ï¿½Ä£Ê½"), RefreshTime);
+		info.Format(_T("ÄÜÆ×Ë¢ÐÂÊ±¼ä:%dms,512µÀÄÜÆ×¹¤×÷Ä£Ê½"), RefreshTime);
 		m_page1.PrintLog(info);
 	}
-	else if (m_WaveMode.GetCurSel() == 1) { //16ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	else if (m_WaveMode.GetCurSel() == 1)
+	{ // 16µÀÄÜÆ×
 		MySend(mySocket, Order::WorkMode3, 12, 0, 1);
-		//MySend(mySocket2, Order::WorkMode3, 12, 0, 1);
-		//MySend(mySocket3, Order::WorkMode3, 12, 0, 1);
-		//MySend(mySocket4, Order::WorkMode3, 12, 0, 1);
+		// MySend(mySocket2, Order::WorkMode3, 12, 0, 1);
+		// MySend(mySocket3, Order::WorkMode3, 12, 0, 1);
+		// MySend(mySocket4, Order::WorkMode3, 12, 0, 1);
 		CString info;
-		info.Format(_T("ï¿½ï¿½ï¿½ï¿½Ë¢ï¿½ï¿½Ê±ï¿½ï¿½:%dms,16ï¿½ï¿½ï¿½ï¿½ï¿½×¹ï¿½ï¿½ï¿½Ä£Ê½"), RefreshTime);
+		info.Format(_T("ÄÜÆ×Ë¢ÐÂÊ±¼ä:%dms,16µÀÄÜÆ×¹¤×÷Ä£Ê½"), RefreshTime);
 		m_page1.PrintLog(info);
 	}
 }
 
-//ï¿½ï¿½Ò³ï¿½Ô»ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
-void CXrays_64ChannelDlg::OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult)
+//¶àÒ³¶Ô»°¿òÑ¡Ôñ
+void CXrays_64ChannelDlg::OnTcnSelchangeTab1(NMHDR *pNMHDR, LRESULT *pResult)
 {
-	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
 	m_currentTab = m_Tab.GetCurSel();
 	switch (m_currentTab)
 	{
 	case 0:
 		m_page1.ShowWindow(SW_SHOW);
 		m_page2.ShowWindow(SW_HIDE);
-		//m_page1.UpdateData(FALSE);
+		// m_page1.UpdateData(FALSE);
 		break;
 	case 1:
 		m_page1.ShowWindow(SW_HIDE);
 		m_page2.ShowWindow(SW_SHOW);
-		//m_page2.UpdateData(FALSE);
+		// m_page2.UpdateData(FALSE);
 		break;
-	*pResult = 0;
+		*pResult = 0;
 	}
 }
 
-//ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Ö¾ï¿½ï¿½ÏµÍ³ï¿½ï¿½Ö¾ï¿½ï¿½UDPï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½
+//Çå³ýµ±Ç°ÈÕÖ¾£¨ÏµÍ³ÈÕÖ¾£¬UDP½ÓÊÜÈÕÖ¾£©
 void CXrays_64ChannelDlg::OnBnClickedClearLog()
 {
-	// TODO: ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ó¿Ø¼ï¿½Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	// TODO: ÔÚ´ËÌí¼Ó¿Ø¼þÍ¨Öª´¦Àí³ÌÐò´úÂë
 	CRect rc;
 	m_Tab.GetClientRect(rc);
 	rc.top += 20;
@@ -333,8 +346,9 @@ void CXrays_64ChannelDlg::OnBnClickedClearLog()
 	}
 }
 
-// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-void CXrays_64ChannelDlg::AddTCPData(int channel, char* tempChar, int len) {
+// »º´æÍø¿ÚÊý¾Ý
+void CXrays_64ChannelDlg::AddTCPData(int channel, char *tempChar, int len)
+{
 	switch (channel)
 	{
 	case 1:
@@ -358,25 +372,25 @@ void CXrays_64ChannelDlg::AddTCPData(int channel, char* tempChar, int len) {
 	}
 }
 
-// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡
+// ÉèÖÃÍø¿Ú»º´æÇø´óÐ¡
 void CXrays_64ChannelDlg::SetSocketSize(SOCKET sock, int nsize)
 {
-	int nErrCode = 0;//ï¿½ï¿½ï¿½ï¿½Öµ
+	int nErrCode = 0;
 	unsigned int uiRcvBuf = 0;
 	unsigned int uiNewRcvBuf = 0;
 	int uiRcvBufLen = sizeof(uiRcvBuf);
-	nErrCode = getsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char*)&uiRcvBuf, &uiRcvBufLen);
+	nErrCode = getsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char *)&uiRcvBuf, &uiRcvBufLen);
 	if (SOCKET_ERROR == nErrCode)
 	{
-		MessageBox(_T("ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½SOCKETï¿½ï¿½ï¿½Í»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡Ê§ï¿½ï¿½"));
+		MessageBox(_T("»ñÈ¡·þÎñ¶ËÉèÖÃSOCKET·¢ËÍ»º³åÇø´óÐ¡Ê§°Ü"));
 		return;
 	}
-	//uiRcvBuf *= nsize;//ï¿½ï¿½ï¿½ï¿½ÏµÍ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÎªÄ¬ï¿½ÏµÄ±ï¿½ï¿½ï¿½ uiRcvBuf=100kB
+	// uiRcvBuf *= nsize;//ÉèÖÃÏµÍ³·¢ËÍÊý¾ÝÎªÄ¬ÈÏµÄ±¶Êý uiRcvBuf=100kB
 	uiRcvBuf = nsize;
-	nErrCode = setsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char*)&uiRcvBuf, uiRcvBufLen);
+	nErrCode = setsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char *)&uiRcvBuf, uiRcvBufLen);
 	if (SOCKET_ERROR == nErrCode)
 	{
-		MessageBox(_T("ï¿½ï¿½ï¿½ï¿½SOCKETï¿½ï¿½ï¿½Í»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡Ê§ï¿½ï¿½"));
+		MessageBox(_T("ÉèÖÃSOCKET·¢ËÍ»º³åÇø´óÐ¡Ê§°Ü"));
 		return;
 	}
 }
@@ -384,12 +398,12 @@ void CXrays_64ChannelDlg::SetSocketSize(SOCKET sock, int nsize)
 void CXrays_64ChannelDlg::OnSize(UINT nType, int cx, int cy)
 {
 	CDialogEx::OnSize(nType, cx, cy);
-	//ï¿½ï¿½×´Ì¬ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½ï¿½Â²ï¿½ï¿½ï¿½
+	//¶Ô×´Ì¬À¸Î»ÖÃÖØÐÂ²¼¾Ö
 	ResizeBar();
-	// ï¿½Ô½ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½ï¿½Â²ï¿½ï¿½ï¿½
+	// ¶Ô½çÃæ¿Ø¼þÖØÐÂ²¼¾Ö
 	m_layout.OnSize(cx, cy);
 
-	if(m_page1.GetSafeHwnd() || m_page2.GetSafeHwnd())
+	if (m_page1.GetSafeHwnd() || m_page2.GetSafeHwnd())
 	{
 		CRect rctab;
 		CRect reItem;
@@ -398,24 +412,25 @@ void CXrays_64ChannelDlg::OnSize(UINT nType, int cx, int cy)
 		m_Tab.GetClientRect(&rctab);
 
 		m_nWidth = rctab.right - rctab.left;
-		m_nHeight = rctab.bottom-rctab.top;
+		m_nHeight = rctab.bottom - rctab.top;
 
-		m_Tab.GetItemRect(0,&reItem);
-		rctab.DeflateRect(0, reItem.bottom, 0,0);
+		m_Tab.GetItemRect(0, &reItem);
+		rctab.DeflateRect(0, reItem.bottom, 0, 0);
 
 		m_page1.MoveWindow(&rctab);
 		m_page2.MoveWindow(&rctab);
 	}
 }
 
-// ï¿½ï¿½ï¿½Ú³ß´ï¿½ä»¯ï¿½ï¿½ï¿½ï¿½ï¿½Â»ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½
-void CXrays_64ChannelDlg::ResizeBar() {
+// ¶Ô½çÃæ¿Ø¼þÖØÐÂ²¼¾Ö
+void CXrays_64ChannelDlg::ResizeBar()
+{
 	CRect rectDlg;
-	GetClientRect(rectDlg);//ï¿½ï¿½Ã´ï¿½ï¿½ï¿½Ä´ï¿½Ð¡
-	//ï¿½Ð¶ï¿½×´Ì¬ï¿½ï¿½ï¿½Ç·ñ±»´ï¿½ï¿½ï¿½
+	GetClientRect(rectDlg); //»ñµÃ´°ÌåµÄ´óÐ¡
+	//ÅÐ¶Ï×´Ì¬À¸ÊÇ·ñ±»´´½¨
 	if (IsWindow(m_statusBar.m_hWnd))
 	{
-		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å£ï¿½IDï¿½ï¿½ï¿½ï¿½Ê½ï¿½Í¿ï¿½ï¿½È£ï¿½SBPS_NORMALÎªï¿½ï¿½Í¨ï¿½ï¿½Ê½ï¿½ï¿½ï¿½Ì¶ï¿½ï¿½ï¿½ï¿½È£ï¿½SBPS_STRETCHÎªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½Õ¹ï¿½ï¿½ï¿½Ä¿Õ¼ï¿½
+		//ÉèÖÃÃæ°åÐòºÅ£¬ID£¬ÑùÊ½ºÍ¿í¶È£¬SBPS_NORMALÎªÆÕÍ¨ÑùÊ½£¬¹Ì¶¨¿í¶È£¬SBPS_STRETCHÎªµ¯»ÉÑùÊ½£¬»á×Ô¶¯À©Õ¹ËüµÄ¿Õ¼ä
 		m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, int(0.6 * rectDlg.Width()));
 		m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, int(0.2 * rectDlg.Width()));
 		m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, int(0.2 * rectDlg.Width()));
@@ -423,90 +438,92 @@ void CXrays_64ChannelDlg::ResizeBar() {
 	}
 }
 
-
 void CXrays_64ChannelDlg::OnSizing(UINT fwSide, LPRECT pRect)
 {
 	CDialogEx::OnSizing(fwSide, pRect);
-	//	EASYSIZE_MINSIZE(600,400,fwSide,pRect);
-	// TODO: ï¿½Ú´Ë´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	//TODO: ÔÚ´Ë´¦Ìí¼ÓÏûÏ¢´¦Àí³ÌÐò´úÂë
 }
 
-BOOL CXrays_64ChannelDlg::MySend(SOCKET socket, BYTE *msg, int msgLength, int flags, 
-	int sleepTime, int maxWaitingTime) {
-	// ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½î·´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-	if (ifFeedback) return FALSE;
+BOOL CXrays_64ChannelDlg::MySend(SOCKET socket, BYTE *msg, int msgLength, int flags,
+								 int sleepTime, int maxWaitingTime)
+{
+	if (ifFeedback)
+		return FALSE;
 
-	for(int i =0; i<3; i++){
-		int times = 0; //ï¿½ï¿½Ê±ï¿½ï¿½
+	// Èô³¬Ê±Î´¼ì²âµ½·´À¡Ö¸Áî£¬ÔòÔÙ´Î·¢ËÍÖ¸Áîµ½FPGA¡£Ñ­»·µÈ´ýÈý´Î¡£
+	for (int i = 0; i < 3; i++)
+	{
+		int times = 0; //µÈ´ýÊ±³¤
 		CTime tm1;
 		tm1 = CTime::GetCurrentTime();
 		BOOL flag = FALSE;
 
-		// ï¿½ï¿½Ê¼ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		// ³õÊ¼»¯·´À¡Ïà¹Ø²ÎÊý
 		ifFeedback = FALSE;
 		TCPfeedback = FALSE;
 		LastSendMsg = NULL;
-		RecvMsg = NULL; // ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		RecvMsg = NULL;
 		recievedFBLength = 0;
 
-		if (!ifFeedback) {
+		// ·¢ËÍÖ¸Áî
+		if (!ifFeedback)
+		{
 			ifFeedback = TRUE;
-			send(socket, (char*)msg, msgLength, flags);
-			//Sleep(sleepTime);
-			LastSendMsg = (char*)msg;
+			send(socket, (char *)msg, msgLength, flags);
+			// Sleep(sleepTime);
+			LastSendMsg = (char *)msg;
 			FeedbackLen = msgLength;
 			CString info;
 			info = _T("SEND HEX:") + Char2HexCString(LastSendMsg, msgLength);
 			m_page1.PrintLog(info);
-			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾IDï¿½Å£ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾Ë¢ï¿½ï¿½Ê±ï¿½ï¿½ms
-			//SetTimer(5, 100, NULL);
 		}
 
-		do{ // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½Ö¸ï¿½î·´ï¿½ï¿½ï¿½ï¿½ï¿½Ë´ï¿½Ó¦ï¿½Ã»ï¿½ï¿½ï¿½É½ï¿½ï¿½æ¿¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç²ï¿½ï¿½Ã¶ï¿½ï¿½ß³Ì´ï¿½ï¿½ï¿½ï¿½ï¿½
-			// ï¿½Ë±ï¿½Ö¾ï¿½Ú¼ï¿½Ê±ï¿½ï¿½ï¿½Ð±ï¿½ï¿½Þ¸Ä£ï¿½ï¿½ï¿½ï¿½Ü»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³Ì³ï¿½Í»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¸ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½î¡£
-			//ï¿½Ð¶Ï½ï¿½ï¿½Ü·ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½È·
-			if(recievedFBLength == 12){
+		// ×èÈûÊ½ÅÐ¶ÏµÈ´ý·´À¡Ö¸Áî£¬²¢½øÐÐÅÐ¶ÏÊÇ·ñÓë·¢ËÍÖ¸ÁîÏàÍ¬
+		do
+		{ 
+			if (recievedFBLength == msgLength)
+			{
 				CString info;
 				info = _T("RECV HEX:") + Char2HexCString(RecvMsg, recievedFBLength);
 				m_page1.PrintLog(info);
-				if (strncmp(RecvMsg, LastSendMsg, msgLength) == 0) TCPfeedback = TRUE;
-				// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
-				RecvMsg = NULL; // ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-				recievedFBLength = 0;
+				if (strncmp(RecvMsg, LastSendMsg, msgLength) == 0){
+					TCPfeedback = TRUE;
+					// ÖØÖÃ½ÓÊÕµ½µÄ·´À¡Êý¾Ý
+					RecvMsg = NULL;
+					recievedFBLength = 0;
+				}
 			}
 
-			// ï¿½Ð¶Ï·ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½×´Ì¬
-			if(TCPfeedback) {
+			if (TCPfeedback)
+			{
 				CString info;
-				info = _T("Ö¸ï¿½î·´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É¹ï¿½ï¿½ï¿½") + Char2HexCString(RecvMsg, recievedFBLength);
+				info = _T("Ö¸Áî·´À¡Ð£Ñé³É¹¦:") + Char2HexCString(RecvMsg, recievedFBLength);
 				m_page1.PrintLog(info);
-				
-				//ï¿½ï¿½ï¿½Â³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+
+				//½ÓÊÕµ½·´À¡Ö¸Áî£¬ÖØÐÂ³õÊ¼»¯·´À¡Ïà¹ØÊý¾Ý
 				TCPfeedback = FALSE;
 				ifFeedback = FALSE;
 				LastSendMsg = NULL;
-				RecvMsg = NULL; // ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+				RecvMsg = NULL;
 				recievedFBLength = 0;
 
 				return TRUE;
 			}
 
-			// ï¿½ï¿½È¡Ê±ï¿½ï¿½ï¿½
+			// ¼ÆËãµÈ´ýÊ±³¤
 			CTime tm2;
 			tm2 = CTime::GetCurrentTime();
 			CTimeSpan span;
 			span = tm2 - tm1;
 			times = span.GetSeconds();
-		}while(times < maxWaitingTime); // Ã»ï¿½Ð·ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ñ­ï¿½ï¿½ï¿½È´ï¿½ï¿½ï¿½
+		} while (times < maxWaitingTime); 
 
 		CString info;
-		info.Format(_T("ï¿½È´ï¿½Ê±ï¿½ï¿½%dï¿½ï¿½ï¿½ï¿½ï¿½È´ï¿½Ê±ï¿½ï¿½%d,"), times, maxWaitingTime);
+		info.Format(_T("µÈ´ýÊ±¼ä%d³¬³ö×î´óÉèÖÃÊ±³¤%d,"), times, maxWaitingTime);
 		m_page1.PrintLog(info);
 	}
-	
-	// ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½È»Ã»ï¿½Ð½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¹ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÏµÍ³ï¿½ì³£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô»ï¿½ï¿½ï¿½
-	//KillTimer(5);
-	CString info = _T("ï¿½ï¿½ï¿½ï¿½ï¿½Þ·ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½");
+
+	CString info = _T("ÎÞ·¨½ÓÊÜµ½·´À¡Ö¸Áî");
 	m_page1.PrintLog(info);
 	return FALSE;
 }
