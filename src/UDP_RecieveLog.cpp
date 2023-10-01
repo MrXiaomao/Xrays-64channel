@@ -56,13 +56,16 @@ void UDP_RecieveLog::OnSize(UINT nType, int cx, int cy)
 
 
 // UDP_RecieveLog 消息处理程序
-void UDP_RecieveLog::PrintLog(CString info)
+void UDP_RecieveLog::PrintLog(CString info, BOOL isShow)
 {
+	// 添加日志到文件
+	CLog::SetPrefix(_T("UDP_RecieveLog::PrintLog"));
+	CLog::WriteMsg(info);
+
+	// 添加日志到界面
 	CTime t = CTime::GetCurrentTime();
 	CString strTime = t.Format(_T("[%Y-%m-%d %H:%M:%S]# "));
 	m_Information = m_Information + strTime + info + _T("\r\n");
-	CLog::SetPrefix(_T("UDP_RecieveLog::PrintLog"));
-	CLog::WriteMsg(info);
 	UpdateData(FALSE);
 	m_LogEdit.LineScroll(m_LogEdit.GetLineCount()); //每次刷新后都显示最底部
 }

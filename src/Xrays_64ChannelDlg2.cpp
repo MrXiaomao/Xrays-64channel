@@ -42,6 +42,8 @@ void CXrays_64ChannelDlg::SetParameterInputStatus(BOOL flag)
 	GetDlgItem(IDC_MeasureTime)->EnableWindow(flag);
 	//能谱模式选择
 	GetDlgItem(IDC_WAVE_MODE)->EnableWindow(flag);
+	//阈值设置
+	GetDlgItem(IDC_CH1Threahold)->EnableWindow(flag);
 }
 
 // 打开UDP通信
@@ -265,41 +267,39 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	Order::WaveRefreshTime[9] = res[3];
 
 	//发送指令
-	MySend(mySocket, Order::WaveRefreshTime, 12, 0, 1);
-	// MySend(mySocket2, Order::WaveRefreshTime, 12, 0, 1);
-	// MySend(mySocket3, Order::WaveRefreshTime, 12, 0, 1);
-	// MySend(mySocket4, Order::WaveRefreshTime, 12, 0, 1);
+	BackSend(mySocket, Order::WaveRefreshTime, 12, 0, 1);
+	// BackSend(mySocket2, Order::WaveRefreshTime, 12, 0, 1);
+	// BackSend(mySocket3, Order::WaveRefreshTime, 12, 0, 1);
+	// BackSend(mySocket4, Order::WaveRefreshTime, 12, 0, 1);
 
-	MySend(mySocket, Order::TriggerThreshold, 12, 0, 1);
-	// MySend(mySocket2, Order::TriggerThreshold, 12, 0, 1);
-	// MySend(mySocket3, Order::TriggerThreshold, 12, 0, 1);
-	// MySend(mySocket4, Order::TriggerThreshold, 12, 0, 1);
+	BackSend(mySocket, Order::TriggerThreshold, 12, 0, 1);
+	// BackSend(mySocket2, Order::TriggerThreshold, 12, 0, 1);
+	// BackSend(mySocket3, Order::TriggerThreshold, 12, 0, 1);
+	// BackSend(mySocket4, Order::TriggerThreshold, 12, 0, 1);
 
-	MySend(mySocket, Order::TriggerIntervalTime, 12, 0, 1);
-	// MySend(mySocket2, Order::TriggerIntervalTime, 12, 0, 1);
-	// MySend(mySocket3, Order::TriggerIntervalTime, 12, 0, 1);
-	// MySend(mySocket4, Order::TriggerIntervalTime, 12, 0, 1);
+	BackSend(mySocket, Order::TriggerIntervalTime, 12, 0, 1);
+	// BackSend(mySocket2, Order::TriggerIntervalTime, 12, 0, 1);
+	// BackSend(mySocket3, Order::TriggerIntervalTime, 12, 0, 1);
+	// BackSend(mySocket4, Order::TriggerIntervalTime, 12, 0, 1);
 
+	CString info;
 	if (m_WaveMode.GetCurSel() == 0)
 	{ //512道能谱
-		MySend(mySocket, Order::WorkMode0, 12, 0, 1);
-		// MySend(mySocket2, Order::WorkMode0, 12, 0, 1);
-		// MySend(mySocket3, Order::WorkMode0, 12, 0, 1);
-		// MySend(mySocket4, Order::WorkMode0, 12, 0, 1);
-		CString info;
+		BackSend(mySocket, Order::WorkMode0, 12, 0, 1);
+		// BackSend(mySocket2, Order::WorkMode0, 12, 0, 1);
+		// BackSend(mySocket3, Order::WorkMode0, 12, 0, 1);
+		// BackSend(mySocket4, Order::WorkMode0, 12, 0, 1);
 		info.Format(_T("能谱刷新时间:%dms,512道能谱工作模式"), RefreshTime);
-		m_page1.PrintLog(info);
 	}
 	else if (m_WaveMode.GetCurSel() == 1)
 	{ // 16道能谱
-		MySend(mySocket, Order::WorkMode3, 12, 0, 1);
-		// MySend(mySocket2, Order::WorkMode3, 12, 0, 1);
-		// MySend(mySocket3, Order::WorkMode3, 12, 0, 1);
-		// MySend(mySocket4, Order::WorkMode3, 12, 0, 1);
-		CString info;
+		BackSend(mySocket, Order::WorkMode3, 12, 0, 1);
+		// BackSend(mySocket2, Order::WorkMode3, 12, 0, 1);
+		// BackSend(mySocket3, Order::WorkMode3, 12, 0, 1);
+		// BackSend(mySocket4, Order::WorkMode3, 12, 0, 1);
 		info.Format(_T("能谱刷新时间:%dms,16道能谱工作模式"), RefreshTime);
-		m_page1.PrintLog(info);
 	}
+	m_page1.PrintLog(info);
 }
 
 //多页对话框选择
@@ -444,8 +444,8 @@ void CXrays_64ChannelDlg::OnSizing(UINT fwSide, LPRECT pRect)
 	//TODO: 在此处添加消息处理程序代码
 }
 
-BOOL CXrays_64ChannelDlg::MySend(SOCKET socket, BYTE *msg, int msgLength, int flags,
-								 int sleepTime, int maxWaitingTime)
+BOOL CXrays_64ChannelDlg::BackSend(SOCKET socket, BYTE *msg, int msgLength, int flags,
+								 int sleepTime, int maxWaitingTime, BOOL isShow)
 {
 	if (ifFeedback)
 		return FALSE;
@@ -474,23 +474,25 @@ BOOL CXrays_64ChannelDlg::MySend(SOCKET socket, BYTE *msg, int msgLength, int fl
 			LastSendMsg = (char *)msg;
 			FeedbackLen = msgLength;
 			CString info;
-			info = _T("SEND HEX:") + Char2HexCString(LastSendMsg, msgLength);
-			m_page1.PrintLog(info);
+			info.Format(_T("SEND HEX(%d):"), i+1);
+			info = info + Char2HexCString(LastSendMsg, msgLength);
+			m_page1.PrintLog(info, isShow); 
 		}
 
 		// 阻塞式判断等待反馈指令，并进行判断是否与发送指令相同
 		do
 		{ 
+			// 判断接受指令与发送指令长度是否一致
 			if (recievedFBLength == msgLength)
 			{
 				CString info;
 				info = _T("RECV HEX:") + Char2HexCString(RecvMsg, recievedFBLength);
-				m_page1.PrintLog(info);
+				m_page1.PrintLog(info, isShow);
 				if (strncmp(RecvMsg, LastSendMsg, msgLength) == 0){
 					TCPfeedback = TRUE;
 					// 重置接收到的反馈数据
-					RecvMsg = NULL;
-					recievedFBLength = 0;
+					/*RecvMsg = NULL;
+					recievedFBLength = 0;*/
 				}
 			}
 
@@ -498,7 +500,7 @@ BOOL CXrays_64ChannelDlg::MySend(SOCKET socket, BYTE *msg, int msgLength, int fl
 			{
 				CString info;
 				info = _T("指令反馈校验成功:") + Char2HexCString(RecvMsg, recievedFBLength);
-				m_page1.PrintLog(info);
+				m_page1.PrintLog(info, isShow);
 
 				//接收到反馈指令，重新初始化反馈相关数据
 				TCPfeedback = FALSE;
@@ -519,11 +521,29 @@ BOOL CXrays_64ChannelDlg::MySend(SOCKET socket, BYTE *msg, int msgLength, int fl
 		} while (times < maxWaitingTime); 
 
 		CString info;
-		info.Format(_T("等待时间%d超出最大设置时长%d,"), times, maxWaitingTime);
-		m_page1.PrintLog(info);
+		info.Format(_T("等待指令反馈时间%ds,超出最大设置时长%ds,"), times, maxWaitingTime);
+		m_page1.PrintLog(info, isShow);
 	}
 
-	CString info = _T("无法接受到反馈指令");
-	m_page1.PrintLog(info);
+	CString info;
+	info.Format(_T("尝试3次下发指令，均无法接受到反馈指令，SEND HEX: "));
+	info = info + Char2HexCString(LastSendMsg, msgLength);
+	m_page1.PrintLog(info, TRUE);
+
+	// 恢复指令反馈相关参数
+	ifFeedback = FALSE;
+	TCPfeedback = FALSE;
+	LastSendMsg = NULL;
+	RecvMsg = NULL;
+	recievedFBLength = 0;
+
 	return FALSE;
+}
+
+void CXrays_64ChannelDlg::NoBackSend(SOCKET socket, BYTE* msg, int msgLength, int flags,
+	int sleepTime){
+	send(socket, (char*)msg, msgLength, flags);
+	CString info = _T("SEND HEX :");
+	info = info + Char2HexCString((char*)msg, msgLength);
+	Sleep(sleepTime);
 }

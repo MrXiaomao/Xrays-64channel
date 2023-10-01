@@ -63,13 +63,17 @@ void RunningLog::OnSizing(UINT fwSide, LPRECT pRect)
 }
 
 // RunningLog 消息处理程序
-void RunningLog::PrintLog(CString info)
+void RunningLog::PrintLog(CString info, BOOL isShow)
 {
+	// 添加日志到文件
+	CLog::SetPrefix(_T("RunningLog::PrintLog"));
+	CLog::WriteMsg(info);
+
+	// 添加日志到界面
+	if(!isShow) return;
 	CTime t = CTime::GetCurrentTime();
 	CString strTime = t.Format(_T("[%Y-%m-%d %H:%M:%S]# "));
 	m_Information = m_Information + strTime + info + _T("\r\n");
-	CLog::SetPrefix(_T("RunningLog::PrintLog"));
-	CLog::WriteMsg(info);
 	UpdateData(FALSE);
 	m_LogEdit.LineScroll(m_LogEdit.GetLineCount()); //每次刷新后都显示最底部
 }

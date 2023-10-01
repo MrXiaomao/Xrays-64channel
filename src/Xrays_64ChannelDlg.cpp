@@ -75,6 +75,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, LastSendMsg(NULL)
 	, RecvMsg(NULL)
 	, recievedFBLength(0)
+	, FeedbackLen(12)
 	, timer(0)
 	, saveAsPath("")
 	, saveAsTargetPath("")
@@ -865,10 +866,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			if (MeasureStatus && (timer * TIMER_INTERVAL > MeasureTime)) 
 			{
 				if (!sendStopFlag) {
-					MySend(mySocket, Order::Stop, 12, 0, 1);
-					//MySend(mySocket2, Order::Stop, 12, 0, 1);
-					//MySend(mySocket3, Order::Stop, 12, 0, 1);
-					//MySend(mySocket4, Order::Stop, 12, 0, 1);
+					NoBackSend(mySocket, Order::Stop, 12, 0, 1);
+					//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
+					//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
+					//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
 
 					sendStopFlag = TRUE;
 					// 打印日志
@@ -893,8 +894,13 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					//往TCP发送的控制板配置参数允许输入
 					SetParameterInputStatus(TRUE);
 
-					// 按键互斥锁打开
+					// 按键互斥锁
 					GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+					GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
+					GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
+					GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
+					GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+					GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 
 					if (CH1_RECVLength + CH2_RECVLength + CH3_RECVLength + CH4_RECVLength > 0) {
 						// 打印日志
@@ -932,10 +938,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			if (MeasureStatus && (timer * TIMER_INTERVAL >= MeasureTime)) {
 				if (!sendStopFlag) {
-					MySend(mySocket, Order::Stop, 12, 0, 1);
-					//MySend(mySocket2, Order::Stop, 12, 0, 1);
-					//MySend(mySocket3, Order::Stop, 12, 0, 1);
-					//MySend(mySocket4, Order::Stop, 12, 0, 1);
+					NoBackSend(mySocket, Order::Stop, 12, 0, 1);
+					//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
+					//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
+					//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
 					sendStopFlag = TRUE;
 
 					// 打印日志
@@ -999,10 +1005,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				Mkdir(saveAsTargetPath);
 
 				// 发送停止指令，复位。以保证把上一次测量重置。				
-				MySend(mySocket, Order::Stop, 12, 0, 3);
-				//MySend(mySocket2, Order::Stop, 12, 0, 3);
-				//MySend(mySocket3, Order::Stop, 12, 0, 3);
-				//MySend(mySocket4, Order::Stop, 12, 0, 3);
+				NoBackSend(mySocket, Order::Stop, 12, 0, 1);
+				//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
+				//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
+				//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
 
 				// 重置从网口接收的缓存数据
 				ResetTCPData();
@@ -1016,10 +1022,11 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				sendStopFlag = FALSE;
 
 				//发送开始测量指令，采用硬件触发
-				MySend(mySocket, Order::StartHardTrigger, 12, 0, 1);
-				//MySend(mySocket2, Order::StartHardTrigger, 12, 0, 1);
-				//MySend(mySocket3, Order::StartHardTrigger, 12, 0, 1);
-				//MySend(mySocket4, Order::StartHardTrigger, 12, 0, 1);
+				BackSend(mySocket, Order::StartSoftTrigger, 12, 0, 1);
+				//BackSend(mySocket, Order::StartHardTrigger, 12, 0, 1);
+				//BackSend(mySocket2, Order::StartHardTrigger, 12, 0, 1);
+				//BackSend(mySocket3, Order::StartHardTrigger, 12, 0, 1);
+				//BackSend(mySocket4, Order::StartHardTrigger, 12, 0, 1);
 
 				CString info = _T("\"硬件触发\"工作模式");
 				m_page1.PrintLog(info);
@@ -1032,15 +1039,6 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			CTime t= CTime::GetCurrentTime();
 			CString strInfo = t.Format(_T("%Y-%m-%d %H:%M:%S"));
 			m_statusBar.SetPaneText(2, strInfo);
-		}
-		break;
-	case 5:
-		// 指令反馈校验定时器
-		if(RecvMsg!=NULL){
-			//int dataLen = strlen(RecvMsg);
-			if(strlen(RecvMsg) == strlen(LastSendMsg)){
-				TCPfeedback = strcmp(RecvMsg, LastSendMsg);
-			}
 		}
 		break;
 	default:
@@ -1069,10 +1067,10 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		ResetTCPData();
 
 		//向TCP发送开始指令
-		MySend(mySocket, Order::StartSoftTrigger, 12, 0);
-		//MySend(mySocket2, Order::StartSoftTrigger, 12, 0);
-		//MySend(mySocket3, Order::StartSoftTrigger, 12, 0);
-		//MySend(mySocket4, Order::StartSoftTrigger, 12, 0);
+		BackSend(mySocket, Order::StartSoftTrigger, 12, 0);
+		//BackSend(mySocket2, Order::StartSoftTrigger, 12, 0);
+		//BackSend(mySocket3, Order::StartSoftTrigger, 12, 0);
+		//BackSend(mySocket4, Order::StartSoftTrigger, 12, 0);
 
 		SetDlgItemText(IDC_Start, _T("停止测量"));
 		
@@ -1108,10 +1106,10 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		SetParameterInputStatus(TRUE);
 
 		//往TCP发送停止指令
-		MySend(mySocket, Order::Stop, 12, 0, 1);
-		//MySend(mySocket2, Order::Stop, 12, 0, 1);
-		//MySend(mySocket3, Order::Stop, 12, 0, 1);
-		//MySend(mySocket4, Order::Stop, 12, 0, 1);
+		NoBackSend(mySocket, Order::Stop, 12, 0, 1);
+		//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
+		//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
+		//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
 		SetDlgItemText(IDC_Start, _T("开始测量"));
 		KillTimer(1);	//关闭定时器
 
@@ -1176,10 +1174,10 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	else {
 		AutoMeasureStatus = FALSE;
 		SetParameterInputStatus(TRUE);
-		MySend(mySocket, Order::Stop, 12, 0, 1);
-		//MySend(mySocket2, Order::Stop, 12, 0, 1);
-		//MySend(mySocket3, Order::Stop, 12, 0, 1);
-		//MySend(mySocket4, Order::Stop, 12, 0, 1);
+		NoBackSend(mySocket, Order::Stop, 12, 0, 1);
+		//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
+		//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
+		//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
 		
 		SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
 
@@ -1237,6 +1235,7 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 	info = _T("刻度曲线指令发送中。。。");
 	m_page1.PrintLog(info);
 
+	BOOL sendStatus = TRUE; // 刻度曲线发送是否成功
 	// 若当前是联网状态，则发送数据
 	if (connectStatus) {
 		vector<CString> messageList = ReadEnCalibration(fileName);
@@ -1262,15 +1261,21 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 				temp3[j] = cmd3[i * 12 + j];
 				temp4[j] = cmd4[i * 12 + j];
 			}
-			if (mySocket) MySend(mySocket, temp, 12, 0, 2);
-			//if (mySocket2) MySend(mySocket2, temp2, 12, 0, 2);
-			//if (mySocket3) MySend(mySocket3, temp3, 12, 0, 2);
-			//if (mySocket4) MySend(mySocket4, temp4, 12, 0, 2);
+			if (mySocket) sendStatus = sendStatus & BackSend(mySocket, temp, 12, 0, 2, 10, FALSE);
+			//if (mySocket2) sendStatus = sendStatus & BackSend(mySocket2, temp2, 12, 0, 2, 10, FALSE);
+			//if (mySocket3) sendStatus = sendStatus & BackSend(mySocket3, temp3, 12, 0, 2, 10, FALSE);
+			//if (mySocket4) sendStatus = sendStatus & BackSend(mySocket4, temp4, 12, 0, 2, 10, FALSE);
 		}
-
-		CString info;
-		info = _T("刻度曲线已发送");
-		m_page1.PrintLog(info);
+		if(sendStatus){
+			CString info;
+			info = _T("刻度曲线指令发送成功");
+			m_page1.PrintLog(info);
+		}
+		else{
+			CString info;
+			info = _T("刻度曲线指令发送失败");
+			m_page1.PrintLog(info);
+		}
 	}
 }
 

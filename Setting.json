@@ -1,9 +1,9 @@
 {
-	"CH1_RECVLength" : 0,
+	"CH1_RECVLength" : 11292144,
 	"CH2_RECVLength" : 0,
 	"CH3_RECVLength" : 0,
 	"CH4_RECVLength" : 0,
-	"IP_Detector1" : "192.168.91.1",
+	"IP_Detector1" : "192.168.10.3",
 	"IP_Detector2" : "192.168.91.1",
 	"IP_Detector3" : "192.168.91.1",
 	"IP_Detector4" : "192.168.91.1",

@@ -51,11 +51,22 @@ public:
 	* msg 发送信息
 	* msgLength 数据长度
 	* flags 标志位
-	* sleepTime 发送后程序的延迟时间长度，单位：ms
-	* maxTime 最大等待时间，单位：s
+	* sleepTime 发送指令后程序Sleep时间，单位：ms
+	* maxWaitingTime 最大等待时间，单位：s
+	* isShow TRUE:即保存日志信息，也在界面显示日志信息。 FALSE：只保存日志信息，不在界面显示日志信息。
 	*/
-	BOOL MySend(SOCKET socket, BYTE *msg, int msgLength, int flags, 
-		int sleepTime=1, int maxWaitingTime=3600);
+	BOOL BackSend(SOCKET socket, BYTE *msg, int msgLength, int flags, 
+		int sleepTime = 1, int maxWaitingTime = 30, BOOL isShow = FALSE);
+	
+	/*非阻塞式发送，不进行指令反馈检测
+	* socket 网口
+	* msg 发送信息
+	* msgLength 数据长度
+	* flags 标志位
+	* sleepTime 发送指令后程序Sleep时间，单位：ms
+	*/
+	void NoBackSend(SOCKET socket, BYTE* msg, int msgLength, int flags,
+		int sleepTime = 1);
 
 	LEDButton m_NetStatusLED;
 	LEDButton m_NetStatusLED2;
@@ -78,6 +89,7 @@ public:
 	BOOL m_getTargetChange; // 检测炮号是否变化
 	BOOL sendStopFlag; // 用来告知是否发送停止指令的标志，防止重复发送停止指令
 	
+	// ------------------指令反馈的相关变量--------------------------------
 	BOOL ifFeedback; //用于判断当前接收数据是否为指令反馈。
 	BOOL TCPfeedback; // 发送数据后，网口指令反馈状态.无反馈则禁止发送下一条指令。
 	char* LastSendMsg; // 上一次发送的指令

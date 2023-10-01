@@ -11,7 +11,11 @@ public:
 	RunningLog(CWnd* pParent = nullptr);   // 标准构造函数
 	virtual ~RunningLog();
 
-	void PrintLog(CString info);
+	/*添加日志信息
+	* info 待添加的信息
+	* isShow 控制是否在界面显示该条日志
+	*/
+	void PrintLog(CString info, BOOL isShow = TRUE);
 	
 	CRect m_rect;
 	CLayout m_layoutRunner;
