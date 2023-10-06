@@ -72,7 +72,7 @@ void RunningLog::PrintLog(CString info, BOOL isShow)
 	// 添加日志到界面
 	if(!isShow) return;
 	CTime t = CTime::GetCurrentTime();
-	CString strTime = t.Format(_T("[%Y-%m-%d %H:%M:%S]# "));
+	CString strTime = t.Format(_T("[%Y-%m-%d %H:%M:%S]#"));
 	m_Information = m_Information + strTime + info + _T("\r\n");
 	UpdateData(FALSE);
 	m_LogEdit.LineScroll(m_LogEdit.GetLineCount()); //每次刷新后都显示最底部

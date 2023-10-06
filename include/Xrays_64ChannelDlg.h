@@ -4,7 +4,6 @@
 
 #pragma once
 
-//#pragma comment(lib,"json.lib")
 #include "json/json.h"
 #include "LEDButton.h"
 #include "CClientSocket.h"
@@ -34,11 +33,12 @@ public:
 	void CloseUDP(); //关闭UDP通信，以及相应资源
 	void SendParameterToTCP(); //发送配置参数
 	void SendCalibration(CString fileName); //发送刻度曲线
+	BOOL ConnectTCP(int num); //连接TCP网络
 	BOOL ConnectTCP1(); //连接网络1
 	BOOL ConnectTCP2(); //连接网络2
 	BOOL ConnectTCP3(); //连接网络3
 	BOOL ConnectTCP4(); //连接网络4
-	void ConfinePortRange(int* myPort); //限制端口号输入范围
+	void ConfinePortRange(int &myPort); //限制端口号输入范围
 	void SetTCPInputStatus(BOOL flag); //设置TCP的IP、PORT、复选框的输入使能状态
 	void SetParameterInputStatus(BOOL flag); //设置配置参数框的使能状态
 	void SaveFile(CString myID, char* mk, int length); // 保存文件
@@ -46,8 +46,8 @@ public:
 	void ResetTCPData(); // 重置缓存数据
 	void SetSocketSize(SOCKET sock, int nsize); //设置Socket缓冲区的大小
 	
-	/*网口发送数据到FPGA，阻塞式发送，直到检测到指令反馈成功或者等待超时才退出。
-	* socket 网口
+	/*阻塞式发送，网口发送数据到FPGA，直到检测到指令反馈成功或者等待超时才退出。
+	* num 网口编号，从0开始
 	* msg 发送信息
 	* msgLength 数据长度
 	* flags 标志位
@@ -55,28 +55,22 @@ public:
 	* maxWaitingTime 最大等待时间，单位：s
 	* isShow TRUE:即保存日志信息，也在界面显示日志信息。 FALSE：只保存日志信息，不在界面显示日志信息。
 	*/
-	BOOL BackSend(SOCKET socket, BYTE *msg, int msgLength, int flags, 
-		int sleepTime = 1, int maxWaitingTime = 30, BOOL isShow = FALSE);
+	BOOL BackSend(int num, BYTE *msg, int msgLength, int flags, 
+		int sleepTime = 1, int maxWaitingTime = 1, BOOL isShow = FALSE);
 	
 	/*非阻塞式发送，不进行指令反馈检测
-	* socket 网口
+	* num 网口编号，从0开始
 	* msg 发送信息
 	* msgLength 数据长度
 	* flags 标志位
 	* sleepTime 发送指令后程序Sleep时间，单位：ms
 	*/
-	void NoBackSend(SOCKET socket, BYTE* msg, int msgLength, int flags,
+	void NoBackSend(int num, BYTE* msg, int msgLength, int flags,
 		int sleepTime = 1);
 
-	LEDButton m_NetStatusLED;
-	LEDButton m_NetStatusLED2;
-	LEDButton m_NetStatusLED3;
-	LEDButton m_NetStatusLED4;
 	CClientSocket* m_UDPSocket; //本地UDP服务
-	SOCKET mySocket;
-	SOCKET mySocket2;
-	SOCKET mySocket3;
-	SOCKET mySocket4;
+
+	SOCKET SocketList[4];
 
 	// 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
 	// 16通道=20*4字节（1ms刷新，10秒测量时长对应总包长=1000*10*20*4）
@@ -89,33 +83,31 @@ public:
 	BOOL m_getTargetChange; // 检测炮号是否变化
 	BOOL sendStopFlag; // 用来告知是否发送停止指令的标志，防止重复发送停止指令
 	
-	// ------------------指令反馈的相关变量--------------------------------
+	// ------------------TCP网络指令反馈的相关变量--------------------------------
 	BOOL ifFeedback; //用于判断当前接收数据是否为指令反馈。
-	BOOL TCPfeedback; // 发送数据后，网口指令反馈状态.无反馈则禁止发送下一条指令。
+	BOOL TCPfeedback; // 发送数据后，网口指令反馈状态.无正确反馈则禁止发送下一条指令。
 	char* LastSendMsg; // 上一次发送的指令
 	char* RecvMsg; // 网口接收数据
-	int recievedFBLength; //已接收网口接收反馈指令长度
+	int recievedFBLength; //已接收网口数据长度，取前N个字节
 	int FeedbackLen; //指令反馈字节长度
+
+	// -------------------TCP网络接受数据相关变量----------------------------
+	char* DataCH1; // 网口接收的数据，缓存下来，接收完后再存储到文件中。
+	char* DataCH2;
+	char* DataCH3;
+	char* DataCH4;
+	int RECVLength[4];//网口已接收数据长度
 
 	int timer; // 计时器，满测量时长后则发送停止测量
 	CString saveAsPath; // 数据存储根路径
 	CString saveAsTargetPath; // 数据存储炮号路径
 	CStatusBar m_statusBar; // 状态栏
 
-	char* DataCH1; // 网口接收的数据，缓存下来，接收完后再存储到文件中。
-	char* DataCH2;
-	char* DataCH3;
-	char* DataCH4;
-	int CH1_RECVLength;//接受数据长度
-	int CH2_RECVLength;//接受数据长度
-	int CH3_RECVLength;//接受数据长度
-	int CH4_RECVLength;//接受数据长度
-
 	RunningLog m_page1;
 	UDP_RecieveLog m_page2;
 	CRect m_rect;
 	CLayout m_layout;
-	int m_currentTab;
+	int m_currentTab; //Tab子窗口序号
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -160,11 +152,11 @@ public:
 
 	// 网址IP
 	CIPAddressCtrl ServerIP;
+	// 网络状态LED灯
+	LEDButton m_NetStatusLEDList[4];
 	// TCP端口号
-	int sPort;
-	int sPort2;
-	int sPort3;
-	int sPort4;
+	int PortList[4];
+
 	// 触发方式下拉框
 	CComboBox m_TriggerType;
 	// 能谱模式选择下拉框

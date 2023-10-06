@@ -212,6 +212,7 @@
     <ClCompile Include="src\lib_json\json_value.cpp" />
     <ClCompile Include="src\lib_json\json_writer.cpp" />
     <ClCompile Include="src\Log.cpp" />
+    <ClCompile Include="src\MyConst.cpp" />
     <ClCompile Include="src\Oder.cpp" />
     <ClCompile Include="src\pch.cpp" />
     <ClCompile Include="src\RunningLog.cpp" />

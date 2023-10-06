@@ -75,7 +75,7 @@ void CXrays_64ChannelDlg::OpenUDP()
 	// SetDlgItemText(IDC_UDPIP, strIp);
 	SetDlgItemInt(IDC_UDPPORT, uiPort);
 	CString info;
-	info.Format(_T("UDPUDP已打开，端口号为:%d"), uiPort);
+	info.Format(_T("UDP已打开，端口号为:%d"), uiPort);
 	m_page1.PrintLog(info);
 	m_page2.PrintLog(info);
 
@@ -119,32 +119,32 @@ void CXrays_64ChannelDlg::SaveFile(CString myID, char *mk, int length)
 //限制TCP端口输入范围
 void CXrays_64ChannelDlg::OnEnKillfocusPort1()
 {
-	ConfinePortRange(&sPort);
+	ConfinePortRange(PortList[0]);
 }
 
 //限制TCP端口输入范围
 void CXrays_64ChannelDlg::OnEnKillfocusPort2()
 {
-	ConfinePortRange(&sPort2);
+	ConfinePortRange(PortList[1]);
 }
 
 //限制TCP端口输入范围
 void CXrays_64ChannelDlg::OnEnKillfocusPort3()
 {
-	ConfinePortRange(&sPort3);
+	ConfinePortRange(PortList[2]);
 }
 
 //限制TCP端口输入范围
 void CXrays_64ChannelDlg::OnEnKillfocusPort4()
 {
-	ConfinePortRange(&sPort4);
+	ConfinePortRange(PortList[3]);
 }
 
 //限制UDP端口输入范围
 void CXrays_64ChannelDlg::OnEnKillfocusUDPPort()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	ConfinePortRange(&m_UDPPort);
+	ConfinePortRange(m_UDPPort);
 }
 
 // 重置TCP网口接收的缓存数据
@@ -154,26 +154,26 @@ void CXrays_64ChannelDlg::ResetTCPData()
 	memset(DataCH2, 0, DataMaxlen);
 	memset(DataCH3, 0, DataMaxlen);
 	memset(DataCH4, 0, DataMaxlen);
-	CH1_RECVLength = 0;
-	CH2_RECVLength = 0;
-	CH3_RECVLength = 0;
-	CH4_RECVLength = 0;
+
+	for(int num=0; num<4; num++){
+		RECVLength[num] = 0;
+	}
 }
 
 //限制端口号输入范围0~65535
-void CXrays_64ChannelDlg::ConfinePortRange(int *myPort)
+void CXrays_64ChannelDlg::ConfinePortRange(int &myPort)
 {
 	UpdateData(true);
-	if ((*myPort < 0) || (*myPort > 65535))
+	if ((myPort < 0) || (myPort > 65535))
 	{
 		MessageBox(_T("端口的范围为0~65535\n"));
-		if (*myPort > 65535)
+		if (myPort > 65535)
 		{
-			*myPort = 65535;
+			myPort = 65535;
 		}
 		else
 		{
-			*myPort = 1;
+			myPort = 1;
 		}
 		UpdateData(false);
 	}
@@ -267,17 +267,17 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	Order::WaveRefreshTime[9] = res[3];
 
 	//发送指令
-	BackSend(mySocket, Order::WaveRefreshTime, 12, 0, 1);
+	BackSend(0, Order::WaveRefreshTime, 12, 0, 1);
 	// BackSend(mySocket2, Order::WaveRefreshTime, 12, 0, 1);
 	// BackSend(mySocket3, Order::WaveRefreshTime, 12, 0, 1);
 	// BackSend(mySocket4, Order::WaveRefreshTime, 12, 0, 1);
 
-	BackSend(mySocket, Order::TriggerThreshold, 12, 0, 1);
+	BackSend(0, Order::TriggerThreshold, 12, 0, 1);
 	// BackSend(mySocket2, Order::TriggerThreshold, 12, 0, 1);
 	// BackSend(mySocket3, Order::TriggerThreshold, 12, 0, 1);
 	// BackSend(mySocket4, Order::TriggerThreshold, 12, 0, 1);
 
-	BackSend(mySocket, Order::TriggerIntervalTime, 12, 0, 1);
+	BackSend(0, Order::TriggerIntervalTime, 12, 0, 1);
 	// BackSend(mySocket2, Order::TriggerIntervalTime, 12, 0, 1);
 	// BackSend(mySocket3, Order::TriggerIntervalTime, 12, 0, 1);
 	// BackSend(mySocket4, Order::TriggerIntervalTime, 12, 0, 1);
@@ -285,7 +285,7 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	CString info;
 	if (m_WaveMode.GetCurSel() == 0)
 	{ //512道能谱
-		BackSend(mySocket, Order::WorkMode0, 12, 0, 1);
+		BackSend(0, Order::WorkMode0, 12, 0, 1);
 		// BackSend(mySocket2, Order::WorkMode0, 12, 0, 1);
 		// BackSend(mySocket3, Order::WorkMode0, 12, 0, 1);
 		// BackSend(mySocket4, Order::WorkMode0, 12, 0, 1);
@@ -293,7 +293,7 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	}
 	else if (m_WaveMode.GetCurSel() == 1)
 	{ // 16道能谱
-		BackSend(mySocket, Order::WorkMode3, 12, 0, 1);
+		BackSend(0, Order::WorkMode3, 12, 0, 1);
 		// BackSend(mySocket2, Order::WorkMode3, 12, 0, 1);
 		// BackSend(mySocket3, Order::WorkMode3, 12, 0, 1);
 		// BackSend(mySocket4, Order::WorkMode3, 12, 0, 1);
@@ -346,33 +346,19 @@ void CXrays_64ChannelDlg::OnBnClickedClearLog()
 	}
 }
 
-// 缓存网口数据
+//缓存网口数据
 void CXrays_64ChannelDlg::AddTCPData(int channel, char *tempChar, int len)
 {
-	switch (channel)
-	{
-	case 1:
-		/*for (int i = 0; i < len; i++) {
-			if (CH1_RECVLength + i < DataMaxlen)
-			{
-				DataCH1[CH1_RECVLength + i] = tempChar[i];
-			}
-		}*/
-		CH1_RECVLength += len;
-		break;
-	case 2:
-		CH2_RECVLength += len;
-		break;
-	case 3:
-		CH3_RECVLength += len;
-		break;
-	case 4:
-		CH4_RECVLength += len;
-		break;
-	}
+	/*for (int i = 0; i < len; i++) {
+		if (RECVLength[channel-1] + i < DataMaxlen)
+		{
+			DataCH1[RECVLength[channel-1] + i] = tempChar[i];
+		}
+	}*/
+	RECVLength[channel-1] += len;
 }
 
-// 设置网口缓存区大小
+//设置网口缓存区大小
 void CXrays_64ChannelDlg::SetSocketSize(SOCKET sock, int nsize)
 {
 	int nErrCode = 0;
@@ -395,6 +381,7 @@ void CXrays_64ChannelDlg::SetSocketSize(SOCKET sock, int nsize)
 	}
 }
 
+//界面缩放
 void CXrays_64ChannelDlg::OnSize(UINT nType, int cx, int cy)
 {
 	CDialogEx::OnSize(nType, cx, cy);
@@ -422,7 +409,7 @@ void CXrays_64ChannelDlg::OnSize(UINT nType, int cx, int cy)
 	}
 }
 
-// 对界面控件重新布局
+//对界面控件重新布局
 void CXrays_64ChannelDlg::ResizeBar()
 {
 	CRect rectDlg;
@@ -444,7 +431,8 @@ void CXrays_64ChannelDlg::OnSizing(UINT fwSide, LPRECT pRect)
 	//TODO: 在此处添加消息处理程序代码
 }
 
-BOOL CXrays_64ChannelDlg::BackSend(SOCKET socket, BYTE *msg, int msgLength, int flags,
+//带指令反馈的发送指令
+BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 								 int sleepTime, int maxWaitingTime, BOOL isShow)
 {
 	if (ifFeedback)
@@ -469,12 +457,12 @@ BOOL CXrays_64ChannelDlg::BackSend(SOCKET socket, BYTE *msg, int msgLength, int 
 		if (!ifFeedback)
 		{
 			ifFeedback = TRUE;
-			send(socket, (char *)msg, msgLength, flags);
+			send(SocketList[num], (char *)msg, msgLength, flags);
 			// Sleep(sleepTime);
 			LastSendMsg = (char *)msg;
 			FeedbackLen = msgLength;
 			CString info;
-			info.Format(_T("SEND HEX(%d):"), i+1);
+			info.Format(_T("CH%d SEND HEX(%d):"), num+1, i+1);
 			info = info + Char2HexCString(LastSendMsg, msgLength);
 			m_page1.PrintLog(info, isShow); 
 		}
@@ -482,24 +470,27 @@ BOOL CXrays_64ChannelDlg::BackSend(SOCKET socket, BYTE *msg, int msgLength, int 
 		// 阻塞式判断等待反馈指令，并进行判断是否与发送指令相同
 		do
 		{ 
-			// 判断接受指令与发送指令长度是否一致
+			// 判断接收指令与发送指令是否相同
 			if (recievedFBLength == msgLength)
 			{
 				CString info;
-				info = _T("RECV HEX:") + Char2HexCString(RecvMsg, recievedFBLength);
+				info.Format(_T("CH%d RECV HEX:"), num+1);
+				info += Char2HexCString(RecvMsg, recievedFBLength);
 				m_page1.PrintLog(info, isShow);
 				if (strncmp(RecvMsg, LastSendMsg, msgLength) == 0){
 					TCPfeedback = TRUE;
-					// 重置接收到的反馈数据
-					/*RecvMsg = NULL;
-					recievedFBLength = 0;*/
+				}
+				if (!TCPfeedback) {
+					RecvMsg = NULL;
+					recievedFBLength = 0;
 				}
 			}
 
 			if (TCPfeedback)
 			{
 				CString info;
-				info = _T("指令反馈校验成功:") + Char2HexCString(RecvMsg, recievedFBLength);
+				info.Format(_T("CH%d指令反馈校验成功:"), num+1);
+				info += Char2HexCString(RecvMsg, recievedFBLength);
 				m_page1.PrintLog(info, isShow);
 
 				//接收到反馈指令，重新初始化反馈相关数据
@@ -521,12 +512,12 @@ BOOL CXrays_64ChannelDlg::BackSend(SOCKET socket, BYTE *msg, int msgLength, int 
 		} while (times < maxWaitingTime); 
 
 		CString info;
-		info.Format(_T("等待指令反馈时间%ds,超出最大设置时长%ds,"), times, maxWaitingTime);
+		info.Format(_T("CH%d 等待指令反馈时间%ds,超出最大设置时长%ds,"), num+1, times, maxWaitingTime);
 		m_page1.PrintLog(info, isShow);
 	}
 
 	CString info;
-	info.Format(_T("尝试3次下发指令，均无法接受到反馈指令，SEND HEX: "));
+	info.Format(_T("CH%d 尝试3次下发指令，均无法接受到反馈指令，SEND HEX: "), num+1);
 	info = info + Char2HexCString(LastSendMsg, msgLength);
 	m_page1.PrintLog(info, TRUE);
 
@@ -540,10 +531,12 @@ BOOL CXrays_64ChannelDlg::BackSend(SOCKET socket, BYTE *msg, int msgLength, int 
 	return FALSE;
 }
 
-void CXrays_64ChannelDlg::NoBackSend(SOCKET socket, BYTE* msg, int msgLength, int flags,
+//不带指令反馈的发送指令
+void CXrays_64ChannelDlg::NoBackSend(int num, BYTE* msg, int msgLength, int flags,
 	int sleepTime){
-	send(socket, (char*)msg, msgLength, flags);
-	CString info = _T("SEND HEX :");
+	send(SocketList[num], (char*)msg, msgLength, flags);
+	CString info;
+	info.Format(_T("CH%d SEND HEX :"), num + 1);
 	info = info + Char2HexCString((char*)msg, msgLength);
 	Sleep(sleepTime);
 }

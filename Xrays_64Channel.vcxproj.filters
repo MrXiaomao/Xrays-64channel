@@ -101,6 +101,9 @@
     <ClCompile Include="src\Layout.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="src\MyConst.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Xrays_64Channel.rc">

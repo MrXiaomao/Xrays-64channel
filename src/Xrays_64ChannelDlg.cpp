@@ -1,7 +1,6 @@
 ﻿
 // Xrays_64ChannelDlg.cpp: 实现文件
 //
-//#pragma comment(lib,"json.lib")
 #include "json/json.h"
 
 #include "pch.h"
@@ -56,9 +55,6 @@ END_MESSAGE_MAP()
 
 
 // CXrays_64ChannelDlg 对话框
-
-
-
 CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_XRAYS64CHANNEL_DIALOG, pParent)
 	, m_UDPSocket(NULL)
@@ -79,12 +75,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, timer(0)
 	, saveAsPath("")
 	, saveAsTargetPath("")
-	, CH1_RECVLength(0)
-	, CH2_RECVLength(0)
-	, CH3_RECVLength(0)
-	, CH4_RECVLength(0)
 	, m_currentTab(0)
-	, sPort(5000), sPort2(6000), sPort3(7000), sPort4(8000)
 	, m_targetID(_T("00000"))
 	, m_UDPPort(12100)
 	, MeasureTime(3000)
@@ -95,8 +86,10 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	DataCH2 = new char[DataMaxlen];
 	DataCH3 = new char[DataMaxlen];
 	DataCH4 = new char[DataMaxlen];
-	// LastSendMsg = new char[1000];
-	// RecvMsg = new char[1000];
+	for(int num=0; num<4; num++){
+		RECVLength[num]=0;
+		PortList[num] = 5000;
+	}
 	CLog::WriteMsg(_T("打开软件，软件环境初始化！"));
 }
 
@@ -105,10 +98,10 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 	CLog::WriteMsg(_T("正在退出软件，释放相关资源！"));
 	if (connectStatus) {
 		connectStatus = FALSE; // 用来控制关闭线程
-		closesocket(mySocket); //关闭套接字
-		closesocket(mySocket2); //关闭套接字
-		closesocket(mySocket3); //关闭套接字
-		closesocket(mySocket4); //关闭套接字
+		//关闭套接字
+		for(int num = 0; num<4; num++){
+			closesocket(SocketList[num]);
+		}
 	}
 	if (m_UDPSocket != NULL) delete m_UDPSocket;
 	delete DataCH1;
@@ -126,15 +119,15 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
-	DDX_Control(pDX, IDC_LED, m_NetStatusLED);		// “建立链接”LED
-	DDX_Control(pDX, IDC_LED2, m_NetStatusLED2);		// “建立链接”LED
-	DDX_Control(pDX, IDC_LED3, m_NetStatusLED3);		// “建立链接”LED
-	DDX_Control(pDX, IDC_LED4, m_NetStatusLED4);		// “建立链接”LED
+	DDX_Control(pDX, IDC_LED, m_NetStatusLEDList[0]);		// “建立链接”LED
+	DDX_Control(pDX, IDC_LED2, m_NetStatusLEDList[1]);		// “建立链接”LED
+	DDX_Control(pDX, IDC_LED3, m_NetStatusLEDList[2]);		// “建立链接”LED
+	DDX_Control(pDX, IDC_LED4, m_NetStatusLEDList[3]);		// “建立链接”LED
 	DDX_Control(pDX, IDC_IPADDRESS1, ServerIP);
-	DDX_Text(pDX, IDC_PORT1, sPort);
-	DDX_Text(pDX, IDC_PORT2, sPort2);
-	DDX_Text(pDX, IDC_PORT3, sPort3);
-	DDX_Text(pDX, IDC_PORT4, sPort4);
+	DDX_Text(pDX, IDC_PORT1, PortList[0]);
+	DDX_Text(pDX, IDC_PORT2, PortList[1]);
+	DDX_Text(pDX, IDC_PORT3, PortList[2]);
+	DDX_Text(pDX, IDC_PORT4, PortList[3]);
 	DDX_Control(pDX, IDC_COMBO1, m_TriggerType);
 	DDX_Control(pDX, IDC_WAVE_MODE, m_WaveMode);
 	DDX_Text(pDX, IDC_TargetNum, m_targetID);
@@ -278,10 +271,9 @@ void CXrays_64ChannelDlg::InitTabSettings(){
 
 
 void CXrays_64ChannelDlg::InitOtherSettings(){
-	m_NetStatusLED.RefreshWindow(FALSE);//设置指示灯
-	m_NetStatusLED2.RefreshWindow(FALSE);//设置指示灯
-	m_NetStatusLED3.RefreshWindow(FALSE);//设置指示灯
-	m_NetStatusLED4.RefreshWindow(FALSE);//设置指示灯
+	for(int num=0; num<4; num++){
+		m_NetStatusLEDList[num].RefreshWindow(FALSE);//设置指示灯
+	}
 	
 	// 设置下拉框默认选项
 	m_TriggerType.SetCurSel(0); 
@@ -311,10 +303,10 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 		StrSerIp3 = jsonSetting["IP_Detector3"].asCString();
 		StrSerIp4 = jsonSetting["IP_Detector4"].asCString();
 
-		sPort = jsonSetting["Port_Detector1"].asInt();
-		sPort2 = jsonSetting["Port_Detector2"].asInt();
-		sPort3 = jsonSetting["Port_Detector3"].asInt();
-		sPort4 = jsonSetting["Port_Detector4"].asInt();
+		PortList[0] = jsonSetting["Port_Detector1"].asInt();
+		PortList[1] = jsonSetting["Port_Detector2"].asInt();
+		PortList[2] = jsonSetting["Port_Detector3"].asInt();
+		PortList[3] = jsonSetting["Port_Detector4"].asInt();
 
 		m_UDPPort = jsonSetting["Port_UDP"].asInt();
 	}
@@ -323,10 +315,10 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	SetDlgItemText(IDC_IPADDRESS3, StrSerIp3);
 	SetDlgItemText(IDC_IPADDRESS4, StrSerIp4);
 
-	SetDlgItemInt(IDC_PORT1, sPort);
-	SetDlgItemInt(IDC_PORT2, sPort2);
-	SetDlgItemInt(IDC_PORT3, sPort3);
-	SetDlgItemInt(IDC_PORT4, sPort4);
+	SetDlgItemInt(IDC_PORT1, PortList[0]);
+	SetDlgItemInt(IDC_PORT2, PortList[1]);
+	SetDlgItemInt(IDC_PORT3, PortList[2]);
+	SetDlgItemInt(IDC_PORT4, PortList[3]);
 
 	SetDlgItemInt(IDC_UDPPORT, m_UDPPort);
 
@@ -399,7 +391,7 @@ void CXrays_64ChannelDlg::OnConnect()
 	GetDlgItemText(IDC_CONNECT1, strTemp);
 	if (strTemp == _T("连接网络")) {
 		CLog::WriteMsg(_T("点击“连接网络按钮”，尝试连接TCP网络！"));
-		BOOL status1 = ConnectTCP1();
+		BOOL status1 = ConnectTCP(0);
 		BOOL status2 = TRUE;
 		BOOL status3 = TRUE;
 		BOOL status4 = TRUE;
@@ -440,22 +432,13 @@ void CXrays_64ChannelDlg::OnConnect()
 		}
 	}
 	else{
-		// 1、发送数据，在断开网络前进行相应关闭动作
-		//unsigned char msg1[6] = { 0x80,0x01,0x00,0x00,0x00,0x00 };// 开启第一组偏压监测
-		//send(mySocket, msg1, 6, 0);
-		
-		//关闭套接字
-		closesocket(mySocket); 
-		closesocket(mySocket2); 
-		closesocket(mySocket3); 
-		closesocket(mySocket4); 
+		for(int num=0; num<4; num++){
+			//关闭套接字
+			closesocket(SocketList[num]);
+			// 关闭指示灯
+			m_NetStatusLEDList[num].RefreshWindow(FALSE);
+		} 
 		connectStatus = FALSE;
-
-		// 关闭指示灯
-		m_NetStatusLED.RefreshWindow(FALSE);
-		m_NetStatusLED2.RefreshWindow(FALSE);
-		m_NetStatusLED3.RefreshWindow(FALSE);
-		m_NetStatusLED4.RefreshWindow(FALSE);
 
 		SetDlgItemText(IDC_CONNECT1, _T("连接网络"));
 
@@ -469,198 +452,74 @@ void CXrays_64ChannelDlg::OnConnect()
 	GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); // 恢复按钮使能
 }
 
-BOOL CXrays_64ChannelDlg::ConnectTCP1(){
+BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	// 1、创建套接字
-	mySocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (mySocket == NULL) {
-		MessageBox(_T("ClientSocket1创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
+	SocketList[num] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (SocketList[num] == INVALID_SOCKET) {
+		CString info;
+		info.Format(_T("设备%d网络初始化创建失败！"), num+1);
+		m_page1.PrintLog(info);
 		return FALSE;
 	}
 
 	// 2、连接服务器
 	CString StrSerIp;
-	GetDlgItemText(IDC_IPADDRESS1, StrSerIp);
+	char keyIP[] = "IP_Detector1";
+	char keyPort[] = "Port_Detector1";
+	char keyRecvLen[] = "RECVLength_CH1";
+	
+	keyIP[strlen(keyIP)-1] = '1' + num;
+	keyPort[strlen(keyPort)-1] = '1' + num;
+	keyRecvLen[strlen(keyRecvLen)-1] = '1' + num;
+	switch(num)
+	{
+	case 0:
+		GetDlgItemText(IDC_IPADDRESS1, StrSerIp);
+		break;
+	case 1:
+		GetDlgItemText(IDC_IPADDRESS2, StrSerIp);
+		break;
+	case 2:
+		GetDlgItemText(IDC_IPADDRESS3, StrSerIp);
+		break;
+	case 3:
+		GetDlgItemText(IDC_IPADDRESS4, StrSerIp);
+		break;		
+	default:
+		break;
+	}
 	char* pStrIP = CstringToWideCharArry(StrSerIp);
 
 	// 写入配置文件
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-	jsonSetting["IP_Detector1"] = pStrIP;
-	jsonSetting["Port_Detector1"] = sPort;
-	jsonSetting["CH1_RECVLength"] = 0;
+	jsonSetting[keyIP] = pStrIP;
+	jsonSetting[keyPort] = PortList[num];
+	jsonSetting[keyRecvLen] = 0;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 	
 	// 3、设置网络参数
 	sockaddr_in server_addr;
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
-	server_addr.sin_port = htons(sPort); //网关：5000
-	SetSocketSize(mySocket, 1048576*3); //1M=1024k=1048576字节，缓存区大小
+	server_addr.sin_port = htons(PortList[num]); //网关：5000
+	SetSocketSize(SocketList[num], 1048576*3); //1M=1024k=1048576字节，缓存区大小
 	
 	// 4、检测网络是否连接,以及显示设备联网状况
-	if (connect(mySocket, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-		m_NetStatusLED.RefreshWindow(FALSE);//打开指示灯
-		MessageBox(_T("CH1连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
-            1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
-			3、检查工控机的网络适配器属性设置是否正确\n"));
+	if (connect(SocketList[num], (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+		m_NetStatusLEDList[num].RefreshWindow(FALSE);//打开指示灯
 		// 打印日志
 		CString info;
-		info.Format(_T("，端口号：%d"), sPort);
-		info = _T("CH1连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
+		info.Format(_T("CH%d网络连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
+            1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
+			3、检查电脑的网络适配器属性设置是否正确\n"), num+1);
 		m_page1.PrintLog(info);
 		return FALSE;
 	}
 	CString info;
-	info.Format(_T("，端口号：%d"), sPort);
-	info = _T("CH1已连接，网址IP：") + StrSerIp + info;
+	info.Format(_T("CH%d网络已连接"), num+1);
 	m_page1.PrintLog(info);
 
-	m_NetStatusLED.RefreshWindow(TRUE);//打开指示灯
-	return TRUE;
-}
-
-BOOL CXrays_64ChannelDlg::ConnectTCP2() {
-	// 1、创建套接字
-	mySocket2 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (mySocket2 == NULL) {
-		MessageBox(_T("ClientSocket2创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
-		return FALSE;
-	}
-
-	// 2、连接服务器
-	CString StrSerIp;
-	GetDlgItemText(IDC_IPADDRESS2, StrSerIp);
-	char* pStrIP = CstringToWideCharArry(StrSerIp);
-
-	// 写入配置文件
-	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-	jsonSetting["IP_Detector2"] = pStrIP;
-	jsonSetting["Port_Detector2"] = sPort2;
-	jsonSetting["CH2_RECVLength"] = 0;
-	WriteSetting(_T("Setting.json"), jsonSetting);
-
-	// 3、设置网络参数
-	sockaddr_in server_addr;
-	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
-	server_addr.sin_family = AF_INET;  // 使用IPv4地址
-	server_addr.sin_port = htons(sPort2); //网关：5000
-	SetSocketSize(mySocket2, 1048576 * 3); //1M=1024k=1048576字节，缓存区大小
-
-	// 4、检测网络是否连接,以及显示设备联网状况
-	if (connect(mySocket2, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-		m_NetStatusLED2.RefreshWindow(FALSE);//打开指示灯
-		MessageBox(_T("CH2连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
-            1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
-			3、检查工控机的网络适配器属性设置是否正确\n"));
-		// 打印日志
-		CString info;
-		info.Format(_T("，端口号：%d"), sPort2);
-		info = _T("CH2连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
-		m_page1.PrintLog(info);
-		return FALSE;
-	}
-	CString info;
-	info.Format(_T("，端口号：%d"), sPort2);
-	info = _T("CH2已连接，网址IP：") + StrSerIp + info;
-	m_page1.PrintLog(info);
-
-	m_NetStatusLED2.RefreshWindow(TRUE);//打开指示灯
-	return TRUE;
-}
-
-BOOL CXrays_64ChannelDlg::ConnectTCP3() {
-	// 1、创建套接字
-	mySocket3 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (mySocket3 == NULL) {
-		MessageBox(_T("ClientSocket3创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
-		return FALSE;
-	}
-
-	// 2、连接服务器
-	CString StrSerIp;
-	GetDlgItemText(IDC_IPADDRESS3, StrSerIp);
-	char* pStrIP = CstringToWideCharArry(StrSerIp);
-	// 写入配置文件
-	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-	jsonSetting["IP_Detector3"] = pStrIP;
-	jsonSetting["Port_Detector3"] = sPort3;
-	jsonSetting["CH3_RECVLength"] = 0;
-	WriteSetting(_T("Setting.json"), jsonSetting);
-
-	// 3、设置网络参数
-	sockaddr_in server_addr;
-	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
-	server_addr.sin_family = AF_INET;  // 使用IPv4地址
-	server_addr.sin_port = htons(sPort3); //网关：5000
-	SetSocketSize(mySocket3, 1048576 * 3); //1M=1024k=1048576字节，缓存区大小
-
-	// 4、检测网络是否连接,以及显示设备联网状况
-	if (connect(mySocket3, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-		m_NetStatusLED3.RefreshWindow(FALSE);//打开指示灯
-		MessageBox(_T("CH3连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
-            1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
-			3、检查工控机的网络适配器属性设置是否正确\n"));
-		// 打印日志
-		CString info;
-		info.Format(_T("，端口号：%d"), sPort3);
-		info = _T("CH3连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
-		m_page1.PrintLog(info);
-		return FALSE;
-	}
-	CString info;
-	info.Format(_T("，端口号：%d"), sPort3);
-	info = _T("CH3已连接，网址IP：") + StrSerIp + info;
-	m_page1.PrintLog(info);
-
-	m_NetStatusLED3.RefreshWindow(TRUE);//打开指示灯
-	return TRUE;
-}
-
-BOOL CXrays_64ChannelDlg::ConnectTCP4() {
-	// 1、创建套接字
-	mySocket4 = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (mySocket4 == NULL) {
-		MessageBox(_T("ClientSocket2创建失败！"), _T("信息提示："), MB_OKCANCEL | MB_ICONERROR);
-		return FALSE;
-	}
-
-	// 2、连接服务器
-	CString StrSerIp;
-	GetDlgItemText(IDC_IPADDRESS4, StrSerIp);
-	char* pStrIP = CstringToWideCharArry(StrSerIp);
-
-	// 写入配置文件
-	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-	jsonSetting["IP_Detector4"] = pStrIP;
-	jsonSetting["Port_Detector4"] = sPort4;
-	jsonSetting["CH4_RECVLength"] = 0;
-	WriteSetting(_T("Setting.json"), jsonSetting);
-
-	// 3、设置网络参数
-	sockaddr_in server_addr;
-	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
-	server_addr.sin_family = AF_INET;  // 使用IPv4地址
-	server_addr.sin_port = htons(sPort4); //网关：5000
-	SetSocketSize(mySocket4, 1048576 * 3); //1M=1024k=1048576字节，缓存区大小
-
-	// 4、检测网络是否连接,以及显示设备联网状况
-	if (connect(mySocket4, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-		m_NetStatusLED4.RefreshWindow(FALSE);//打开指示灯
-		MessageBox(_T("CH4连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
-            1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
-			3、检查工控机的网络适配器属性设置是否正确\n"));
-		// 打印日志
-		CString info;
-		info.Format(_T("，端口号：%d"), sPort4);
-		info = _T("CH4连接失败，请检查网络，当前网址IP：") + StrSerIp + info;
-		m_page1.PrintLog(info);
-		return FALSE;
-	}
-	CString info;
-	info.Format(_T("，端口号：%d"), sPort4);
-	info = _T("CH4已连接，网址IP：") + StrSerIp + info;
-	m_page1.PrintLog(info);
-
-	m_NetStatusLED4.RefreshWindow(TRUE);//打开指示灯
+	m_NetStatusLEDList[num].RefreshWindow(TRUE);//打开指示灯
 	return TRUE;
 }
 
@@ -676,7 +535,7 @@ UINT Recv_Th1(LPVOID p)
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
 		int nLength;
-		nLength = recv(dlg->mySocket, mk, dataLen, 0); //阻塞模式
+		nLength = recv(dlg->SocketList[0], mk, dataLen, 0); //阻塞模式
 		
 		if (nLength == -1) 
 		{
@@ -763,7 +622,7 @@ UINT Recv_Th2(LPVOID p)
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
 		int nLength;
-		nLength = recv(dlg->mySocket2, mk, dataLen, 0);
+		nLength = recv(dlg->SocketList[1], mk, dataLen, 0);
 		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
 		{
 			return 0;
@@ -797,7 +656,7 @@ UINT Recv_Th3(LPVOID p)
 		char mk[dataLen];
 
 		int nLength;
-		nLength = recv(dlg->mySocket3, mk, dataLen, 0);
+		nLength = recv(dlg->SocketList[2], mk, dataLen, 0);
 		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
 		{
 			return 0;
@@ -829,7 +688,7 @@ UINT Recv_Th4(LPVOID p)
 		char mk[dataLen];
 
 		int nLength;
-		nLength = recv(dlg->mySocket4, mk, dataLen, 0); //阻塞模式，如果没有数据，则一直等待
+		nLength = recv(dlg->SocketList[3], mk, dataLen, 0); //阻塞模式，如果没有数据，则一直等待
 		if (nLength == -1) { 
 			return 0;
 		}
@@ -860,13 +719,13 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			//状态栏显示
 			CString strInfo;
 			strInfo.Format(_T("Data Length:CH1= %d,CH2=%d,CH3=%d,CH4=%d"),
-				CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
+				RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 			m_statusBar.SetPaneText(0, strInfo);
 
 			if (MeasureStatus && (timer * TIMER_INTERVAL > MeasureTime)) 
 			{
 				if (!sendStopFlag) {
-					NoBackSend(mySocket, Order::Stop, 12, 0, 1);
+					NoBackSend(0, Order::Stop, 12, 0, 1);
 					//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
 					//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
 					//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
@@ -880,10 +739,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 
 				//在这规定时间内四个线程均没有接收到新的数据，即全部stop了
-				if (CH1_RECVLength == jsonSetting["CH1_RECVLength"].asInt() 
-					&& CH2_RECVLength == jsonSetting["CH2_RECVLength"].asInt()
-				 	&& CH3_RECVLength == jsonSetting["CH3_RECVLength"].asInt() 
-					&& CH4_RECVLength == jsonSetting["CH4_RECVLength"].asInt())
+				if (RECVLength[0] == jsonSetting["RECVLength_CH1"].asInt() 
+					&& RECVLength[1] == jsonSetting["RECVLength_CH2"].asInt()
+				 	&& RECVLength[2] == jsonSetting["RECVLength_CH3"].asInt() 
+					&& RECVLength[3] == jsonSetting["RECVLength_CH4"].asInt())
 				{
 					SetDlgItemText(IDC_Start, _T("开始测量"));
 					timer = 0;
@@ -902,12 +761,12 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 					GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 
-					if (CH1_RECVLength + CH2_RECVLength + CH3_RECVLength + CH4_RECVLength > 0) {
+					if (RECVLength[0] + RECVLength[1] + RECVLength[2] + RECVLength[3] > 0) {
 						// 打印日志
 						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
 						m_page1.PrintLog(info);
-						info.Format(_T("Data Length : CH1 = % d, CH2 = % d, CH3 = % d, CH4 = % d"),
-							CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
+						info.Format(_T("Data Length(字节) : CH1 = % d, CH2 = % d, CH3 = % d, CH4 = % d"),
+							RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 						m_page1.PrintLog(info);
 					}
 					KillTimer(1);	//测量结束，关闭定时器
@@ -917,10 +776,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			if (timer % 10 == 0)//每间隔10个timer记录一次
 			{	// 写入配置文件
 				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-				jsonSetting["CH1_RECVLength"] = CH1_RECVLength;
-				jsonSetting["CH2_RECVLength"] = CH2_RECVLength;
-				jsonSetting["CH3_RECVLength"] = CH3_RECVLength;
-				jsonSetting["CH4_RECVLength"] = CH4_RECVLength;
+				jsonSetting["RECVLength_CH1"] = RECVLength[0];
+				jsonSetting["RECVLength_CH2"] = RECVLength[1];
+				jsonSetting["RECVLength_CH3"] = RECVLength[2];
+				jsonSetting["RECVLength_CH4"] = RECVLength[3];
 				WriteSetting(_T("Setting.json"), jsonSetting);
 			}
 		}
@@ -933,12 +792,12 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			//状态栏显示
 			CString strInfo;
 			strInfo.Format(_T("Data Length:CH1= %d,CH2=%d,CH3=%d,CH4=%d"),
-				CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
+				RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 			m_statusBar.SetPaneText(0, strInfo);
 
 			if (MeasureStatus && (timer * TIMER_INTERVAL >= MeasureTime)) {
 				if (!sendStopFlag) {
-					NoBackSend(mySocket, Order::Stop, 12, 0, 1);
+					NoBackSend(0, Order::Stop, 12, 0, 1);
 					//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
 					//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
 					//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
@@ -952,10 +811,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 				//在规定时间内四个线程均没有接收到新的数据，即全部stop了
 				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-				if (CH1_RECVLength == jsonSetting["CH1_RECVLength"].asInt()
-					&& CH2_RECVLength == jsonSetting["CH2_RECVLength"].asInt()
-					&& CH3_RECVLength == jsonSetting["CH3_RECVLength"].asInt()
-					&& CH4_RECVLength == jsonSetting["CH4_RECVLength"].asInt())
+				if (RECVLength[0] == jsonSetting["RECVLength_CH1"].asInt()
+					&& RECVLength[1] == jsonSetting["RECVLength_CH2"].asInt()
+					&& RECVLength[2] == jsonSetting["RECVLength_CH3"].asInt()
+					&& RECVLength[3] == jsonSetting["RECVLength_CH4"].asInt())
 				{
 					// 重置部分数据
 					timer = 0;
@@ -963,12 +822,12 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					GetDataStatus = FALSE;
 					sendStopFlag = FALSE;
 
-					if (CH1_RECVLength + CH2_RECVLength + CH3_RECVLength + CH4_RECVLength> 0) {
+					if (RECVLength[0] + RECVLength[1] + RECVLength[2] + RECVLength[3]> 0) {
 						// 打印日志
 						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
 						m_page1.PrintLog(info);
 						info.Format(_T("Data Length : CH1 = % d, CH2 = % d, CH3 = % d, CH4 = % d"),
-							CH1_RECVLength, CH2_RECVLength, CH3_RECVLength, CH4_RECVLength);
+							RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 						m_page1.PrintLog(info);
 					}
 				}
@@ -977,10 +836,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			if (timer % 10 == 0)//每间隔10个timer记录一次
 			{	// 写入配置文件
 				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-				jsonSetting["CH1_RECVLength"] = CH1_RECVLength;
-				jsonSetting["CH2_RECVLength"] = CH2_RECVLength;
-				jsonSetting["CH3_RECVLength"] = CH3_RECVLength;
-				jsonSetting["CH4_RECVLength"] = CH4_RECVLength;
+				jsonSetting["RECVLength_CH1"] = RECVLength[0];
+				jsonSetting["RECVLength_CH2"] = RECVLength[1];
+				jsonSetting["RECVLength_CH3"] = RECVLength[2];
+				jsonSetting["RECVLength_CH4"] = RECVLength[3];
 				WriteSetting(_T("Setting.json"), jsonSetting);
 			}
 		}
@@ -1005,7 +864,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				Mkdir(saveAsTargetPath);
 
 				// 发送停止指令，复位。以保证把上一次测量重置。				
-				NoBackSend(mySocket, Order::Stop, 12, 0, 1);
+				NoBackSend(0, Order::Stop, 12, 0, 1);
 				//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
 				//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
 				//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
@@ -1022,7 +881,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				sendStopFlag = FALSE;
 
 				//发送开始测量指令，采用硬件触发
-				BackSend(mySocket, Order::StartSoftTrigger, 12, 0, 1);
+				BackSend(0, Order::StartSoftTrigger, 12, 0, 1);
 				//BackSend(mySocket, Order::StartHardTrigger, 12, 0, 1);
 				//BackSend(mySocket2, Order::StartHardTrigger, 12, 0, 1);
 				//BackSend(mySocket3, Order::StartHardTrigger, 12, 0, 1);
@@ -1067,7 +926,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		ResetTCPData();
 
 		//向TCP发送开始指令
-		BackSend(mySocket, Order::StartSoftTrigger, 12, 0);
+		BackSend(0, Order::StartSoftTrigger, 12, 0);
 		//BackSend(mySocket2, Order::StartSoftTrigger, 12, 0);
 		//BackSend(mySocket3, Order::StartSoftTrigger, 12, 0);
 		//BackSend(mySocket4, Order::StartSoftTrigger, 12, 0);
@@ -1106,7 +965,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		SetParameterInputStatus(TRUE);
 
 		//往TCP发送停止指令
-		NoBackSend(mySocket, Order::Stop, 12, 0, 1);
+		NoBackSend(0, Order::Stop, 12, 0, 1);
 		//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
 		//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
 		//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
@@ -1156,6 +1015,13 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		MeasureStatus = FALSE;
 		GetDataStatus = FALSE;
 		m_getTargetChange = FALSE;
+		
+		ifFeedback = FALSE;
+		TCPfeedback = FALSE;
+		LastSendMsg = NULL;
+		RecvMsg = NULL;
+		recievedFBLength = 0;
+		FeedbackLen = 12;
 
 		SendParameterToTCP();
 		SetParameterInputStatus(FALSE);
@@ -1174,7 +1040,7 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	else {
 		AutoMeasureStatus = FALSE;
 		SetParameterInputStatus(TRUE);
-		NoBackSend(mySocket, Order::Stop, 12, 0, 1);
+		NoBackSend(0, Order::Stop, 12, 0, 1);
 		//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
 		//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
 		//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
@@ -1261,7 +1127,7 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 				temp3[j] = cmd3[i * 12 + j];
 				temp4[j] = cmd4[i * 12 + j];
 			}
-			if (mySocket) sendStatus = sendStatus & BackSend(mySocket, temp, 12, 0, 2, 10, FALSE);
+			if (SocketList[0]) sendStatus = sendStatus & BackSend(0, temp, 12, 0, 2, 10, FALSE);
 			//if (mySocket2) sendStatus = sendStatus & BackSend(mySocket2, temp2, 12, 0, 2, 10, FALSE);
 			//if (mySocket3) sendStatus = sendStatus & BackSend(mySocket3, temp3, 12, 0, 2, 10, FALSE);
 			//if (mySocket4) sendStatus = sendStatus & BackSend(mySocket4, temp4, 12, 0, 2, 10, FALSE);

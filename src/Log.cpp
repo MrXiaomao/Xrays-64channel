@@ -121,7 +121,7 @@ short CLog::WriteMsg(CString strFormat)
 		str = strPart_Time + s_errorInfo;
 		s_errorInfo = "";
 		datafile << _UnicodeToUtf8(str);
-		str = _T(" [") + s_strLogPrefix + _T("] ") + strFormat;
+		str = _T("[") + s_strLogPrefix + _T("] ") + strFormat;
 		datafile << _UnicodeToUtf8(str);
 		datafile.close();
 	}
