@@ -71,11 +71,12 @@ public:
 	CClientSocket* m_UDPSocket; //本地UDP服务
 
 	SOCKET SocketList[4];
+	BOOL NetSwitchList[5]; // 网络开关,其中0位置对应总开关
 
 	// 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
 	// 16通道=20*4字节（1ms刷新，10秒测量时长对应总包长=1000*10*20*4）
 	const int DataMaxlen;
-	BOOL connectStatus;
+	BOOL connectStatusList[4]; //各网络联网状态
 	BOOL UDPStatus; //UDP工作状态
 	BOOL MeasureStatus; // 手动测量状态
 	BOOL AutoMeasureStatus; // 自动测量状态
@@ -149,11 +150,17 @@ public:
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBnClickedCalibration();
 	afx_msg void OnCbnSelchangeWaveMode(); //选择能谱模式
+	afx_msg void OnBnClickedCheck0(); //网络选择，总开关
+	afx_msg void OnBnClickedCheck1(); //网络选择，CH1
+	afx_msg void OnBnClickedCheck2(); //网络选择，CH2
+	afx_msg void OnBnClickedCheck3(); //网络选择，CH3
+	afx_msg void OnBnClickedCheck4(); //网络选择，CH4
 
 	// 网址IP
 	CIPAddressCtrl ServerIP;
 	// 网络状态LED灯
 	LEDButton m_NetStatusLEDList[4];
+
 	// TCP端口号
 	int PortList[4];
 

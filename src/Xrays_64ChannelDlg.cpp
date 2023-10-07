@@ -59,7 +59,6 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_XRAYS64CHANNEL_DIALOG, pParent)
 	, m_UDPSocket(NULL)
 	, DataMaxlen(5000)
-	, connectStatus(FALSE)
 	, UDPStatus(FALSE)
 	, MeasureStatus(FALSE)
 	, AutoMeasureStatus(FALSE)
@@ -89,20 +88,25 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	for(int num=0; num<4; num++){
 		RECVLength[num]=0;
 		PortList[num] = 5000;
+		connectStatusList[num] = FALSE;
+		SocketList[num] = NULL;
+		NetSwitchList[num] = TRUE; // 默认打开所有网络
 	}
+	NetSwitchList[4] = TRUE;
 	CLog::WriteMsg(_T("打开软件，软件环境初始化！"));
 }
 
 CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 {
 	CLog::WriteMsg(_T("正在退出软件，释放相关资源！"));
-	if (connectStatus) {
-		connectStatus = FALSE; // 用来控制关闭线程
-		//关闭套接字
-		for(int num = 0; num<4; num++){
-			closesocket(SocketList[num]);
+
+	for(int num = 0; num<4; num++){
+		if(connectStatusList[num]) {
+			connectStatusList[num] = FALSE; // 用来控制关闭线程
+			closesocket(SocketList[num]); //关闭套接字
 		}
 	}
+
 	if (m_UDPSocket != NULL) delete m_UDPSocket;
 	delete DataCH1;
 	delete DataCH2;
@@ -135,6 +139,11 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TAB1, m_Tab);
 	DDX_Text(pDX, IDC_MeasureTime, MeasureTime);
 	DDX_Text(pDX, IDC_RefreshTimeEdit, RefreshTime);
+	DDX_Check(pDX, IDC_CHECK1, NetSwitchList[0]);
+	DDX_Check(pDX, IDC_CHECK2, NetSwitchList[1]);
+	DDX_Check(pDX, IDC_CHECK3, NetSwitchList[2]);
+	DDX_Check(pDX, IDC_CHECK4, NetSwitchList[3]);
+	DDX_Check(pDX, IDC_CHECK5, NetSwitchList[4]);
 }
 
 BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
@@ -160,6 +169,11 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
 	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
 	ON_CBN_SELCHANGE(IDC_WAVE_MODE, &CXrays_64ChannelDlg::OnCbnSelchangeWaveMode)
+	ON_BN_CLICKED(IDC_CHECK1, &CXrays_64ChannelDlg::OnBnClickedCheck0)
+	ON_BN_CLICKED(IDC_CHECK2, &CXrays_64ChannelDlg::OnBnClickedCheck1)
+	ON_BN_CLICKED(IDC_CHECK3, &CXrays_64ChannelDlg::OnBnClickedCheck2)
+	ON_BN_CLICKED(IDC_CHECK4, &CXrays_64ChannelDlg::OnBnClickedCheck3)
+	ON_BN_CLICKED(IDC_CHECK5, &CXrays_64ChannelDlg::OnBnClickedCheck4)
 END_MESSAGE_MAP()
 
 
@@ -195,9 +209,8 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 	InitLayout(m_layout, this);
-	UpdateData(TRUE); //表示写数据，将窗口控制变量写入内存（更新数据）
-	//UpdateData(FALSE); //表示读数据，即显示窗口读取内存的数据以供实时显示
-	
+	//UpdateData(TRUE); //表示写数据，将窗口控制变量写入内存（更新数据）
+	UpdateData(FALSE); //表示读数据，即显示窗口读取内存的数据以供实时显示
 	
 	//---------------初始化状态栏---------------
 	InitBarSettings();
@@ -321,7 +334,7 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	SetDlgItemInt(IDC_PORT4, PortList[3]);
 
 	SetDlgItemInt(IDC_UDPPORT, m_UDPPort);
-
+	
 	// ---------------设置部分按钮初始化使能状态-------------
 	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
@@ -389,18 +402,25 @@ void CXrays_64ChannelDlg::OnConnect()
 	
 	CString strTemp;
 	GetDlgItemText(IDC_CONNECT1, strTemp);
+	
+	BOOL AllconnectStatus = TRUE;
 	if (strTemp == _T("连接网络")) {
 		CLog::WriteMsg(_T("点击“连接网络按钮”，尝试连接TCP网络！"));
-		BOOL status1 = ConnectTCP(0);
-		BOOL status2 = TRUE;
-		BOOL status3 = TRUE;
-		BOOL status4 = TRUE;
-		/*BOOL status2 = ConnectTCP2();
-		BOOL status3 = ConnectTCP3();
-		BOOL status4 = ConnectTCP4();*/
-		// 连接成功
-		if (status1 && status2 && status3 && status4) {
-			connectStatus = TRUE;
+		
+		// 1、尝试建立网络
+		for (int num = 0; num < 4; num++) {
+			if(NetSwitchList[num+1]) {
+				connectStatusList[num] = ConnectTCP(num);
+			}
+		}
+		
+		// 2、判断连接状态
+		for (int num = 0; num < 4; num++) {
+			if(connectStatusList[num] != NetSwitchList[num+1]) AllconnectStatus = FALSE;
+		}
+
+		// 3、连接成功
+		if (AllconnectStatus) {
 			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
 			
 			// 开启线程接收数据
@@ -414,31 +434,33 @@ void CXrays_64ChannelDlg::OnConnect()
 			if (UDPStatus) {
 				GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 			}
-			CLog::WriteMsg(_T("TCP网络连接成功！"));
+			m_page1.PrintLog(_T("TCP网络全部连接成功！"));
 		}
-		else if (status1|| status2|| status3|| status4) {
-			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
-			SetTCPInputStatus(TRUE);
-			CLog::WriteMsg(_T("TCP网络部分连接失败！"));
-		}
-		// 连接失败
 		else {
+			// 断开连接成功的网口
+			for (int num = 0; num < 4; num++) {
+				if(connectStatusList[num]) {
+					connectStatusList[num] = FALSE; // 用来控制关闭线程
+					closesocket(SocketList[num]); // 关闭套接字
+				}
+			}
+
 			// 恢复各个输入框使能状态
-			connectStatus = FALSE;
 			SetTCPInputStatus(TRUE);
 			GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 			GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
-			CLog::WriteMsg(_T("TCP网络全部连接成功！"));
+			m_page1.PrintLog(_T("TCP网络未能全部连接成功！"));
 		}
 	}
 	else{
+		// 1、断开连接成功的套接字
 		for(int num=0; num<4; num++){
-			//关闭套接字
-			closesocket(SocketList[num]);
-			// 关闭指示灯
-			m_NetStatusLEDList[num].RefreshWindow(FALSE);
+			if(connectStatusList[num]) {
+				connectStatusList[num] = FALSE; // 用来控制关闭线程
+				closesocket(SocketList[num]); // 关闭套接字
+				m_NetStatusLEDList[num].RefreshWindow(FALSE);// 关闭指示灯
+			}
 		} 
-		connectStatus = FALSE;
 
 		SetDlgItemText(IDC_CONNECT1, _T("连接网络"));
 
@@ -531,7 +553,7 @@ UINT Recv_Th1(LPVOID p)
 	while (1)
 	{
 		// 断开网络后关闭本线程
-		if (!dlg->connectStatus) return 0;
+		if (!dlg->connectStatusList[0]) return 0;
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
 		int nLength;
@@ -617,7 +639,7 @@ UINT Recv_Th2(LPVOID p)
 	while (1)
 	{
 		// 断开网络后关闭本线程
-		if (!dlg->connectStatus) return 0;
+		if (!dlg->connectStatusList[1]) return 0;
 
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
@@ -628,6 +650,60 @@ UINT Recv_Th2(LPVOID p)
 			return 0;
 		}
 		else {
+			// 提取指令反馈数据,只取前12字节
+			if(dlg->ifFeedback){
+				int receLen = 0; //本次接受总反馈指令长度
+				int receivedLen = dlg->recievedFBLength; //上一次已接收数据长度
+				
+				// 计算本次及之前接受到的反馈指令字节数
+				if (receivedLen + nLength < dlg->FeedbackLen) {
+					receLen = receivedLen + nLength;
+				}
+				else {
+					receLen = dlg->FeedbackLen;
+				}
+
+				char* tempChar = (char*)malloc(receLen);
+				//先取旧数据
+				if (dlg->RecvMsg != NULL) {
+					for (int i = 0; i < receivedLen; i++) {
+						tempChar[i] = *(dlg->RecvMsg + i);
+					}
+				}
+
+				// 拼接新数据
+				if (receivedLen + nLength < dlg->FeedbackLen) {
+					// 拼接反馈指令
+					for (int i = 0; i < nLength; i++) {
+						tempChar[receivedLen + i] = mk[i];
+					}
+					nLength = 0;
+				} 
+				else{
+					// 先拼反馈指令
+					int remainLen = 12 - receivedLen; //剩余拼接长度
+					for (int i = 0; i < remainLen; i++) {
+						tempChar[receivedLen + i] = mk[i];
+					}
+					
+					// 再处理剩余字符数组
+					nLength = nLength - remainLen;
+					for (int i = 0; i < nLength; i++) {
+						mk[i] = mk[remainLen+i];
+					}
+
+				}
+
+				dlg->RecvMsg = tempChar;
+				dlg->recievedFBLength = receLen;
+				if (receLen == dlg->FeedbackLen) {
+					dlg->ifFeedback = FALSE; //接收完12字节，重置标志位
+				}
+			}
+
+			if (nLength < 1) continue; //提前结束本次循环
+
+			// 普通数据
 			singleLock.Lock(); //Mutex
 			if (singleLock.IsLocked())
 			{
@@ -650,7 +726,7 @@ UINT Recv_Th3(LPVOID p)
 	while (1)
 	{
 		// 断开网络后关闭本线程
-		if (!dlg->connectStatus) return 0;
+		if (!dlg->connectStatusList[2]) return 0;
 
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
@@ -662,6 +738,60 @@ UINT Recv_Th3(LPVOID p)
 			return 0;
 		}
 		else {
+			// 提取指令反馈数据,只取前12字节
+			if(dlg->ifFeedback){
+				int receLen = 0; //本次接受总反馈指令长度
+				int receivedLen = dlg->recievedFBLength; //上一次已接收数据长度
+				
+				// 计算本次及之前接受到的反馈指令字节数
+				if (receivedLen + nLength < dlg->FeedbackLen) {
+					receLen = receivedLen + nLength;
+				}
+				else {
+					receLen = dlg->FeedbackLen;
+				}
+
+				char* tempChar = (char*)malloc(receLen);
+				//先取旧数据
+				if (dlg->RecvMsg != NULL) {
+					for (int i = 0; i < receivedLen; i++) {
+						tempChar[i] = *(dlg->RecvMsg + i);
+					}
+				}
+
+				// 拼接新数据
+				if (receivedLen + nLength < dlg->FeedbackLen) {
+					// 拼接反馈指令
+					for (int i = 0; i < nLength; i++) {
+						tempChar[receivedLen + i] = mk[i];
+					}
+					nLength = 0;
+				} 
+				else{
+					// 先拼反馈指令
+					int remainLen = 12 - receivedLen; //剩余拼接长度
+					for (int i = 0; i < remainLen; i++) {
+						tempChar[receivedLen + i] = mk[i];
+					}
+					
+					// 再处理剩余字符数组
+					nLength = nLength - remainLen;
+					for (int i = 0; i < nLength; i++) {
+						mk[i] = mk[remainLen+i];
+					}
+
+				}
+
+				dlg->RecvMsg = tempChar;
+				dlg->recievedFBLength = receLen;
+				if (receLen == dlg->FeedbackLen) {
+					dlg->ifFeedback = FALSE; //接收完12字节，重置标志位
+				}
+			}
+
+			if (nLength < 1) continue; //提前结束本次循环
+
+			// 普通数据			
 			singleLock.Lock(); //Mutex
 			if (singleLock.IsLocked()){
 				dlg->GetDataStatus = TRUE;
@@ -683,7 +813,7 @@ UINT Recv_Th4(LPVOID p)
 	while (1)
 	{
 		// 断开网络后关闭本线程
-		if (!dlg->connectStatus) return 0;
+		if (!dlg->connectStatusList[3]) return 0;
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
 
@@ -693,6 +823,60 @@ UINT Recv_Th4(LPVOID p)
 			return 0;
 		}
 		else {
+			// 提取指令反馈数据,只取前12字节
+			if(dlg->ifFeedback){
+				int receLen = 0; //本次接受总反馈指令长度
+				int receivedLen = dlg->recievedFBLength; //上一次已接收数据长度
+				
+				// 计算本次及之前接受到的反馈指令字节数
+				if (receivedLen + nLength < dlg->FeedbackLen) {
+					receLen = receivedLen + nLength;
+				}
+				else {
+					receLen = dlg->FeedbackLen;
+				}
+
+				char* tempChar = (char*)malloc(receLen);
+				//先取旧数据
+				if (dlg->RecvMsg != NULL) {
+					for (int i = 0; i < receivedLen; i++) {
+						tempChar[i] = *(dlg->RecvMsg + i);
+					}
+				}
+
+				// 拼接新数据
+				if (receivedLen + nLength < dlg->FeedbackLen) {
+					// 拼接反馈指令
+					for (int i = 0; i < nLength; i++) {
+						tempChar[receivedLen + i] = mk[i];
+					}
+					nLength = 0;
+				} 
+				else{
+					// 先拼反馈指令
+					int remainLen = 12 - receivedLen; //剩余拼接长度
+					for (int i = 0; i < remainLen; i++) {
+						tempChar[receivedLen + i] = mk[i];
+					}
+					
+					// 再处理剩余字符数组
+					nLength = nLength - remainLen;
+					for (int i = 0; i < nLength; i++) {
+						mk[i] = mk[remainLen+i];
+					}
+
+				}
+
+				dlg->RecvMsg = tempChar;
+				dlg->recievedFBLength = receLen;
+				if (receLen == dlg->FeedbackLen) {
+					dlg->ifFeedback = FALSE; //接收完12字节，重置标志位
+				}
+			}
+
+			if (nLength < 1) continue; //提前结束本次循环
+
+			// 普通数据			
 			singleLock.Lock(); //Mutex
 			if (singleLock.IsLocked()){
 				dlg->GetDataStatus = TRUE;
@@ -725,10 +909,9 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			if (MeasureStatus && (timer * TIMER_INTERVAL > MeasureTime)) 
 			{
 				if (!sendStopFlag) {
-					NoBackSend(0, Order::Stop, 12, 0, 1);
-					//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
-					//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
-					//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
+					for(int num=0; num<4; num++){
+						if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
+					}
 
 					sendStopFlag = TRUE;
 					// 打印日志
@@ -753,7 +936,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					//往TCP发送的控制板配置参数允许输入
 					SetParameterInputStatus(TRUE);
 
-					// 按键互斥锁
+					// 按键互斥锁,测量结束，恢复各按钮使能
 					GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 					GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
 					GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
@@ -797,10 +980,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			if (MeasureStatus && (timer * TIMER_INTERVAL >= MeasureTime)) {
 				if (!sendStopFlag) {
-					NoBackSend(0, Order::Stop, 12, 0, 1);
-					//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
-					//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
-					//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
+					for(int num=0; num<4; num++){
+						if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
+					}
+
 					sendStopFlag = TRUE;
 
 					// 打印日志
@@ -863,12 +1046,11 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				saveAsTargetPath += "\\";
 				Mkdir(saveAsTargetPath);
 
-				// 发送停止指令，复位。以保证把上一次测量重置。				
-				NoBackSend(0, Order::Stop, 12, 0, 1);
-				//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
-				//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
-				//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
-
+				// 发送停止指令，复位。以保证把上一次测量重置。	
+				for(int num=0; num<4; num++){
+					if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
+				}			
+				
 				// 重置从网口接收的缓存数据
 				ResetTCPData();
 				//重置接受数据标志位
@@ -881,12 +1063,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				sendStopFlag = FALSE;
 
 				//发送开始测量指令，采用硬件触发
-				BackSend(0, Order::StartSoftTrigger, 12, 0, 1);
-				//BackSend(mySocket, Order::StartHardTrigger, 12, 0, 1);
-				//BackSend(mySocket2, Order::StartHardTrigger, 12, 0, 1);
-				//BackSend(mySocket3, Order::StartHardTrigger, 12, 0, 1);
-				//BackSend(mySocket4, Order::StartHardTrigger, 12, 0, 1);
-
+				for (int num = 0; num < 4; num++) {
+					if(connectStatusList[num]) BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
+				}
+				
 				CString info = _T("\"硬件触发\"工作模式");
 				m_page1.PrintLog(info);
 			}
@@ -926,10 +1106,9 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		ResetTCPData();
 
 		//向TCP发送开始指令
-		BackSend(0, Order::StartSoftTrigger, 12, 0);
-		//BackSend(mySocket2, Order::StartSoftTrigger, 12, 0);
-		//BackSend(mySocket3, Order::StartSoftTrigger, 12, 0);
-		//BackSend(mySocket4, Order::StartSoftTrigger, 12, 0);
+		for (int num = 0; num < 4; num++) {
+			if(connectStatusList[num]) BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
+		}
 
 		SetDlgItemText(IDC_Start, _T("停止测量"));
 		
@@ -965,10 +1144,10 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		SetParameterInputStatus(TRUE);
 
 		//往TCP发送停止指令
-		NoBackSend(0, Order::Stop, 12, 0, 1);
-		//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
-		//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
-		//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
+		for(int num=0; num<4; num++){
+			if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
+		}
+
 		SetDlgItemText(IDC_Start, _T("开始测量"));
 		KillTimer(1);	//关闭定时器
 
@@ -995,10 +1174,10 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(TRUE);
 
-	if (m_UDPSocket==NULL || !connectStatus) {
-		MessageBox(_T("请检查：\n1、是否开启UDP网络;\n2、是否连接TCP网络。"));
-		return;
-	}
+	// if (m_UDPSocket==NULL || !connectStatusList) {
+	// 	MessageBox(_T("请检查：\n1、是否开启UDP网络;\n2、是否连接TCP网络。"));
+	// 	return;
+	// }
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 
 	CString strTemp;
@@ -1040,11 +1219,9 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	else {
 		AutoMeasureStatus = FALSE;
 		SetParameterInputStatus(TRUE);
-		NoBackSend(0, Order::Stop, 12, 0, 1);
-		//NoBackSend(mySocket2, Order::Stop, 12, 0, 1);
-		//NoBackSend(mySocket3, Order::Stop, 12, 0, 1);
-		//NoBackSend(mySocket4, Order::Stop, 12, 0, 1);
-		
+		for(int num=0; num<4; num++){
+			if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
+		}
 		SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
 
 		//关闭定时器
@@ -1102,46 +1279,46 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 	m_page1.PrintLog(info);
 
 	BOOL sendStatus = TRUE; // 刻度曲线发送是否成功
-	// 若当前是联网状态，则发送数据
-	if (connectStatus) {
-		vector<CString> messageList = ReadEnCalibration(fileName);
-		BYTE cmd[2000] = { 0 }; //144条指令*12字节=1728字节
-		BYTE cmd2[2000] = { 0 };
-		BYTE cmd3[2000] = { 0 };
-		BYTE cmd4[2000] = { 0 };
-		int iSize = 0;
-		
-		iSize = Str2Hex(messageList[0], cmd);
-		Str2Hex(messageList[1], cmd2);
-		Str2Hex(messageList[2], cmd3);
-		Str2Hex(messageList[3], cmd4);
-		// 将各个指令分开发送
-		for (int i = 0; i < iSize / 12; i++) {
-			BYTE temp[13] = { 0 };
-			BYTE temp2[13] = { 0 };
-			BYTE temp3[13] = { 0 };
-			BYTE temp4[13] = { 0 };
-			for (int j = 0; j < 12; j++) {
-				temp[j] = cmd[i * 12 + j];
-				temp2[j] = cmd2[i * 12 + j];
-				temp3[j] = cmd3[i * 12 + j];
-				temp4[j] = cmd4[i * 12 + j];
-			}
-			if (SocketList[0]) sendStatus = sendStatus & BackSend(0, temp, 12, 0, 2, 10, FALSE);
-			//if (mySocket2) sendStatus = sendStatus & BackSend(mySocket2, temp2, 12, 0, 2, 10, FALSE);
-			//if (mySocket3) sendStatus = sendStatus & BackSend(mySocket3, temp3, 12, 0, 2, 10, FALSE);
-			//if (mySocket4) sendStatus = sendStatus & BackSend(mySocket4, temp4, 12, 0, 2, 10, FALSE);
+
+	vector<CString> messageList = ReadEnCalibration(fileName);
+	BYTE cmd[2000] = { 0 }; //144条指令*12字节=1728字节
+	BYTE cmd2[2000] = { 0 };
+	BYTE cmd3[2000] = { 0 };
+	BYTE cmd4[2000] = { 0 };
+	int iSize = 0;
+	
+	iSize = Str2Hex(messageList[0], cmd);
+	Str2Hex(messageList[1], cmd2);
+	Str2Hex(messageList[2], cmd3);
+	Str2Hex(messageList[3], cmd4);
+	// 将各个指令分开发送
+	for (int i = 0; i < iSize / 12; i++) {
+		BYTE temp[13] = { 0 };
+		BYTE temp2[13] = { 0 };
+		BYTE temp3[13] = { 0 };
+		BYTE temp4[13] = { 0 };
+		for (int j = 0; j < 12; j++) {
+			temp[j] = cmd[i * 12 + j];
+			temp2[j] = cmd2[i * 12 + j];
+			temp3[j] = cmd3[i * 12 + j];
+			temp4[j] = cmd4[i * 12 + j];
 		}
-		if(sendStatus){
-			CString info;
-			info = _T("刻度曲线指令发送成功");
-			m_page1.PrintLog(info);
-		}
-		else{
-			CString info;
-			info = _T("刻度曲线指令发送失败");
-			m_page1.PrintLog(info);
-		}
+
+		// 若当前是联网状态，则发送数据
+		if (connectStatusList[0]) sendStatus = sendStatus & BackSend(0, temp, 12, 0, 2, 10, FALSE);
+		if (connectStatusList[1]) sendStatus = sendStatus & BackSend(1, temp2, 12, 0, 2, 10, FALSE);
+		if (connectStatusList[2]) sendStatus = sendStatus & BackSend(2, temp3, 12, 0, 2, 10, FALSE);
+		if (connectStatusList[3]) sendStatus = sendStatus & BackSend(3, temp4, 12, 0, 2, 10, FALSE);
+	}
+	if(sendStatus){
+		CString info;
+		info = _T("刻度曲线指令发送成功");
+		m_page1.PrintLog(info);
+	}
+	else{
+		CString info;
+		info = _T("刻度曲线指令发送失败");
+		m_page1.PrintLog(info);
 	}
 }
 

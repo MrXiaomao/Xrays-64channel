@@ -81,8 +81,15 @@ void CXrays_64ChannelDlg::OpenUDP()
 
 	UDPStatus = TRUE;
 	GetDlgItem(IDC_UDPPORT)->EnableWindow(FALSE);
+
+	// 2、判断TCP连接状态
+	BOOL AllconnectStatus = TRUE;
+	for (int num = 0; num < 4; num++) {
+		if(connectStatusList[num] != NetSwitchList[num+1]) AllconnectStatus = FALSE;
+	}
+
 	// UDP和TCP都打开后才允许使用自动测量
-	if (connectStatus)
+	if (AllconnectStatus)
 	{
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 	}
@@ -267,36 +274,31 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	Order::WaveRefreshTime[9] = res[3];
 
 	//发送指令
-	BackSend(0, Order::WaveRefreshTime, 12, 0, 1);
-	// BackSend(mySocket2, Order::WaveRefreshTime, 12, 0, 1);
-	// BackSend(mySocket3, Order::WaveRefreshTime, 12, 0, 1);
-	// BackSend(mySocket4, Order::WaveRefreshTime, 12, 0, 1);
-
-	BackSend(0, Order::TriggerThreshold, 12, 0, 1);
-	// BackSend(mySocket2, Order::TriggerThreshold, 12, 0, 1);
-	// BackSend(mySocket3, Order::TriggerThreshold, 12, 0, 1);
-	// BackSend(mySocket4, Order::TriggerThreshold, 12, 0, 1);
-
-	BackSend(0, Order::TriggerIntervalTime, 12, 0, 1);
-	// BackSend(mySocket2, Order::TriggerIntervalTime, 12, 0, 1);
-	// BackSend(mySocket3, Order::TriggerIntervalTime, 12, 0, 1);
-	// BackSend(mySocket4, Order::TriggerIntervalTime, 12, 0, 1);
-
+	for (int num = 0; num < 4; num++) {
+		if(connectStatusList[num]) {
+			BackSend(num, Order::WaveRefreshTime, 12, 0, 1);
+			BackSend(num, Order::TriggerThreshold, 12, 0, 1);
+			BackSend(num, Order::TriggerIntervalTime, 12, 0, 1);
+		}
+	}
+	
 	CString info;
 	if (m_WaveMode.GetCurSel() == 0)
 	{ //512道能谱
-		BackSend(0, Order::WorkMode0, 12, 0, 1);
-		// BackSend(mySocket2, Order::WorkMode0, 12, 0, 1);
-		// BackSend(mySocket3, Order::WorkMode0, 12, 0, 1);
-		// BackSend(mySocket4, Order::WorkMode0, 12, 0, 1);
+		for (int num = 0; num < 4; num++) {
+			if(connectStatusList[num]) {
+				BackSend(num, Order::WorkMode0, 12, 0, 1);
+			}
+		}
 		info.Format(_T("能谱刷新时间:%dms,512道能谱工作模式"), RefreshTime);
 	}
 	else if (m_WaveMode.GetCurSel() == 1)
 	{ // 16道能谱
-		BackSend(0, Order::WorkMode3, 12, 0, 1);
-		// BackSend(mySocket2, Order::WorkMode3, 12, 0, 1);
-		// BackSend(mySocket3, Order::WorkMode3, 12, 0, 1);
-		// BackSend(mySocket4, Order::WorkMode3, 12, 0, 1);
+		for (int num = 0; num < 4; num++) {
+			if(connectStatusList[num]) {
+				BackSend(num, Order::WorkMode3, 12, 0, 1);
+			}
+		}
 		info.Format(_T("能谱刷新时间:%dms,16道能谱工作模式"), RefreshTime);
 	}
 	m_page1.PrintLog(info);
@@ -539,4 +541,54 @@ void CXrays_64ChannelDlg::NoBackSend(int num, BYTE* msg, int msgLength, int flag
 	info.Format(_T("CH%d SEND HEX :"), num + 1);
 	info = info + Char2HexCString((char*)msg, msgLength);
 	Sleep(sleepTime);
+}
+
+void CXrays_64ChannelDlg::OnBnClickedCheck0()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
+	if (BST_CHECKED == IsDlgButtonChecked(IDC_CHECK1)) //BST_CHECKED：表示按钮被选中。BST_UNCHECKED：表示该按钮未选中（unckecked）。
+	{
+		for (int i = 0; i < 5; i++) {
+			NetSwitchList[i] = TRUE;
+		}
+	}
+	else{
+		for (int i = 0; i < 5; i++) {
+			NetSwitchList[i] = FALSE;
+		}
+	}
+	UpdateData(FALSE);//刷新控件
+}
+
+void CXrays_64ChannelDlg::OnBnClickedCheck1()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
+	NetSwitchList[0] = NetSwitchList[1] & NetSwitchList[2] & NetSwitchList[3] & NetSwitchList[4];
+	UpdateData(FALSE);//刷新控件
+}
+
+void CXrays_64ChannelDlg::OnBnClickedCheck2()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
+	NetSwitchList[0] = NetSwitchList[1] & NetSwitchList[2] & NetSwitchList[3] & NetSwitchList[4];
+	UpdateData(FALSE);//刷新控件
+}
+
+void CXrays_64ChannelDlg::OnBnClickedCheck3()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
+	NetSwitchList[0] = NetSwitchList[1] & NetSwitchList[2] & NetSwitchList[3] & NetSwitchList[4];
+	UpdateData(FALSE);//刷新控件
+}
+
+void CXrays_64ChannelDlg::OnBnClickedCheck4()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
+	NetSwitchList[0] = NetSwitchList[1] & NetSwitchList[2] & NetSwitchList[3] & NetSwitchList[4];
+	UpdateData(FALSE);//刷新控件
 }

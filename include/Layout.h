@@ -21,6 +21,9 @@
 *****************************************************************************/
 
 #pragma once
+#ifndef _LAYOUT_
+#define _LAYOUT_
+
 #include "map"
 #include "vector"
 
@@ -101,3 +104,4 @@ private:
 	float m_yscale;				// y×ø±êËõ·Å±ÈÀý
 };
 
+#endif
