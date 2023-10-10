@@ -85,12 +85,12 @@ public:
 	BOOL sendStopFlag; // 用来告知是否发送停止指令的标志，防止重复发送停止指令
 	
 	// ------------------TCP网络指令反馈的相关变量--------------------------------
-	BOOL ifFeedback; //用于判断当前接收数据是否为指令反馈。
-	BOOL TCPfeedback; // 发送数据后，网口指令反馈状态.无正确反馈则禁止发送下一条指令。
-	char* LastSendMsg; // 上一次发送的指令
-	char* RecvMsg; // 网口接收数据
-	int recievedFBLength; //已接收网口数据长度，取前N个字节
-	int FeedbackLen; //指令反馈字节长度
+	BOOL ifFeedback[4]; //用于判断当前接收数据是否为指令反馈。
+	BOOL TCPfeedback[4]; // 发送数据后，网口指令反馈状态.无正确反馈则禁止发送下一条指令。
+	char* LastSendMsg[4]; // 上一次发送的指令
+	char* RecvMsg[4]; // 网口接收数据
+	int recievedFBLength[4]; //已接收网口数据长度，取前N个字节
+	int FeedbackLen[4]; //指令反馈字节长度
 
 	// -------------------TCP网络接受数据相关变量----------------------------
 	char* DataCH1; // 网口接收的数据，缓存下来，接收完后再存储到文件中。

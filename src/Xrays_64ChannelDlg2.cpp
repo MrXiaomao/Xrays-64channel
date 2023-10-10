@@ -437,7 +437,7 @@ void CXrays_64ChannelDlg::OnSizing(UINT fwSide, LPRECT pRect)
 BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 								 int sleepTime, int maxWaitingTime, BOOL isShow)
 {
-	if (ifFeedback)
+	if (ifFeedback[num])
 		return FALSE;
 
 	// 若超时未检测到反馈指令，则再次发送指令到FPGA。循环等待三次。
@@ -449,23 +449,23 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 		BOOL flag = FALSE;
 
 		// 初始化反馈相关参数
-		ifFeedback = FALSE;
-		TCPfeedback = FALSE;
-		LastSendMsg = NULL;
-		RecvMsg = NULL;
-		recievedFBLength = 0;
+		ifFeedback[num] = FALSE;
+		TCPfeedback[num] = FALSE;
+		LastSendMsg[num] = NULL;
+		RecvMsg[num] = NULL;
+		recievedFBLength[num] = 0;
 
 		// 发送指令
-		if (!ifFeedback)
+		if (!ifFeedback[num])
 		{
-			ifFeedback = TRUE;
+			ifFeedback[num] = TRUE;
 			send(SocketList[num], (char *)msg, msgLength, flags);
 			// Sleep(sleepTime);
-			LastSendMsg = (char *)msg;
-			FeedbackLen = msgLength;
+			LastSendMsg[num] = (char *)msg;
+			FeedbackLen[num] = msgLength;
 			CString info;
 			info.Format(_T("CH%d SEND HEX(%d):"), num+1, i+1);
-			info = info + Char2HexCString(LastSendMsg, msgLength);
+			info = info + Char2HexCString(LastSendMsg[num], msgLength);
 			m_page1.PrintLog(info, isShow); 
 		}
 
@@ -473,34 +473,34 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 		do
 		{ 
 			// 判断接收指令与发送指令是否相同
-			if (recievedFBLength == msgLength)
+			if (recievedFBLength[num] == msgLength)
 			{
 				CString info;
 				info.Format(_T("CH%d RECV HEX:"), num+1);
-				info += Char2HexCString(RecvMsg, recievedFBLength);
+				info += Char2HexCString(RecvMsg[num], recievedFBLength[num]);
 				m_page1.PrintLog(info, isShow);
-				if (strncmp(RecvMsg, LastSendMsg, msgLength) == 0){
-					TCPfeedback = TRUE;
+				if (strncmp(RecvMsg[num], LastSendMsg[num], msgLength) == 0){
+					TCPfeedback[num] = TRUE;
 				}
-				if (!TCPfeedback) {
-					RecvMsg = NULL;
-					recievedFBLength = 0;
+				if (!TCPfeedback[num]) {
+					RecvMsg[num] = NULL;
+					recievedFBLength[num] = 0;
 				}
 			}
 
-			if (TCPfeedback)
+			if (TCPfeedback[num])
 			{
 				CString info;
 				info.Format(_T("CH%d指令反馈校验成功:"), num+1);
-				info += Char2HexCString(RecvMsg, recievedFBLength);
+				info += Char2HexCString(RecvMsg[num], recievedFBLength[num]);
 				m_page1.PrintLog(info, isShow);
 
 				//接收到反馈指令，重新初始化反馈相关数据
-				TCPfeedback = FALSE;
-				ifFeedback = FALSE;
-				LastSendMsg = NULL;
-				RecvMsg = NULL;
-				recievedFBLength = 0;
+				TCPfeedback[num] = FALSE;
+				ifFeedback[num] = FALSE;
+				LastSendMsg[num] = NULL;
+				RecvMsg[num] = NULL;
+				recievedFBLength[num] = 0;
 
 				return TRUE;
 			}
@@ -520,15 +520,15 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 
 	CString info;
 	info.Format(_T("CH%d 尝试3次下发指令，均无法接受到反馈指令，SEND HEX: "), num+1);
-	info = info + Char2HexCString(LastSendMsg, msgLength);
+	info = info + Char2HexCString(LastSendMsg[num], msgLength);
 	m_page1.PrintLog(info, TRUE);
 
 	// 恢复指令反馈相关参数
-	ifFeedback = FALSE;
-	TCPfeedback = FALSE;
-	LastSendMsg = NULL;
-	RecvMsg = NULL;
-	recievedFBLength = 0;
+	ifFeedback[num] = FALSE;
+	TCPfeedback[num] = FALSE;
+	LastSendMsg[num] = NULL;
+	RecvMsg[num] = NULL;
+	recievedFBLength[num] = 0;
 
 	return FALSE;
 }

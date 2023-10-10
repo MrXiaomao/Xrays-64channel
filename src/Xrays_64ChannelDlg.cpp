@@ -65,12 +65,6 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, GetDataStatus(FALSE)
 	, m_getTargetChange(FALSE)
 	, sendStopFlag(FALSE)
-	, ifFeedback(FALSE)
-	, TCPfeedback(FALSE)
-	, LastSendMsg(NULL)
-	, RecvMsg(NULL)
-	, recievedFBLength(0)
-	, FeedbackLen(12)
 	, timer(0)
 	, saveAsPath("")
 	, saveAsTargetPath("")
@@ -91,6 +85,12 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 		connectStatusList[num] = FALSE;
 		SocketList[num] = NULL;
 		NetSwitchList[num] = TRUE; // 默认打开所有网络
+		ifFeedback[num] = FALSE;
+		TCPfeedback[num] = FALSE;
+		LastSendMsg[num] = NULL;
+		RecvMsg[num] = NULL;
+		recievedFBLength[num] = 0;
+		FeedbackLen[num] = 12;
 	}
 	NetSwitchList[4] = TRUE;
 	CLog::WriteMsg(_T("打开软件，软件环境初始化！"));
@@ -565,28 +565,28 @@ UINT Recv_Th1(LPVOID p)
 		}
 		else {
 			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback){
+			if(dlg->ifFeedback[0]){
 				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength; //上一次已接收数据长度
+				int receivedLen = dlg->recievedFBLength[0]; //上一次已接收数据长度
 				
 				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen) {
+				if (receivedLen + nLength < dlg->FeedbackLen[0]) {
 					receLen = receivedLen + nLength;
 				}
 				else {
-					receLen = dlg->FeedbackLen;
+					receLen = dlg->FeedbackLen[0];
 				}
 
 				char* tempChar = (char*)malloc(receLen);
 				//先取旧数据
-				if (dlg->RecvMsg != NULL) {
+				if (dlg->RecvMsg[0] != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg + i);
+						tempChar[i] = *(dlg->RecvMsg[0] + i);
 					}
 				}
 
 				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen) {
+				if (receivedLen + nLength < dlg->FeedbackLen[0]) {
 					// 拼接反馈指令
 					for (int i = 0; i < nLength; i++) {
 						tempChar[receivedLen + i] = mk[i];
@@ -608,10 +608,10 @@ UINT Recv_Th1(LPVOID p)
 
 				}
 
-				dlg->RecvMsg = tempChar;
-				dlg->recievedFBLength = receLen;
-				if (receLen == dlg->FeedbackLen) {
-					dlg->ifFeedback = FALSE; //接收完12字节，重置标志位
+				dlg->RecvMsg[0] = tempChar;
+				dlg->recievedFBLength[0] = receLen;
+				if (receLen == dlg->FeedbackLen[0]) {
+					dlg->ifFeedback[0] = FALSE; //接收完12字节，重置标志位
 				}
 			}
 
@@ -651,28 +651,28 @@ UINT Recv_Th2(LPVOID p)
 		}
 		else {
 			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback){
+			if(dlg->ifFeedback[1]){
 				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength; //上一次已接收数据长度
+				int receivedLen = dlg->recievedFBLength[1]; //上一次已接收数据长度
 				
 				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen) {
+				if (receivedLen + nLength < dlg->FeedbackLen[1]) {
 					receLen = receivedLen + nLength;
 				}
 				else {
-					receLen = dlg->FeedbackLen;
+					receLen = dlg->FeedbackLen[1];
 				}
 
 				char* tempChar = (char*)malloc(receLen);
 				//先取旧数据
-				if (dlg->RecvMsg != NULL) {
+				if (dlg->RecvMsg[1] != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg + i);
+						tempChar[i] = *(dlg->RecvMsg[1] + i);
 					}
 				}
 
 				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen) {
+				if (receivedLen + nLength < dlg->FeedbackLen[1]) {
 					// 拼接反馈指令
 					for (int i = 0; i < nLength; i++) {
 						tempChar[receivedLen + i] = mk[i];
@@ -694,10 +694,10 @@ UINT Recv_Th2(LPVOID p)
 
 				}
 
-				dlg->RecvMsg = tempChar;
-				dlg->recievedFBLength = receLen;
-				if (receLen == dlg->FeedbackLen) {
-					dlg->ifFeedback = FALSE; //接收完12字节，重置标志位
+				dlg->RecvMsg[1] = tempChar;
+				dlg->recievedFBLength[1] = receLen;
+				if (receLen == dlg->FeedbackLen[1]) {
+					dlg->ifFeedback[1] = FALSE; //接收完12字节，重置标志位
 				}
 			}
 
@@ -739,28 +739,28 @@ UINT Recv_Th3(LPVOID p)
 		}
 		else {
 			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback){
+			if(dlg->ifFeedback[2]){
 				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength; //上一次已接收数据长度
+				int receivedLen = dlg->recievedFBLength[2]; //上一次已接收数据长度
 				
 				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen) {
+				if (receivedLen + nLength < dlg->FeedbackLen[2]) {
 					receLen = receivedLen + nLength;
 				}
 				else {
-					receLen = dlg->FeedbackLen;
+					receLen = dlg->FeedbackLen[2];
 				}
 
 				char* tempChar = (char*)malloc(receLen);
 				//先取旧数据
-				if (dlg->RecvMsg != NULL) {
+				if (dlg->RecvMsg[2] != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg + i);
+						tempChar[i] = *(dlg->RecvMsg[2] + i);
 					}
 				}
 
 				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen) {
+				if (receivedLen + nLength < dlg->FeedbackLen[2]) {
 					// 拼接反馈指令
 					for (int i = 0; i < nLength; i++) {
 						tempChar[receivedLen + i] = mk[i];
@@ -782,10 +782,10 @@ UINT Recv_Th3(LPVOID p)
 
 				}
 
-				dlg->RecvMsg = tempChar;
-				dlg->recievedFBLength = receLen;
-				if (receLen == dlg->FeedbackLen) {
-					dlg->ifFeedback = FALSE; //接收完12字节，重置标志位
+				dlg->RecvMsg[2] = tempChar;
+				dlg->recievedFBLength[2] = receLen;
+				if (receLen == dlg->FeedbackLen[2]) {
+					dlg->ifFeedback[2] = FALSE; //接收完12字节，重置标志位
 				}
 			}
 
@@ -824,28 +824,28 @@ UINT Recv_Th4(LPVOID p)
 		}
 		else {
 			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback){
+			if(dlg->ifFeedback[3]){
 				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength; //上一次已接收数据长度
+				int receivedLen = dlg->recievedFBLength[3]; //上一次已接收数据长度
 				
 				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen) {
+				if (receivedLen + nLength < dlg->FeedbackLen[3]) {
 					receLen = receivedLen + nLength;
 				}
 				else {
-					receLen = dlg->FeedbackLen;
+					receLen = dlg->FeedbackLen[3];
 				}
 
 				char* tempChar = (char*)malloc(receLen);
 				//先取旧数据
-				if (dlg->RecvMsg != NULL) {
+				if (dlg->RecvMsg[3] != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg + i);
+						tempChar[i] = *(dlg->RecvMsg[3] + i);
 					}
 				}
 
 				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen) {
+				if (receivedLen + nLength < dlg->FeedbackLen[3]) {
 					// 拼接反馈指令
 					for (int i = 0; i < nLength; i++) {
 						tempChar[receivedLen + i] = mk[i];
@@ -867,10 +867,10 @@ UINT Recv_Th4(LPVOID p)
 
 				}
 
-				dlg->RecvMsg = tempChar;
-				dlg->recievedFBLength = receLen;
-				if (receLen == dlg->FeedbackLen) {
-					dlg->ifFeedback = FALSE; //接收完12字节，重置标志位
+				dlg->RecvMsg[3] = tempChar;
+				dlg->recievedFBLength[3] = receLen;
+				if (receLen == dlg->FeedbackLen[3]) {
+					dlg->ifFeedback[3] = FALSE; //接收完12字节，重置标志位
 				}
 			}
 
@@ -1194,13 +1194,14 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		MeasureStatus = FALSE;
 		GetDataStatus = FALSE;
 		m_getTargetChange = FALSE;
-		
-		ifFeedback = FALSE;
-		TCPfeedback = FALSE;
-		LastSendMsg = NULL;
-		RecvMsg = NULL;
-		recievedFBLength = 0;
-		FeedbackLen = 12;
+		for(int num=0; num<4; num++){
+			ifFeedback[num] = FALSE;
+			TCPfeedback[num] = FALSE;
+			LastSendMsg[num] = NULL;
+			RecvMsg[num] = NULL;
+			recievedFBLength[num] = 0;
+			FeedbackLen[num] = 12;
+		}
 
 		SendParameterToTCP();
 		SetParameterInputStatus(FALSE);
