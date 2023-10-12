@@ -23,6 +23,8 @@ public:
 
 	static BYTE StartHardTrigger[]; // 硬件触发——开始工作
 
+	static BYTE HardTriggerBack[]; // 硬件触发信号反馈指令,当给FPGA一个触发信号时
+
 	static BYTE StartSoftTrigger[]; // 软件触发——开始工作
 
 	static BYTE Stop[]; //停止工作

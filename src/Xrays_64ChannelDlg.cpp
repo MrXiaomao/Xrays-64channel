@@ -91,6 +91,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 		RecvMsg[num] = NULL;
 		recievedFBLength[num] = 0;
 		FeedbackLen[num] = 12;
+		MeasureMode[num] = 0;
 	}
 	NetSwitchList[4] = TRUE;
 	CLog::WriteMsg(_T("打开软件，软件环境初始化！"));
@@ -106,7 +107,8 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 			closesocket(SocketList[num]); //关闭套接字
 		}
 	}
-
+	
+	if (UDPStatus) CloseUDP();
 	if (m_UDPSocket != NULL) delete m_UDPSocket;
 	delete DataCH1;
 	delete DataCH2;
@@ -618,14 +620,27 @@ UINT Recv_Th1(LPVOID p)
 			if (nLength < 1) continue; //提前结束本次循环
 
 			// 普通数据
+
+			CString fileName = dlg->m_targetID + _T("CH1");
+			dlg->SaveFile(fileName, mk, nLength);
+			dlg->AddTCPData(1, mk, nLength);
+
+			// MeasureMode=2,硬件触发信号反馈
+			if(dlg->MeasureMode[0] == 2){
+				if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
+					dlg->MeasureMode[0] = 0;
+					CString info = _T("已收到硬件触发信号,CH1 RECV HEX:") + Char2HexCString((char*)mk, nLength);
+					dlg->m_page1.PrintLog(info,FALSE);
+				}
+				continue;
+			}
+
+			// 有效测量数据开始
 			singleLock.Lock(); //Mutex
 			if (singleLock.IsLocked()){
 				dlg->GetDataStatus = TRUE; //线程锁的变量
 			}
 			singleLock.Unlock(); //Mutex
-			CString fileName = dlg->m_targetID + _T("CH1");
-			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(1, mk, nLength);
 		}
 	}
 	return 0;
@@ -704,15 +719,27 @@ UINT Recv_Th2(LPVOID p)
 			if (nLength < 1) continue; //提前结束本次循环
 
 			// 普通数据
+			CString fileName = dlg->m_targetID + _T("CH2");
+			dlg->SaveFile(fileName, mk, nLength);
+			dlg->AddTCPData(2, mk, nLength);
+
+			// MeasureMode=2,硬件触发信号反馈
+			if(dlg->MeasureMode[1] == 2){
+				if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
+					dlg->MeasureMode[1] = 0;
+					CString info = _T("已收到硬件触发信号,CH2 RECV HEX:") + Char2HexCString((char*)mk, nLength);
+					dlg->m_page1.PrintLog(info,FALSE);
+				}
+				continue;
+			}
+
+			// 有效测量数据开始
 			singleLock.Lock(); //Mutex
 			if (singleLock.IsLocked())
 			{
 				dlg->GetDataStatus = TRUE;	
 			}
 			singleLock.Unlock(); //Mutex
-			CString fileName = dlg->m_targetID + _T("CH2");
-			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(2, mk, nLength);
 		}
 	}
 	return 0;
@@ -791,15 +818,27 @@ UINT Recv_Th3(LPVOID p)
 
 			if (nLength < 1) continue; //提前结束本次循环
 
-			// 普通数据			
+			// 普通数据
+			CString fileName = dlg->m_targetID + _T("CH3");
+			dlg->SaveFile(fileName, mk, nLength);
+			dlg->AddTCPData(3, mk, nLength);
+
+			// MeasureMode=2,硬件触发信号反馈
+			if(dlg->MeasureMode[2] == 2){
+				if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
+					dlg->MeasureMode[2] = 0;
+					CString info = _T("已收到硬件触发信号,CH3 RECV HEX:") + Char2HexCString((char*)mk, nLength);
+					dlg->m_page1.PrintLog(info,FALSE);
+				}
+				continue;
+			}
+			
+			// 有效测量数据开始
 			singleLock.Lock(); //Mutex
 			if (singleLock.IsLocked()){
 				dlg->GetDataStatus = TRUE;
 			}
 			singleLock.Unlock(); //Mutex
-			CString fileName = dlg->m_targetID + _T("CH3");
-			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(3, mk, nLength);
 		}
 	}
 	return 0;
@@ -864,7 +903,6 @@ UINT Recv_Th4(LPVOID p)
 					for (int i = 0; i < nLength; i++) {
 						mk[i] = mk[remainLen+i];
 					}
-
 				}
 
 				dlg->RecvMsg[3] = tempChar;
@@ -876,15 +914,27 @@ UINT Recv_Th4(LPVOID p)
 
 			if (nLength < 1) continue; //提前结束本次循环
 
-			// 普通数据			
+			// 普通数据
+			CString fileName = dlg->m_targetID + _T("CH4");
+			dlg->SaveFile(fileName, mk, nLength);
+			dlg->AddTCPData(4, mk, nLength);
+
+			// MeasureMode=2,硬件触发信号反馈
+			if(dlg->MeasureMode[3] == 2){
+				if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
+					dlg->MeasureMode[3] = 0;
+					CString info = _T("已收到硬件触发信号,CH3 RECV HEX:") + Char2HexCString((char*)mk, nLength);
+					dlg->m_page1.PrintLog(info,FALSE);
+				}
+				continue;
+			}
+			
+			// 有效测量数据开始
 			singleLock.Lock(); //Mutex
 			if (singleLock.IsLocked()){
 				dlg->GetDataStatus = TRUE;
 			}
 			singleLock.Unlock(); //Mutex
-			CString fileName = dlg->m_targetID + _T("CH4");
-			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(4, mk, nLength);
 		}
 	}
 	return 0;
@@ -1048,7 +1098,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 				// 发送停止指令，复位。以保证把上一次测量重置。	
 				for(int num=0; num<4; num++){
-					if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
+					if(connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1); //这里带指令反馈检测
 				}			
 				
 				// 重置从网口接收的缓存数据
@@ -1064,7 +1114,8 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 				//发送开始测量指令，采用硬件触发
 				for (int num = 0; num < 4; num++) {
-					if(connectStatusList[num]) BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
+					if(connectStatusList[num]) BackSend(num, Order::StartHardTrigger, 12, 0, 1);
+					MeasureMode[num] = 2;
 				}
 				
 				CString info = _T("\"硬件触发\"工作模式");
@@ -1108,6 +1159,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		//向TCP发送开始指令
 		for (int num = 0; num < 4; num++) {
 			if(connectStatusList[num]) BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
+			MeasureMode[num] = 1;
 		}
 
 		SetDlgItemText(IDC_Start, _T("停止测量"));
@@ -1140,6 +1192,9 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 	}
 	else {
 		MeasureStatus = FALSE;
+		for(int num=0; num<4; num++){
+			MeasureMode[num] = 0;
+		}
 		//往TCP发送的控制板配置参数允许输入
 		SetParameterInputStatus(TRUE);
 
@@ -1174,10 +1229,6 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(TRUE);
 
-	// if (m_UDPSocket==NULL || !connectStatusList) {
-	// 	MessageBox(_T("请检查：\n1、是否开启UDP网络;\n2、是否连接TCP网络。"));
-	// 	return;
-	// }
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 
 	CString strTemp;
@@ -1201,6 +1252,7 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 			RecvMsg[num] = NULL;
 			recievedFBLength[num] = 0;
 			FeedbackLen[num] = 12;
+			MeasureMode[num] = 0;
 		}
 
 		SendParameterToTCP();
@@ -1220,8 +1272,10 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	else {
 		AutoMeasureStatus = FALSE;
 		SetParameterInputStatus(TRUE);
+		
+		// 发送停止指令，带指令反馈，确保上一次测量结束。
 		for(int num=0; num<4; num++){
-			if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
+			if(connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1);
 		}
 		SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
 
