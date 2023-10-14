@@ -66,7 +66,7 @@ void RunningLog::OnSizing(UINT fwSide, LPRECT pRect)
 void RunningLog::PrintLog(CString info, BOOL isShow)
 {
 	// 添加日志到文件
-	CLog::SetPrefix(_T("RunningLog::PrintLog"));
+	CLog::SetPrefix(_T("AllLog"));
 	CLog::WriteMsg(info);
 
 	// 添加日志到界面

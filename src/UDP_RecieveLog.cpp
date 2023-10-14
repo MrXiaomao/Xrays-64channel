@@ -59,7 +59,7 @@ void UDP_RecieveLog::OnSize(UINT nType, int cx, int cy)
 void UDP_RecieveLog::PrintLog(CString info, BOOL isShow)
 {
 	// 添加日志到文件
-	CLog::SetPrefix(_T("UDP_RecieveLog::PrintLog"));
+	CLog::SetPrefix(_T("UDP"));
 	CLog::WriteMsg(info);
 
 	// 添加日志到界面

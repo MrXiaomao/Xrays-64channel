@@ -34,10 +34,6 @@ public:
 	void SendParameterToTCP(); //发送配置参数
 	void SendCalibration(CString fileName); //发送刻度曲线
 	BOOL ConnectTCP(int num); //连接TCP网络
-	BOOL ConnectTCP1(); //连接网络1
-	BOOL ConnectTCP2(); //连接网络2
-	BOOL ConnectTCP3(); //连接网络3
-	BOOL ConnectTCP4(); //连接网络4
 	void ConfinePortRange(int &myPort); //限制端口号输入范围
 	void SetTCPInputStatus(BOOL flag); //设置TCP的IP、PORT、复选框的输入使能状态
 	void SetParameterInputStatus(BOOL flag); //设置配置参数框的使能状态

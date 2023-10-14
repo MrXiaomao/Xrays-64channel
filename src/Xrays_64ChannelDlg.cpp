@@ -425,10 +425,10 @@ void CXrays_64ChannelDlg::OnConnect()
 			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
 			
 			// 开启线程接收数据
-			AfxBeginThread(&Recv_Th1, 0); 
-			AfxBeginThread(&Recv_Th2, 0); 
-			AfxBeginThread(&Recv_Th3, 0); 
-			AfxBeginThread(&Recv_Th4, 0); 
+			AfxBeginThread(&Recv_Th1, this);
+			AfxBeginThread(&Recv_Th2, this);
+			AfxBeginThread(&Recv_Th3, this);
+			AfxBeginThread(&Recv_Th4, this);
 
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE);
 			// 必须TCP和UDP同时工作才能使用自动测量
