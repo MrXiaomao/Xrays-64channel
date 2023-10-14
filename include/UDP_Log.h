@@ -1,15 +1,15 @@
 ﻿#pragma once
 #include "Layout.h"
 
-// UDP_RecieveLog 对话框
+// UDP_Log 对话框
 
-class UDP_RecieveLog : public CDialog
+class UDP_Log : public CDialog
 {
-	DECLARE_DYNAMIC(UDP_RecieveLog)
+	DECLARE_DYNAMIC(UDP_Log)
 
 public:
-	UDP_RecieveLog(CWnd* pParent = nullptr);   // 标准构造函数
-	virtual ~UDP_RecieveLog();
+	UDP_Log(CWnd* pParent = nullptr);   // 标准构造函数
+	virtual ~UDP_Log();
 	
 	/*添加日志信息
 	* info 待添加的信息

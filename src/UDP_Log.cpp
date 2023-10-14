@@ -1,29 +1,29 @@
-﻿// UDP_RecieveLog.cpp: 实现文件
+﻿// UDP_Log.cpp: 实现文件
 //
 
 #include "pch.h"
 #include "Xrays_64Channel.h"
-#include "UDP_RecieveLog.h"
+#include "UDP_Log.h"
 #include "afxdialogex.h"
 #include "Log.h"
 #include "LayoutInit.h"
 
-// UDP_RecieveLog 对话框
+// UDP_Log 对话框
 
-IMPLEMENT_DYNAMIC(UDP_RecieveLog, CDialog)
+IMPLEMENT_DYNAMIC(UDP_Log, CDialog)
 
-UDP_RecieveLog::UDP_RecieveLog(CWnd* pParent /*=nullptr*/)
+UDP_Log::UDP_Log(CWnd* pParent /*=nullptr*/)
 	: CDialog(IDD_UDP_RecieveLog, pParent)
 	, m_Information(_T(""))
 {
 
 }
 
-UDP_RecieveLog::~UDP_RecieveLog()
+UDP_Log::~UDP_Log()
 {
 }
 
-void UDP_RecieveLog::DoDataExchange(CDataExchange* pDX)
+void UDP_Log::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_UDP_LOG, m_Information);
@@ -31,12 +31,12 @@ void UDP_RecieveLog::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(UDP_RecieveLog, CDialog)
+BEGIN_MESSAGE_MAP(UDP_Log, CDialog)
 	ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 
-BOOL UDP_RecieveLog::OnInitDialog()
+BOOL UDP_Log::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
@@ -48,15 +48,15 @@ BOOL UDP_RecieveLog::OnInitDialog()
 }
 
 
-void UDP_RecieveLog::OnSize(UINT nType, int cx, int cy)
+void UDP_Log::OnSize(UINT nType, int cx, int cy)
 {
 	CDialog::OnSize(nType, cx, cy);
 	m_layoutUDP.OnSize(cx, cy);
 }
 
 
-// UDP_RecieveLog 消息处理程序
-void UDP_RecieveLog::PrintLog(CString info, BOOL isShow)
+// UDP_Log 消息处理程序
+void UDP_Log::PrintLog(CString info, BOOL isShow)
 {
 	// 添加日志到文件
 	CLog::SetPrefix(_T("UDP"));

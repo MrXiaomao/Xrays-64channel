@@ -3,6 +3,7 @@
 #include "Layout.h"
 // RunningLog 对话框
 
+// 用于界面上记录系统运行日志的Tab子对话框
 class RunningLog : public CDialog
 {
 	DECLARE_DYNAMIC(RunningLog)

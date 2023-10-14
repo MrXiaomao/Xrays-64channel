@@ -6,8 +6,8 @@
 
 #include "json/json.h"
 #include "LEDButton.h"
-#include "CClientSocket.h"
-#include "UDP_RecieveLog.h"
+#include "UDP_Socket.h"
+#include "UDP_Log.h"
 #include "RunningLog.h"
 #include "MyConst.h"
 using namespace std;
@@ -64,7 +64,7 @@ public:
 	void NoBackSend(int num, BYTE* msg, int msgLength, int flags,
 		int sleepTime = 1);
 
-	CClientSocket* m_UDPSocket; //本地UDP服务
+	CUDP_Socket* m_UDPSocket; //本地UDP服务
 
 	SOCKET SocketList[4];
 	BOOL NetSwitchList[5]; // 网络开关,其中0位置对应总开关
@@ -101,7 +101,7 @@ public:
 	CStatusBar m_statusBar; // 状态栏
 
 	RunningLog m_page1;
-	UDP_RecieveLog m_page2;
+	UDP_Log m_page2;
 	CRect m_rect;
 	CLayout m_layout;
 	int m_currentTab; //Tab子窗口序号

@@ -1,20 +1,20 @@
 
 #include "pch.h"
-#include "CClientSocket.h"
+#include "UDP_Socket.h"
 #include "Xrays_64ChannelDlg.h"
 
-CClientSocket::CClientSocket(CXrays_64ChannelDlg* dlg)
+CUDP_Socket::CUDP_Socket(CXrays_64ChannelDlg* dlg)
 {
 	this->m_pMainDlg = dlg;
 }
 
 
-CClientSocket::~CClientSocket()
+CUDP_Socket::~CUDP_Socket()
 {
 }
 
 
-void CClientSocket::OnReceive(int nErrorCode)
+void CUDP_Socket::OnReceive(int nErrorCode)
 {	
 	// ½âÎöÅÚºÅ +PLS_12345
 	const int Len = 30;

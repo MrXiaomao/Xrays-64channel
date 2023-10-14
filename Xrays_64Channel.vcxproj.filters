@@ -18,7 +18,7 @@
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="include\CClientSocket.h">
+    <ClInclude Include="include\UDP_Socket.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="include\LEDButton.h">
@@ -39,7 +39,7 @@
     <ClInclude Include="include\targetver.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="include\UDP_RecieveLog.h">
+    <ClInclude Include="include\UDP_Log.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="include\Xrays_64Channel.h">
@@ -68,7 +68,7 @@
     <ClCompile Include="src\lib_json\json_writer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="src\CClientSocket.cpp">
+    <ClCompile Include="src\UDP_Socket.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\LEDButton.cpp">
@@ -83,7 +83,7 @@
     <ClCompile Include="src\RunningLog.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="src\UDP_RecieveLog.cpp">
+    <ClCompile Include="src\UDP_Log.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\Xrays_64Channel.cpp">

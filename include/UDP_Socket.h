@@ -3,11 +3,12 @@
 
 class CXrays_64ChannelDlg;
 
-class CClientSocket : public CSocket
+// 用于界面上记录UDP接受日志的Tab子对话框
+class CUDP_Socket : public CSocket
 {
  public:
-     CClientSocket(CXrays_64ChannelDlg* dlg);
-   virtual ~CClientSocket();
+     CUDP_Socket(CXrays_64ChannelDlg* dlg);
+   virtual ~CUDP_Socket();
    SOCKADDR_IN ClientAddr;
 private:
     CXrays_64ChannelDlg* m_pMainDlg;

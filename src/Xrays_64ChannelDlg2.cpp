@@ -60,7 +60,7 @@ void CXrays_64ChannelDlg::OpenUDP()
 	//--------------1.创建UDPSocket------------
 	if (!m_UDPSocket)
 		delete m_UDPSocket;
-	m_UDPSocket = new CClientSocket(this); //初始化,新创建一个对话框Socket
+	m_UDPSocket = new CUDP_Socket(this); //初始化,新创建一个对话框Socket
 	m_UDPSocket->Create(m_UDPPort, SOCK_DGRAM, NULL);
 
 	//--------------2.获取Socket绑定的ip和端口--------------

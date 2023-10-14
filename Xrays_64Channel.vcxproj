@@ -189,7 +189,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\CClientSocket.h" />
+    <ClInclude Include="include\UDP_Socket.h" />
     <ClInclude Include="include\Layout.h" />
     <ClInclude Include="include\LayoutInit.h" />
     <ClInclude Include="include\LEDButton.h" />
@@ -199,13 +199,13 @@
     <ClInclude Include="include\pch.h" />
     <ClInclude Include="include\RunningLog.h" />
     <ClInclude Include="include\targetver.h" />
-    <ClInclude Include="include\UDP_RecieveLog.h" />
+    <ClInclude Include="include\UDP_Log.h" />
     <ClInclude Include="include\Xrays_64Channel.h" />
     <ClInclude Include="include\Xrays_64ChannelDlg.h" />
     <ClInclude Include="Resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\CClientSocket.cpp" />
+    <ClCompile Include="src\UDP_Socket.cpp" />
     <ClCompile Include="src\Layout.cpp" />
     <ClCompile Include="src\LEDButton.cpp" />
     <ClCompile Include="src\lib_json\json_reader.cpp" />
@@ -216,7 +216,7 @@
     <ClCompile Include="src\Oder.cpp" />
     <ClCompile Include="src\pch.cpp" />
     <ClCompile Include="src\RunningLog.cpp" />
-    <ClCompile Include="src\UDP_RecieveLog.cpp" />
+    <ClCompile Include="src\UDP_Log.cpp" />
     <ClCompile Include="src\Xrays_64Channel.cpp" />
     <ClCompile Include="src\Xrays_64ChannelDlg.cpp" />
     <ClCompile Include="src\Xrays_64ChannelDlg2.cpp" />
