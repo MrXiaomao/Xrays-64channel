@@ -60,7 +60,6 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, m_UDPSocket(NULL)
 	, DataMaxlen(5000)
 	, UDPStatus(FALSE)
-	, MeasureStatus(FALSE)
 	, AutoMeasureStatus(FALSE)
 	, GetDataStatus(FALSE)
 	, m_getTargetChange(FALSE)
@@ -444,6 +443,7 @@ void CXrays_64ChannelDlg::OnConnect()
 				if(connectStatusList[num]) {
 					connectStatusList[num] = FALSE; // 用来控制关闭线程
 					closesocket(SocketList[num]); // 关闭套接字
+					m_NetStatusLEDList[num].RefreshWindow(FALSE);// 关闭指示灯
 				}
 			}
 
@@ -607,7 +607,6 @@ UINT Recv_Th1(LPVOID p)
 					for (int i = 0; i < nLength; i++) {
 						mk[i] = mk[remainLen+i];
 					}
-
 				}
 
 				dlg->RecvMsg[0] = tempChar;
@@ -620,7 +619,6 @@ UINT Recv_Th1(LPVOID p)
 			if (nLength < 1) continue; //提前结束本次循环
 
 			// 普通数据
-
 			CString fileName = dlg->m_targetID + _T("CH1");
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(1, mk, nLength);
@@ -706,7 +704,6 @@ UINT Recv_Th2(LPVOID p)
 					for (int i = 0; i < nLength; i++) {
 						mk[i] = mk[remainLen+i];
 					}
-
 				}
 
 				dlg->RecvMsg[1] = tempChar;
@@ -806,7 +803,6 @@ UINT Recv_Th3(LPVOID p)
 					for (int i = 0; i < nLength; i++) {
 						mk[i] = mk[remainLen+i];
 					}
-
 				}
 
 				dlg->RecvMsg[2] = tempChar;
@@ -956,7 +952,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 			m_statusBar.SetPaneText(0, strInfo);
 
-			if (MeasureStatus && (timer * TIMER_INTERVAL > MeasureTime)) 
+			if (timer * TIMER_INTERVAL > MeasureTime)
 			{
 				if (!sendStopFlag) {
 					for(int num=0; num<4; num++){
@@ -980,7 +976,9 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					SetDlgItemText(IDC_Start, _T("开始测量"));
 					timer = 0;
 					GetDataStatus = FALSE;
-					MeasureStatus = FALSE;
+					for(int num=0; num<4; num++){
+						MeasureMode[num] = 0;
+					}
 					sendStopFlag = FALSE;
 
 					//往TCP发送的控制板配置参数允许输入
@@ -1028,7 +1026,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 			m_statusBar.SetPaneText(0, strInfo);
 
-			if (MeasureStatus && (timer * TIMER_INTERVAL >= MeasureTime)) {
+			if (timer * TIMER_INTERVAL >= MeasureTime) {
 				if (!sendStopFlag) {
 					for(int num=0; num<4; num++){
 						if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
@@ -1051,7 +1049,9 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				{
 					// 重置部分数据
 					timer = 0;
-					MeasureStatus = FALSE;
+					for(int num=0; num<4; num++){
+						MeasureMode[num] = 0;
+					}
 					GetDataStatus = FALSE;
 					sendStopFlag = FALSE;
 
@@ -1098,6 +1098,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 				// 发送停止指令，复位。以保证把上一次测量重置。	
 				for(int num=0; num<4; num++){
+					MeasureMode[num] = 0;
 					if(connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1); //这里带指令反馈检测
 				}			
 				
@@ -1108,7 +1109,6 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				//重置接受数据计数器
 				timer = 0;
 				//重置测量状态
-				MeasureStatus = TRUE;
 				m_getTargetChange = FALSE;
 				sendStopFlag = FALSE;
 
@@ -1148,7 +1148,9 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 	if (strTemp == _T("开始测量")) {
 		timer = 0;
 		GetDataStatus = FALSE;
-		MeasureStatus = TRUE;
+		for(int num = 0; num < 4; num++){
+			MeasureMode[num] = 0;
+		}
 		//向TCP发送配置参数。
 		SendParameterToTCP(); 
 		//TCP发送的控制板配置参数禁止输入
@@ -1191,7 +1193,6 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
 	}
 	else {
-		MeasureStatus = FALSE;
 		for(int num=0; num<4; num++){
 			MeasureMode[num] = 0;
 		}
@@ -1242,7 +1243,9 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		AutoMeasureStatus = TRUE;
 		// 重新初始化部分数据
 		timer = 0;
-		MeasureStatus = FALSE;
+		for(int num=0; num<4; num++){
+			MeasureMode[num] = 0;
+		}
 		GetDataStatus = FALSE;
 		m_getTargetChange = FALSE;
 		for(int num=0; num<4; num++){

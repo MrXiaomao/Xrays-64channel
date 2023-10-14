@@ -76,9 +76,8 @@ public:
 	// 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
 	// 16通道=20*4字节（1ms刷新，10秒测量时长对应总包长=1000*10*20*4）
 	const int DataMaxlen;
-	BOOL connectStatusList[4]; //各网络联网状态
-	BOOL UDPStatus; //UDP工作状态
-	BOOL MeasureStatus; // 测量状态
+	BOOL connectStatusList[4]; // 各网络联网状态
+	BOOL UDPStatus; // UDP工作状态
 	int MeasureMode[4]; // 测量模式。0:非测量状态，1:软件触发模式，2：硬件触发模式（带硬件触发反馈）。用于处理数据内容判别（指令反馈/测量数据）。
 	BOOL AutoMeasureStatus; // 自动测量状态
 	BOOL GetDataStatus; // 是否接受到TCP网口的数据

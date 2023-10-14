@@ -265,15 +265,16 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	// TODO: 在此添加控件通知处理程序代码
 	// 读取界面参数并修改指令
 	UpdateData(TRUE);
+
+	//从界面获取刷新时间
 	char res[5];
-	//能谱刷新时间
 	DecToHex(RefreshTime, res);
 	Order::WaveRefreshTime[6] = res[0];
 	Order::WaveRefreshTime[7] = res[1];
 	Order::WaveRefreshTime[8] = res[2];
 	Order::WaveRefreshTime[9] = res[3];
 
-	//发送指令
+	//能谱刷新时间，波形触发间隔，波形触发阈值
 	for (int num = 0; num < 4; num++) {
 		if(connectStatusList[num]) {
 			BackSend(num, Order::WaveRefreshTime, 12, 0, 1);
