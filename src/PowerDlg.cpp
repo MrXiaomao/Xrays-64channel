@@ -21,7 +21,6 @@ CPowerDlg::CPowerDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_POWER_DIALOG, pParent)
 {
 	netStatus = FALSE;
-	work_status = FALSE;
 	m_RelayPort = 5000;
 }
 

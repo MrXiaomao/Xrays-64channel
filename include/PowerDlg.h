@@ -24,7 +24,6 @@ public:
 	BOOL netStatus; //联网状态
 	LEDButton m_NetStatusLED;// 网络状态LED灯
 	LEDButton m_RelayStatusLED;// 继电器电源状态LED灯
-	BOOL work_status; //查询到的电源状态
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_POWER_DIALOG };

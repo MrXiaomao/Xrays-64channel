@@ -552,7 +552,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 UINT Recv_Th1(LPVOID p)
 {
 	CSingleLock singleLock(&Mutex); //线程锁
-	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
+	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
 	while (1)
 	{
 		// 断开网络后关闭本线程
@@ -649,7 +649,7 @@ UINT Recv_Th1(LPVOID p)
 UINT Recv_Th2(LPVOID p)
 {
 	CSingleLock singleLock(&Mutex); //线程锁
-	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
+	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
 	while (1)
 	{
 		// 断开网络后关闭本线程
@@ -747,7 +747,7 @@ UINT Recv_Th2(LPVOID p)
 UINT Recv_Th3(LPVOID p)
 {
 	CSingleLock singleLock(&Mutex); //线程锁
-	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
+	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
 	while (1)
 	{
 		// 断开网络后关闭本线程
@@ -845,7 +845,7 @@ UINT Recv_Th3(LPVOID p)
 UINT Recv_Th4(LPVOID p)
 {
 	CSingleLock singleLock(&Mutex); //线程锁
-	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)AfxGetApp()->GetMainWnd();
+	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
 	while (1)
 	{
 		// 断开网络后关闭本线程
