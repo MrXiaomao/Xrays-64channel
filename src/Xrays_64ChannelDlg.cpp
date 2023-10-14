@@ -175,6 +175,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CHECK3, &CXrays_64ChannelDlg::OnBnClickedCheck2)
 	ON_BN_CLICKED(IDC_CHECK4, &CXrays_64ChannelDlg::OnBnClickedCheck3)
 	ON_BN_CLICKED(IDC_CHECK5, &CXrays_64ChannelDlg::OnBnClickedCheck4)
+	ON_BN_CLICKED(IDC_POWER_BUTTON, &CXrays_64ChannelDlg::OnBnClickedPowerButton)
 END_MESSAGE_MAP()
 
 
@@ -286,7 +287,7 @@ void CXrays_64ChannelDlg::InitTabSettings(){
 
 void CXrays_64ChannelDlg::InitOtherSettings(){
 	for(int num=0; num<4; num++){
-		m_NetStatusLEDList[num].RefreshWindow(FALSE);//设置指示灯
+		m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 	}
 	
 	// 设置下拉框默认选项
@@ -443,7 +444,7 @@ void CXrays_64ChannelDlg::OnConnect()
 				if(connectStatusList[num]) {
 					connectStatusList[num] = FALSE; // 用来控制关闭线程
 					closesocket(SocketList[num]); // 关闭套接字
-					m_NetStatusLEDList[num].RefreshWindow(FALSE);// 关闭指示灯
+					m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
 				}
 			}
 
@@ -460,7 +461,7 @@ void CXrays_64ChannelDlg::OnConnect()
 			if(connectStatusList[num]) {
 				connectStatusList[num] = FALSE; // 用来控制关闭线程
 				closesocket(SocketList[num]); // 关闭套接字
-				m_NetStatusLEDList[num].RefreshWindow(FALSE);// 关闭指示灯
+				m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
 			}
 		} 
 
@@ -530,7 +531,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	
 	// 4、检测网络是否连接,以及显示设备联网状况
 	if (connect(SocketList[num], (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-		m_NetStatusLEDList[num].RefreshWindow(FALSE);//打开指示灯
+		m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 		// 打印日志
 		CString info;
 		info.Format(_T("CH%d网络连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
@@ -543,7 +544,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	info.Format(_T("CH%d网络已连接"), num+1);
 	m_page1.PrintLog(info);
 
-	m_NetStatusLEDList[num].RefreshWindow(TRUE);//打开指示灯
+	m_NetStatusLEDList[num].RefreshWindow(TRUE, _T("ON"));//打开指示灯
 	return TRUE;
 }
 

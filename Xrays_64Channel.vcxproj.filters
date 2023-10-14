@@ -57,6 +57,9 @@
     <ClInclude Include="include\LayoutInit.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="include\PowerDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lib_json\json_reader.cpp">
@@ -102,6 +105,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\MyConst.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PowerDlg.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

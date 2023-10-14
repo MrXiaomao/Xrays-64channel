@@ -5,19 +5,24 @@ IMPLEMENT_DYNAMIC(LEDButton, CButton)
 
 LEDButton::LEDButton()
 {
-	m_pen.CreatePen(PS_SOLID, 1, RGB(100, 130, 0));
-	m_CheckedPen.CreatePen(PS_SOLID, 1, RGB(0, 130, 100));
-	m_normalBrush.CreateSolidBrush(RGB(255, 50, 0));
-	m_activeBrush.CreateSolidBrush(RGB(50, 255, 0));
-	m_ButtonSignal = FALSE;
+	m_OFFPen.CreatePen(PS_SOLID, 1, RGB(100, 130, 0));
+	m_ONPen.CreatePen(PS_SOLID, 1, RGB(0, 130, 100));
+	m_UnknowPen.CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
+
+	m_OFFBrush.CreateSolidBrush(RGB(255, 0, 0));
+	m_ONBrush.CreateSolidBrush(RGB(0, 255, 0));
+	m_UnknowBrush.CreateSolidBrush(RGB(128, 128, 128));
+	m_Status = 2;
 }
 
 LEDButton::~LEDButton()
 {
-	m_pen.DeleteObject();
-	m_normalBrush.DeleteObject();
-	m_activeBrush.DeleteObject();
-	m_CheckedPen.DeleteObject();
+	m_ONPen.DeleteObject();
+	m_OFFPen.DeleteObject();
+	m_UnknowPen.DeleteObject();
+	m_OFFBrush.DeleteObject();
+	m_ONBrush.DeleteObject();
+	m_UnknowBrush.DeleteObject();
 }
 
 BEGIN_MESSAGE_MAP(LEDButton, CButton)
@@ -28,33 +33,34 @@ void LEDButton::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	CString  strText{};
 	CPen* oldPen;
 	CBrush* oldBrush;
-	// 设置不同状态字体
-	if (m_ButtonSignal)
-	{
-		strText = _T("ON");
-	}
-	if (!m_ButtonSignal)
-	{
-		strText = _T("OFF");
-	}
 
-	// 设置不同状态颜色
+	strText = m_Text;
+
 	CDC* pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
 	int nSaveDc = pDC->SaveDC();
-	if (!m_ButtonSignal)
-	{
-		oldBrush = pDC->SelectObject(&m_normalBrush);
-		oldPen = pDC->SelectObject(&m_pen);
+	
+	switch (m_Status) {
+	case 0:
+		oldBrush = pDC->SelectObject(&m_OFFBrush);
+		oldPen = pDC->SelectObject(&m_OFFPen);
 		pDC->SetTextColor(RGB(0, 0, 255));
-	}
-	else if (m_ButtonSignal)
-	{
-		oldBrush = pDC->SelectObject(&m_activeBrush);
-		oldPen = pDC->SelectObject(&m_CheckedPen);
+		break;
+	case 1:
+		oldBrush = pDC->SelectObject(&m_ONBrush);
+		oldPen = pDC->SelectObject(&m_ONPen);
 		pDC->SetTextColor(RGB(255, 255, 255));
+		break;
+	case 2:
+		oldBrush = pDC->SelectObject(&m_UnknowBrush);
+		oldPen = pDC->SelectObject(&m_UnknowPen);
+		pDC->SetTextColor(RGB(0, 0, 255));
+		break;
+	default:
+		break;
 	}
+
 	CRect rct = lpDrawItemStruct->rcItem;
-	pDC->Ellipse(&rct); // 绘制椭圆
+	pDC->Ellipse(&rct); // ????
 	pDC->SetBkMode(TRANSPARENT);
 
 	CRect textRect;
@@ -78,8 +84,9 @@ void LEDButton::PreSubclassWindow()
 	CButton::PreSubclassWindow();
 }
 
-void LEDButton::RefreshWindow(BOOL mButtoned)
+void LEDButton::RefreshWindow(int mButtoned, CString txt)
 {
-	m_ButtonSignal = mButtoned;
+	m_Text = txt;
+	m_Status = mButtoned;
 	RedrawWindow();
 }

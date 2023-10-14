@@ -11,6 +11,7 @@
 #define IDD_RunningLog                  105
 #define IDR_NUCLEAR                     121
 #define IDR_MAINFRAME                   128
+#define IDD_POWER_DIALOG                140
 #define IDC_IPADDRESS1                  1000
 #define IDC_PORT1                       1001
 #define IDC_CONNECT1                    1002
@@ -55,16 +56,25 @@
 #define IDC_CHECK1                      1043
 #define IDC_CHECK2                      1044
 #define IDC_CHECK3                      1045
+#define IDC_BUTTON1                     1045
+#define IDC_RELAY_CONNECT               1045
 #define IDC_CHECK4                      1046
+#define IDC_BUTTON2                     1046
+#define IDC_CHANGE_STATUS               1046
 #define IDC_CHECK5                      1047
+#define IDC_IPADDRESS_RELAY             1047
+#define IDC_LED_Relay                   1048
+#define IDC_POWER_BUTTON                1049
+#define IDC_RRLAY_STATUS                1050
+#define IDC_RELAY_PORT                  1051
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        138
+#define _APS_NEXT_RESOURCE_VALUE        142
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1045
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif

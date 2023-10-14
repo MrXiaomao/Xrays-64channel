@@ -15,11 +15,15 @@ protected:
 public:
 	virtual void DrawItem(LPDRAWITEMSTRUCT /*lpDrawItemStruct*/);
 	virtual void PreSubclassWindow();
-	void	RefreshWindow(BOOL mButtoned);
-	BOOL    m_ButtonSignal;
+	void	RefreshWindow(int mButtoned, CString txt);
+
 private:
-	CBrush m_normalBrush;
-	CPen   m_pen;
-	CPen   m_CheckedPen;
-	CBrush m_activeBrush;
+	CPen   m_ONPen;
+	CPen   m_OFFPen;
+	CPen   m_UnknowPen;
+	CBrush m_ONBrush;
+	CBrush m_OFFBrush;
+	CBrush m_UnknowBrush;
+	CString m_Text; // 显示的文字内容
+	int m_Status; // 状态，0：关闭、1：打开、2：未知
 };

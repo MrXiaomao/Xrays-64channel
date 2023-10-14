@@ -40,7 +40,7 @@ public:
 	void SaveFile(CString myID, char* mk, int length); // 保存文件
 	void AddTCPData(int channel, char* tempChar, int len); // 缓存网口数据
 	void ResetTCPData(); // 重置缓存数据
-	void SetSocketSize(SOCKET sock, int nsize); //设置Socket缓冲区的大小
+	void SetSocketSize(SOCKET &sock, int nsize); //设置Socket缓冲区的大小
 	
 	/*阻塞式发送，网口发送数据到FPGA，直到检测到指令反馈成功或者等待超时才退出。
 	* num 网口编号，从0开始
@@ -66,7 +66,7 @@ public:
 
 	CUDP_Socket* m_UDPSocket; //本地UDP服务
 
-	SOCKET SocketList[4];
+	SOCKET SocketList[4]; // FPGA的TCP端口
 	BOOL NetSwitchList[5]; // 网络开关,其中0位置对应总开关
 
 	// 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
@@ -173,4 +173,5 @@ public:
 	int MeasureTime;
 	// 界面输入的能谱刷新时间，ms
 	int RefreshTime;
+	afx_msg void OnBnClickedPowerButton();
 };

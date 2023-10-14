@@ -4,6 +4,7 @@
 #include "framework.h"
 #include "Xrays_64Channel.h"
 #include "Xrays_64ChannelDlg.h"
+#include "PowerDlg.h"
 #include "afxdialogex.h"
 #include "Order.h"
 #include "Log.h"
@@ -362,7 +363,7 @@ void CXrays_64ChannelDlg::AddTCPData(int channel, char *tempChar, int len)
 }
 
 //设置网口缓存区大小
-void CXrays_64ChannelDlg::SetSocketSize(SOCKET sock, int nsize)
+void CXrays_64ChannelDlg::SetSocketSize(SOCKET &sock, int nsize)
 {
 	int nErrCode = 0;
 	unsigned int uiRcvBuf = 0;
@@ -592,4 +593,11 @@ void CXrays_64ChannelDlg::OnBnClickedCheck4()
 	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
 	NetSwitchList[0] = NetSwitchList[1] & NetSwitchList[2] & NetSwitchList[3] & NetSwitchList[4];
 	UpdateData(FALSE);//刷新控件
+}
+
+void CXrays_64ChannelDlg::OnBnClickedPowerButton()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	CPowerDlg powerdlg; // 创建一个模态对话框 
+	powerdlg.DoModal(); // 显示模态对话框 其中参数用swp_SHOWNOMAL,  SW_SHOW, SW_VISION 好像效果是一样的
 }

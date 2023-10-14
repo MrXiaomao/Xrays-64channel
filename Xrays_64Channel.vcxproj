@@ -189,6 +189,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\PowerDlg.h" />
     <ClInclude Include="include\UDP_Socket.h" />
     <ClInclude Include="include\Layout.h" />
     <ClInclude Include="include\LayoutInit.h" />
@@ -205,6 +206,7 @@
     <ClInclude Include="Resource.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\PowerDlg.cpp" />
     <ClCompile Include="src\UDP_Socket.cpp" />
     <ClCompile Include="src\Layout.cpp" />
     <ClCompile Include="src\LEDButton.cpp" />

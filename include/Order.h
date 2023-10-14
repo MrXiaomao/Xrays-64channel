@@ -28,5 +28,13 @@ public:
 	static BYTE StartSoftTrigger[]; // 软件触发——开始工作
 
 	static BYTE Stop[]; //停止工作
+
+public:
+	//------------------------------继电器相关指令--------------
+	static BYTE relay_ON[]; //继电器第1路打开指令
+	static BYTE relay_OFF[]; //继电器第1路关闭指令
+	static BYTE relay_GetStatus[]; //读取继电器状态
+	static BYTE relay_StatusON[]; //反馈指令，继电器打开状态
+	static BYTE relay_StatusOFF[]; //反馈指令，继电器关闭状态
 };
 
