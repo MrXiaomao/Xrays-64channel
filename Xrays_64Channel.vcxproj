@@ -189,6 +189,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\NetSettingDlg.h" />
     <ClInclude Include="include\PowerDlg.h" />
     <ClInclude Include="include\UDP_Socket.h" />
     <ClInclude Include="include\Layout.h" />
@@ -206,6 +207,7 @@
     <ClInclude Include="Resource.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\NetSettingDlg.cpp" />
     <ClCompile Include="src\PowerDlg.cpp" />
     <ClCompile Include="src\UDP_Socket.cpp" />
     <ClCompile Include="src\Layout.cpp" />
@@ -222,6 +224,7 @@
     <ClCompile Include="src\Xrays_64Channel.cpp" />
     <ClCompile Include="src\Xrays_64ChannelDlg.cpp" />
     <ClCompile Include="src\Xrays_64ChannelDlg2.cpp" />
+    <ClCompile Include="src\Xrays_64ChannelMenu.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Xrays_64Channel.rc" />

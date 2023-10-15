@@ -99,7 +99,8 @@ public:
 	CString saveAsPath; // 数据存储根路径
 	CString saveAsTargetPath; // 数据存储炮号路径
 	CStatusBar m_statusBar; // 状态栏
-
+	
+	CMenu menu; //菜单栏
 	RunningLog m_page1;
 	UDP_Log m_page2;
 	CRect m_rect;
@@ -173,5 +174,7 @@ public:
 	int MeasureTime;
 	// 界面输入的能谱刷新时间，ms
 	int RefreshTime;
+	afx_msg void OnPowerMenu(); 
+	afx_msg void OnNetSettingMenu();
 	afx_msg void OnBnClickedPowerButton();
 };

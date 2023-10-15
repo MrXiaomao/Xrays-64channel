@@ -12,13 +12,20 @@
 #define IDR_NUCLEAR                     121
 #define IDR_MAINFRAME                   128
 #define IDD_POWER_DIALOG                140
+#define IDR_MENU1                       142
+#define IDD_NETSETTING_DLG              143
 #define IDC_IPADDRESS1                  1000
 #define IDC_PORT1                       1001
+#define IDC_IPADDRESS_CH2               1001
 #define IDC_CONNECT1                    1002
+#define IDC_IPADDRESS_CH3               1002
 #define IDC_LED                         1003
+#define IDC_IPADDRESS_CH4               1003
 #define IDC_TargetNum                   1004
+#define IDC_IPADDRESS_ARM               1004
 #define IDC_UDPIP                       1005
 #define IDC_IPADDRESS2                  1005
+#define IDC_IPADDRESS_ARM2              1005
 #define IDC_UDPPORT                     1006
 #define IDC_RefreshTimeEdit             1007
 #define IDC_COMBO1                      1008
@@ -58,6 +65,7 @@
 #define IDC_CHECK3                      1045
 #define IDC_BUTTON1                     1045
 #define IDC_RELAY_CONNECT               1045
+#define IDC_NETSETTING_APPLY            1045
 #define IDC_CHECK4                      1046
 #define IDC_BUTTON2                     1046
 #define IDC_CHANGE_STATUS               1046
@@ -67,14 +75,28 @@
 #define IDC_POWER_BUTTON                1049
 #define IDC_RRLAY_STATUS                1050
 #define IDC_RELAY_PORT                  1051
+#define IDC_CH2_PORT                    1052
+#define IDC_CH3_PORT                    1053
+#define IDC_CH4_PORT                    1054
+#define IDC_ARM_PORT                    1055
+#define IDC_IPADDRESS_CH1               1056
+#define IDC_CH1_PORT                    1057
+#define IDC_UDP_PORT                    1058
+#define IDC_NETSETTING_CANCEL           1059
+#define IDOK_NETSETTING                 1060
+#define ID_32771                        32771
+#define ID_32772                        32772
+#define ID_32773                        32773
+#define ID_POWER_MENU                   32774
+#define ID_NETSETTING_MENU              32775
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        142
-#define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1052
+#define _APS_NEXT_RESOURCE_VALUE        145
+#define _APS_NEXT_COMMAND_VALUE         32776
+#define _APS_NEXT_CONTROL_VALUE         1061
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif

@@ -130,6 +130,7 @@ void CPowerDlg::OnBnClickedConnect()
 		m_NetStatusLED.RefreshWindow(0, _T("已断开"));//指示灯
 		m_RelayStatusLED.RefreshWindow(2, _T("Unknow"));
 		GetDlgItem(IDC_CHANGE_STATUS)->EnableWindow(FALSE); //禁用
+		KillTimer(1);
 	}
 }
 

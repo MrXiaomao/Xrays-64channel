@@ -242,8 +242,9 @@ Json::Value ReadSetting(CString fileName)
 }
 
 // 写入配置文件，实际上是修改配置文件
-void WriteSetting(CString fileName, Json::Value jsonData)
+int WriteSetting(CString fileName, Json::Value jsonData)
 {
+	int writeStatus = 0;
 	char* file = CstringToWideCharArry(fileName);
 	ofstream os;
 	os.open(file, std::ios::out);
@@ -251,9 +252,10 @@ void WriteSetting(CString fileName, Json::Value jsonData)
 	const std::unique_ptr<Json::StreamWriter> writer(sw.newStreamWriter());
 	if (os.is_open())
 	{
-		writer->write(jsonData, &os);
+		writeStatus = writer->write(jsonData, &os);
 	}
 	os.close();
+	return writeStatus;
 }
 
 // 读取能量刻度数据

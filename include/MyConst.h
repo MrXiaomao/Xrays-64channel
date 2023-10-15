@@ -47,7 +47,8 @@ CString Char2HexCString(char* cData, int len);
 Json::Value ReadSetting(CString fileName);
 
 // 写入配置文件，实际上是修改配置文件
-void WriteSetting(CString fileName, Json::Value jsonData);
+// 返回：0，写入成功
+int WriteSetting(CString fileName, Json::Value jsonData);
 
 // 读取能量刻度数据
 vector<CString> ReadEnCalibration(CString fileWholePath);
