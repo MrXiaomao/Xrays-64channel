@@ -36,5 +36,10 @@ public:
 	static BYTE relay_GetStatus[]; //读取继电器状态
 	static BYTE relay_StatusON[]; //反馈指令，继电器打开状态
 	static BYTE relay_StatusOFF[]; //反馈指令，继电器关闭状态
+
+public:
+	//---------------------------ARM---------------------------
+	static BYTE ARM_Temperature[]; // 温度查询指令
+	static BYTE ARM_VoltCurrent[]; // 电压电流查询指令
 };
 

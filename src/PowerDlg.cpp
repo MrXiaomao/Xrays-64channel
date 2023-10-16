@@ -2,7 +2,7 @@
 //
 
 #include "pch.h"
-#include "resource.h"
+#include "Xrays_64Channel.h"
 #include "PowerDlg.h"
 #include "afxdialogex.h"
 
@@ -105,7 +105,9 @@ BOOL CPowerDlg::ConnectRelayTCP() {
 
 void CPowerDlg::OnBnClickedConnect()
 {
+	GetDlgItem(IDC_RELAY_CONNECT)->EnableWindow(FALSE); //禁用,防止用户重复点击
 	UpdateData(TRUE); //是控件变量的值与界面编辑值同步
+
 	CString strTemp;
 	GetDlgItemText(IDC_RELAY_CONNECT, strTemp);
 	if (strTemp == _T("连接")) {
@@ -132,6 +134,7 @@ void CPowerDlg::OnBnClickedConnect()
 		GetDlgItem(IDC_CHANGE_STATUS)->EnableWindow(FALSE); //禁用
 		KillTimer(1);
 	}
+	GetDlgItem(IDC_RELAY_CONNECT)->EnableWindow(TRUE); //恢复使用
 }
 
 void CPowerDlg::OnBnClickedChange() {

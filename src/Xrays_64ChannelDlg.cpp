@@ -64,6 +64,11 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, GetDataStatus(FALSE)
 	, m_getTargetChange(FALSE)
 	, sendStopFlag(FALSE)
+	, ARMnetStatus(FALSE)
+	, powerVolt(0.0)
+	, powerCurrent(0.0)
+	, refreshTime_ARM(10)
+	, ArmTimer(0)
 	, timer(0)
 	, saveAsPath("")
 	, saveAsTargetPath("")
@@ -93,6 +98,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 		MeasureMode[num] = 0;
 	}
 	NetSwitchList[4] = TRUE;
+	armSocket = NULL;
 	CLog::WriteMsg(_T("打开软件，软件环境初始化！"));
 }
 
@@ -106,7 +112,11 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 			closesocket(SocketList[num]); //关闭套接字
 		}
 	}
-	
+	if(ARMnetStatus) {
+		ARMnetStatus = FALSE;
+		closesocket(armSocket);
+	}
+
 	if (UDPStatus) CloseUDP();
 	if (m_UDPSocket != NULL) delete m_UDPSocket;
 	delete DataCH1;
@@ -128,6 +138,7 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LED2, m_NetStatusLEDList[1]);		// “建立链接”LED
 	DDX_Control(pDX, IDC_LED3, m_NetStatusLEDList[2]);		// “建立链接”LED
 	DDX_Control(pDX, IDC_LED4, m_NetStatusLEDList[3]);		// “建立链接”LED
+	DDX_Control(pDX, IDC_ARM_LED, m_AMR_LED);		// “建立链接”LED
 	DDX_Control(pDX, IDC_IPADDRESS1, ServerIP);
 	DDX_Text(pDX, IDC_PORT1, PortList[0]);
 	DDX_Text(pDX, IDC_PORT2, PortList[1]);
@@ -178,6 +189,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_COMMAND(ID_POWER_MENU, &CXrays_64ChannelDlg::OnPowerMenu)
 	ON_COMMAND(ID_NETSETTING_MENU, &CXrays_64ChannelDlg::OnNetSettingMenu)
 	ON_BN_CLICKED(IDC_POWER_BUTTON, &CXrays_64ChannelDlg::OnBnClickedPowerButton)
+	ON_BN_CLICKED(IDC_TEMP_VOLT, &CXrays_64ChannelDlg::TempVoltMonitorON_OFF)
 END_MESSAGE_MAP()
 
 
@@ -242,15 +254,15 @@ void CXrays_64ChannelDlg::InitBarSettings(){
 	//添加状态栏面板，参数为ID数组和面板数量
 	m_statusBar.SetIndicators(nID, sizeof(nID) / sizeof(UINT));
 	//设置面板序号，ID，样式和宽度，SBPS_NORMAL为普通样式，固定宽度，SBPS_STRETCH为弹簧样式，会自动扩展它的空间
-	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, int(0.6 * rectDlg.Width()));
-	m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, int(0.2 * rectDlg.Width()));
-	m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, int(0.2 * rectDlg.Width()));
+	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, int(0.5 * rectDlg.Width()));
+	m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, int(0.35 * rectDlg.Width()));
+	m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, int(0.15 * rectDlg.Width()));
 	//设置状态栏位置
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	//设置状态栏面板文本，参数为面板序号和对应文本
-	m_statusBar.SetPaneText(0, L"aaa");
-	m_statusBar.SetPaneText(1, L"bbb");
-	m_statusBar.SetPaneText(2, L"ccc");
+	m_statusBar.SetPaneText(0, _T("探测器数据"));
+	m_statusBar.SetPaneText(1, _T("T1:℃,T2:℃,T3:℃,Volt:V,I:A"));
+	m_statusBar.SetPaneText(2, _T("日期"));
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	//开启定时器，刷新状态栏参数
 	SetTimer(4, 1000, NULL);
@@ -293,7 +305,8 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	for(int num=0; num<4; num++){
 		m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 	}
-	
+	m_AMR_LED.RefreshWindow(FALSE, _T("OFF"));
+
 	// 设置下拉框默认选项
 	m_TriggerType.SetCurSel(0); 
 	m_WaveMode.SetCurSel(0);
@@ -1131,9 +1144,18 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 	case 4:
 		//状态栏，软件界面的一些常规参数刷新
 		{
+			ArmTimer++;
 			CTime t= CTime::GetCurrentTime();
 			CString strInfo = t.Format(_T("%Y-%m-%d %H:%M:%S"));
 			m_statusBar.SetPaneText(2, strInfo);
+			
+			if (ARMnetStatus && (refreshTime_ARM == ArmTimer))
+			{
+				ArmTimer = 0;
+				send(armSocket, (char*)Order::ARM_Temperature, 12, 0);
+				Sleep(1);//是否有必要
+				send(armSocket, (char*)Order::ARM_VoltCurrent, 12, 0);
+			}
 		}
 		break;
 	default:

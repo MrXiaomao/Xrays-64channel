@@ -2,7 +2,7 @@
 //
 
 #include "pch.h"
-#include "resource.h"
+#include "Xrays_64Channel.h"
 #include "json/json.h"
 #include "NetSettingDlg.h"
 #include "afxdialogex.h"

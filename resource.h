@@ -74,6 +74,7 @@
 #define IDC_LED_Relay                   1048
 #define IDC_POWER_BUTTON                1049
 #define IDC_RRLAY_STATUS                1050
+#define IDC_TEMP_VOLT                   1050
 #define IDC_RELAY_PORT                  1051
 #define IDC_CH2_PORT                    1052
 #define IDC_CH3_PORT                    1053
@@ -84,6 +85,8 @@
 #define IDC_UDP_PORT                    1058
 #define IDC_NETSETTING_CANCEL           1059
 #define IDOK_NETSETTING                 1060
+#define IDC_TEMP_LED                    1061
+#define IDC_ARM_LED                     1061
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -96,7 +99,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        145
 #define _APS_NEXT_COMMAND_VALUE         32776
-#define _APS_NEXT_CONTROL_VALUE         1061
+#define _APS_NEXT_CONTROL_VALUE         1062
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif

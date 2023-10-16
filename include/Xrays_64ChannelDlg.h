@@ -12,10 +12,11 @@
 #include "MyConst.h"
 using namespace std;
 
-UINT Recv_Th1(LPVOID p); // 多线程接收网口数据
-UINT Recv_Th2(LPVOID p); // 多线程接收网口数据
-UINT Recv_Th3(LPVOID p); // 多线程接收网口数据
-UINT Recv_Th4(LPVOID p); // 多线程接收网口数据
+UINT Recv_Th1(LPVOID p); // 多线程接收CH1网口数据
+UINT Recv_Th2(LPVOID p); // 多线程接收CH2网口数据
+UINT Recv_Th3(LPVOID p); // 多线程接收CH3网口数据
+UINT Recv_Th4(LPVOID p); // 多线程接收CH4网口数据
+UINT Recv_ARM(LPVOID p); // 多线程接收ARM网口数据
 
 // CXrays_64ChannelDlg 对话框
 class CXrays_64ChannelDlg : public CDialogEx
@@ -34,6 +35,7 @@ public:
 	void SendParameterToTCP(); //发送配置参数
 	void SendCalibration(CString fileName); //发送刻度曲线
 	BOOL ConnectTCP(int num); //连接TCP网络
+	BOOL ConnectGeneralTCP(SOCKET& my_socket, CString strIP, int port); //连接常规TCP网络
 	void ConfinePortRange(int &myPort); //限制端口号输入范围
 	void SetTCPInputStatus(BOOL flag); //设置TCP的IP、PORT、复选框的输入使能状态
 	void SetParameterInputStatus(BOOL flag); //设置配置参数框的使能状态
@@ -41,7 +43,21 @@ public:
 	void AddTCPData(int channel, char* tempChar, int len); // 缓存网口数据
 	void ResetTCPData(); // 重置缓存数据
 	void SetSocketSize(SOCKET &sock, int nsize); //设置Socket缓冲区的大小
-	
+	void refreshBar(); //刷新状态栏中通道1,温度，电压/电流
+	/*解析ARM返回的电压电流数据，根据包头包尾判断
+	输入：
+		packge：网口新接收的数据包
+	返回：未判断到完整的包头包尾时，返回电压为-1000
+	*/
+	void GetVoltCurrent(); 
+
+	/*解析ARM返回的温度数据，根据包头包尾判断
+		输入：
+			packge：网口新接收的数据包
+		返回：未判断到完整的包头包尾时，返回温度为-1000
+	*/
+	void GetTemperature();//GetTemperature(CByteArray& packge)
+
 	/*阻塞式发送，网口发送数据到FPGA，直到检测到指令反馈成功或者等待超时才退出。
 	* num 网口编号，从0开始
 	* msg 发送信息
@@ -66,7 +82,8 @@ public:
 
 	CUDP_Socket* m_UDPSocket; //本地UDP服务
 
-	SOCKET SocketList[4]; // FPGA的TCP端口
+	SOCKET SocketList[4]; // FPGA的TCP端口，也就是CH1~CH4
+	SOCKET armSocket; // ARM网络的TCP端口
 	BOOL NetSwitchList[5]; // 网络开关,其中0位置对应总开关
 
 	// 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
@@ -94,6 +111,17 @@ public:
 	char* DataCH3;
 	char* DataCH4;
 	int RECVLength[4];//网口已接收数据长度
+
+	//----------------ARM网络监测温度/电压/电流相关变量-------------
+	void SaveEnviromentFile(double data[]);
+	BOOL ARMnetStatus; //ARM联网状态，无法实时监测，只能在联网后置TRUE，断开连接后置FALSE
+	double temperature[3]; //三个通道的温度
+	double powerVolt; //电压
+	double powerCurrent; //电流
+	int refreshTime_ARM; //温度检测模块刷新数据时间,units: s
+	int ArmTimer; //计数器，计算流逝的时间,units:s
+	LEDButton m_AMR_LED; // 网络状态LED灯
+	CByteArray TotalARMArray; //ARM网口接收的数据
 
 	int timer; // 计时器，满测量时长后则发送停止测量
 	CString saveAsPath; // 数据存储根路径
@@ -176,5 +204,8 @@ public:
 	int RefreshTime;
 	afx_msg void OnPowerMenu(); 
 	afx_msg void OnNetSettingMenu();
+	// 继电器开关
 	afx_msg void OnBnClickedPowerButton();
+	//温度、电压电流监测开关
+	afx_msg void TempVoltMonitorON_OFF();
 };

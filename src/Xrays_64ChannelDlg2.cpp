@@ -9,6 +9,8 @@
 #include "Order.h"
 #include "Log.h"
 #include "afx.h"
+
+#include<iomanip>
 // 该文件存放不常用函数，以及功能函数
 
 // 文件操作
@@ -120,6 +122,48 @@ void CXrays_64ChannelDlg::SaveFile(CString myID, char *mk, int length)
 	if (datafile.is_open())
 	{
 		datafile.write(mk, length);
+		datafile.close();
+	}
+}
+
+//保存ARM监测的温度数据
+void CXrays_64ChannelDlg::SaveEnviromentFile(double data[])
+{	
+	CTime ct = CTime::GetCurrentTime();
+	CString filename = ct.Format(_T("Temperatue_%Y%m%d.dat"));
+	CString strPart_Time = ct.Format(_T("%Y-%m-%d %H:%M:%S"));
+
+	CString parentPath = _T("Enviroment\\");
+	CString wholePath = parentPath + filename;
+	if (!IsPathExit(parentPath)) Mkdir(parentPath);
+	if (!IsFileExit(wholePath)) {
+		//首次创建文件的时候产生表头
+		fstream datafile(wholePath, ios::out | ios::app); // 追加
+		if (datafile.is_open())
+		{
+			datafile << setiosflags(ios::left) << setw(25) << "Time";
+			datafile << setiosflags(ios::left) << setw(10)<< "Temp1(℃)";
+			datafile << setiosflags(ios::left) << setw(10) << "Temp2(℃)";
+			datafile << setiosflags(ios::left) << setw(10) << "Temp3(℃)";
+			datafile << setiosflags(ios::left) << setw(10) << "Volt(V)";
+			datafile << setiosflags(ios::left) << setw(10) << "I(A)";
+			datafile << endl;
+			datafile.close();
+		}
+	}
+
+	fstream datafile(wholePath, ios::out | ios::app); // 追加
+	datafile.setf(ios::fixed, ios::floatfield);  // 设定为 fixed 模式，以小数点表示浮点数
+	datafile.precision(2);  // 设置精度 2
+	if (datafile.is_open())
+	{
+		datafile << setiosflags(ios::left) << setw(25) << _UnicodeToUtf8(strPart_Time);
+		datafile << setiosflags(ios::left) << setw(10) << data[0];
+		datafile << setiosflags(ios::left) << setw(10) << data[1];
+		datafile << setiosflags(ios::left) << setw(10) << data[2];
+		datafile << setiosflags(ios::left) << setw(10) << data[3];
+		datafile << setiosflags(ios::left) << setw(10) << data[4];
+		datafile << endl;
 		datafile.close();
 	}
 }
