@@ -838,7 +838,7 @@ UINT Recv_Th3(LPVOID p)
 			dlg->AddTCPData(3, mk, nLength);
 
 			// MeasureMode=2,硬件触发信号反馈
-			if(dlg->MeasureMode[2] == 2){
+			/*if(dlg->MeasureMode[2] == 2){
 				if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
 					dlg->MeasureMode[2] = 0;
 					CString info = _T("已收到硬件触发信号,CH3 RECV HEX:") + Char2HexCString((char*)mk, nLength);
@@ -846,7 +846,7 @@ UINT Recv_Th3(LPVOID p)
 				}
 				continue;
 			}
-			
+			*/
 			// 有效测量数据开始
 			singleLock.Lock(); //Mutex
 			if (singleLock.IsLocked()){
@@ -934,7 +934,7 @@ UINT Recv_Th4(LPVOID p)
 			dlg->AddTCPData(4, mk, nLength);
 
 			// MeasureMode=2,硬件触发信号反馈
-			if(dlg->MeasureMode[3] == 2){
+			/*if(dlg->MeasureMode[3] == 2){
 				if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
 					dlg->MeasureMode[3] = 0;
 					CString info = _T("已收到硬件触发信号,CH3 RECV HEX:") + Char2HexCString((char*)mk, nLength);
@@ -942,6 +942,7 @@ UINT Recv_Th4(LPVOID p)
 				}
 				continue;
 			}
+			*/
 			
 			// 有效测量数据开始
 			singleLock.Lock(); //Mutex
@@ -1117,7 +1118,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				// 发送停止指令，复位。以保证把上一次测量重置。	
 				for(int num=0; num<4; num++){
 					MeasureMode[num] = 0;
-					if(connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1); //这里带指令反馈检测
+					// if(connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1); //这里带指令反馈检测
 				}			
 				
 				// 重置从网口接收的缓存数据
