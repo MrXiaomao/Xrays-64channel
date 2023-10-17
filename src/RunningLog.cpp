@@ -9,6 +9,8 @@
 #include "LayoutInit.h"
 // RunningLog 对话框
 
+//CMutex Mutex; //mutex，线程锁
+
 IMPLEMENT_DYNAMIC(RunningLog, CDialog)
 
 RunningLog::RunningLog(CWnd* pParent /*=nullptr*/)
@@ -65,6 +67,7 @@ void RunningLog::OnSizing(UINT fwSide, LPRECT pRect)
 // RunningLog 消息处理程序
 void RunningLog::PrintLog(CString info, BOOL isShow)
 {
+	CSingleLock singleLock(&Mutex); //线程锁
 	// 添加日志到文件
 	CLog::SetPrefix(_T("AllLog"));
 	CLog::WriteMsg(info);
@@ -73,7 +76,14 @@ void RunningLog::PrintLog(CString info, BOOL isShow)
 	if(!isShow) return;
 	CTime t = CTime::GetCurrentTime();
 	CString strTime = t.Format(_T("[%Y-%m-%d %H:%M:%S]#"));
-	m_Information = m_Information + strTime + info + _T("\r\n");
+	
+	// 线程锁
+	singleLock.Lock();
+	if (singleLock.IsLocked()){
+		m_Information = m_Information + strTime + info + _T("\r\n");
+	}
+	singleLock.Unlock();
+
 	UpdateData(FALSE);
 	m_LogEdit.LineScroll(m_LogEdit.GetLineCount()); //每次刷新后都显示最底部
 }

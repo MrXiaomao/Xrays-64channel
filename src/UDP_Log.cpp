@@ -9,6 +9,7 @@
 #include "LayoutInit.h"
 
 // UDP_Log 对话框
+//CMutex Mutex; //mutex，线程锁
 
 IMPLEMENT_DYNAMIC(UDP_Log, CDialog)
 
@@ -58,6 +59,8 @@ void UDP_Log::OnSize(UINT nType, int cx, int cy)
 // UDP_Log 消息处理程序
 void UDP_Log::PrintLog(CString info, BOOL isShow)
 {
+	CSingleLock singleLock(&Mutex); //线程锁
+
 	// 添加日志到文件
 	CLog::SetPrefix(_T("UDP"));
 	CLog::WriteMsg(info);
@@ -65,7 +68,13 @@ void UDP_Log::PrintLog(CString info, BOOL isShow)
 	// 添加日志到界面
 	CTime t = CTime::GetCurrentTime();
 	CString strTime = t.Format(_T("[%Y-%m-%d %H:%M:%S]# "));
-	m_Information = m_Information + strTime + info + _T("\r\n");
+	
+	singleLock.Lock();
+	if (singleLock.IsLocked()){
+		m_Information = m_Information + strTime + info + _T("\r\n");
+	}
+	singleLock.Unlock();
+
 	UpdateData(FALSE);
 	m_LogEdit.LineScroll(m_LogEdit.GetLineCount()); //每次刷新后都显示最底部
 }

@@ -18,6 +18,8 @@
 #include <fstream>
 using namespace std;
 
+//CMutex Mutex; //mutex，线程锁
+
 // 设置TCP的IP、PORT、复选框的输入使能状态
 void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag)
 {
@@ -138,31 +140,58 @@ void CXrays_64ChannelDlg::SaveEnviromentFile(double data[])
 	if (!IsPathExit(parentPath)) Mkdir(parentPath);
 	if (!IsFileExit(wholePath)) {
 		//首次创建文件的时候产生表头
-		fstream datafile(wholePath, ios::out | ios::app); // 追加
+		fstream datafile(wholePath, ios::out | ios::app| ios::left); // 追加
 		if (datafile.is_open())
 		{
-			datafile << setiosflags(ios::left) << setw(25) << "Time";
-			datafile << setiosflags(ios::left) << setw(10)<< "Temp1(℃)";
-			datafile << setiosflags(ios::left) << setw(10) << "Temp2(℃)";
-			datafile << setiosflags(ios::left) << setw(10) << "Temp3(℃)";
-			datafile << setiosflags(ios::left) << setw(10) << "Volt(V)";
-			datafile << setiosflags(ios::left) << setw(10) << "I(A)";
+			datafile << setw(25) << "Time";
+			datafile << setw(10)<< "Temp1(℃)";
+			datafile << setw(10) << "Temp2(℃)";
+			datafile << setw(10) << "Temp3(℃)";
+			datafile << setw(10) << "Temp4(℃)";
+			datafile << setw(10) << "Temp5(℃)";
+			datafile << setw(10) << "Temp6(℃)";
+			datafile << setw(10) << "Volt(V)";
+			datafile << setw(10) << "I(A)";
 			datafile << endl;
 			datafile.close();
 		}
 	}
 
-	fstream datafile(wholePath, ios::out | ios::app); // 追加
+	fstream datafile(wholePath, ios::out | ios::app | ios::left); // 追加
 	datafile.setf(ios::fixed, ios::floatfield);  // 设定为 fixed 模式，以小数点表示浮点数
 	datafile.precision(2);  // 设置精度 2
+	//datafile.width(25);
 	if (datafile.is_open())
 	{
-		datafile << setiosflags(ios::left) << setw(25) << _UnicodeToUtf8(strPart_Time);
-		datafile << setiosflags(ios::left) << setw(10) << data[0];
-		datafile << setiosflags(ios::left) << setw(10) << data[1];
-		datafile << setiosflags(ios::left) << setw(10) << data[2];
-		datafile << setiosflags(ios::left) << setw(10) << data[3];
-		datafile << setiosflags(ios::left) << setw(10) << data[4];
+		datafile << setw(25) << _UnicodeToUtf8(strPart_Time);
+		if (feedbackARM[0]) {
+			datafile << setw(10) << data[0];
+			datafile << setw(10) << data[1];
+			datafile << setw(10) << data[2];
+		}
+		else {
+			datafile << setw(10) << "--";
+			datafile << setw(10) << "--";
+			datafile << setw(10) << "--";
+		}
+		if (feedbackARM[1]) {
+			datafile << setw(10) << data[3];
+			datafile << setw(10) << data[4];
+			datafile << setw(10) << data[5];
+		}
+		else {
+			datafile << setw(10) << "--";
+			datafile << setw(10) << "--";
+			datafile << setw(10) << "--";
+		}
+		if (feedbackARM[2]) {
+			datafile << setw(10) << data[6];
+			datafile << setw(10) << data[7];
+		}
+		else {
+			datafile << setw(10) << "--";
+			datafile << setw(10) << "--";
+		}
 		datafile << endl;
 		datafile.close();
 	}
@@ -395,15 +424,15 @@ void CXrays_64ChannelDlg::OnBnClickedClearLog()
 }
 
 //缓存网口数据
-void CXrays_64ChannelDlg::AddTCPData(int channel, char *tempChar, int len)
+void CXrays_64ChannelDlg::AddTCPData(int num, char *tempChar, int len)
 {
 	/*for (int i = 0; i < len; i++) {
-		if (RECVLength[channel-1] + i < DataMaxlen)
+		if (RECVLength[num] + i < DataMaxlen)
 		{
-			DataCH1[RECVLength[channel-1] + i] = tempChar[i];
+			DataCH1[RECVLength[num] + i] = tempChar[i];
 		}
 	}*/
-	RECVLength[channel-1] += len;
+	RECVLength[num] += len;
 }
 
 //设置网口缓存区大小
@@ -483,6 +512,8 @@ void CXrays_64ChannelDlg::OnSizing(UINT fwSide, LPRECT pRect)
 BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 								 int sleepTime, int maxWaitingTime, BOOL isShow)
 {
+	CSingleLock singleLock(&Mutex); //线程锁
+
 	if (ifFeedback[num])
 		return FALSE;
 
@@ -495,7 +526,13 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 		BOOL flag = FALSE;
 
 		// 初始化反馈相关参数
-		ifFeedback[num] = FALSE;
+
+		singleLock.Lock(); //Mutex
+		if (singleLock.IsLocked()){
+			ifFeedback[num] = FALSE;
+		}
+		singleLock.Unlock(); //Mutex
+
 		TCPfeedback[num] = FALSE;
 		LastSendMsg[num] = NULL;
 		RecvMsg[num] = NULL;
@@ -504,7 +541,12 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 		// 发送指令
 		if (!ifFeedback[num])
 		{
-			ifFeedback[num] = TRUE;
+			singleLock.Lock(); //线程锁
+			if (singleLock.IsLocked()){
+				ifFeedback[num] = TRUE;
+			}
+			singleLock.Unlock(); 
+
 			send(SocketList[num], (char *)msg, msgLength, flags);
 			// Sleep(sleepTime);
 			LastSendMsg[num] = (char *)msg;
@@ -543,7 +585,13 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 
 				//接收到反馈指令，重新初始化反馈相关数据
 				TCPfeedback[num] = FALSE;
-				ifFeedback[num] = FALSE;
+				
+				singleLock.Lock(); //线程锁
+				if (singleLock.IsLocked()){
+					ifFeedback[num] = FALSE;
+				}
+				singleLock.Unlock(); 
+
 				LastSendMsg[num] = NULL;
 				RecvMsg[num] = NULL;
 				recievedFBLength[num] = 0;
@@ -570,7 +618,12 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 	m_page1.PrintLog(info, TRUE);
 
 	// 恢复指令反馈相关参数
-	ifFeedback[num] = FALSE;
+	singleLock.Lock(); //线程锁
+	if (singleLock.IsLocked()){
+		ifFeedback[num] = FALSE;
+	}
+	singleLock.Unlock();
+	
 	TCPfeedback[num] = FALSE;
 	LastSendMsg[num] = NULL;
 	RecvMsg[num] = NULL;

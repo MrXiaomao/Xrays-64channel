@@ -1,7 +1,9 @@
 ﻿#pragma once
 #include "Layout.h"
+//#include "Xrays_64ChannelDlg.h"
 
 // UDP_Log 对话框
+extern CMutex Mutex; //mutex，线程锁
 
 class UDP_Log : public CDialog
 {

@@ -18,6 +18,8 @@ UINT Recv_Th3(LPVOID p); // 多线程接收CH3网口数据
 UINT Recv_Th4(LPVOID p); // 多线程接收CH4网口数据
 UINT Recv_ARM(LPVOID p); // 多线程接收ARM网口数据
 
+extern CMutex Mutex; //mutex，线程锁
+
 // CXrays_64ChannelDlg 对话框
 class CXrays_64ChannelDlg : public CDialogEx
 {
@@ -40,7 +42,7 @@ public:
 	void SetTCPInputStatus(BOOL flag); //设置TCP的IP、PORT、复选框的输入使能状态
 	void SetParameterInputStatus(BOOL flag); //设置配置参数框的使能状态
 	void SaveFile(CString myID, char* mk, int length); // 保存文件
-	void AddTCPData(int channel, char* tempChar, int len); // 缓存网口数据
+	void AddTCPData(int num, char* tempChar, int len); // 缓存网口数据
 	void ResetTCPData(); // 重置缓存数据
 	void SetSocketSize(SOCKET &sock, int nsize); //设置Socket缓冲区的大小
 	void refreshBar(); //刷新状态栏中通道1,温度，电压/电流
@@ -115,7 +117,8 @@ public:
 	//----------------ARM网络监测温度/电压/电流相关变量-------------
 	void SaveEnviromentFile(double data[]);
 	BOOL ARMnetStatus; //ARM联网状态，无法实时监测，只能在联网后置TRUE，断开连接后置FALSE
-	double temperature[3]; //三个通道的温度
+	BOOL feedbackARM[3]; //获取到数据包状态，前两个是温度包，最后一个电压电流包
+	double temperature[6]; //三个通道的温度
 	double powerVolt; //电压
 	double powerCurrent; //电流
 	int refreshTime_ARM; //温度检测模块刷新数据时间,units: s

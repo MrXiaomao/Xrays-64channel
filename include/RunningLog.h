@@ -1,7 +1,10 @@
 ﻿#pragma once
 
 #include "Layout.h"
+//#include "Xrays_64ChannelDlg.h"
+
 // RunningLog 对话框
+extern CMutex Mutex; //mutex，线程锁
 
 // 用于界面上记录系统运行日志的Tab子对话框
 class RunningLog : public CDialog

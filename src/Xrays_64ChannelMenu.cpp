@@ -55,8 +55,10 @@ void CXrays_64ChannelDlg::TempVoltMonitorON_OFF()
 			m_page1.PrintLog(info);
 			
 			//首次连接上时直接查询一次温度/电压/电流
-			send(armSocket, (char*)Order::ARM_Temperature, 12, 0);
-			Sleep(1);//是否有必要
+			send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
+			Sleep(10);//是否有必要
+			send(armSocket, (char*)Order::ARM_Temperature2, 12, 0);
+			Sleep(10);//是否有必要
 			send(armSocket, (char*)Order::ARM_VoltCurrent, 12, 0);
 		}
 		else {
@@ -103,7 +105,7 @@ UINT Recv_ARM(LPVOID p) // 多线程接收ARM网口数据
 
 			dlg->GetTemperature(); //尝试解析温度
 			dlg->GetVoltCurrent(); //尝试解析电压电流
-			dlg->refreshBar(); //刷新界面温度、电压、电流显示
+			//dlg->refreshBar(); //刷新界面温度、电压、电流显示
 		}
 	}
 }
@@ -183,9 +185,19 @@ void CXrays_64ChannelDlg::GetTemperature() {
 		CByteArray OnePackArray;
 		OnePackArray.Copy(TotalARMArray);
 		TotalARMArray.RemoveAt(0, StandardPackLength);
-		temperature[0] = (OnePackArray[3] & 0xFF) * 256.0 + (OnePackArray[4] & 0xFF) / 10.0;
-		temperature[1] = (OnePackArray[5] & 0xFF) * 256.0 + (OnePackArray[6] & 0xFF) / 10.0;
-		temperature[2] = (OnePackArray[7] & 0xFF) * 256.0 + (OnePackArray[8] & 0xFF) / 10.0;
+		int equiID = (OnePackArray[3] & 0xFF); 
+		int num = 0;
+		if (equiID == 1) {
+			num = 0;
+			feedbackARM[0] = TRUE; //表明获取到了温度1的数据
+		}
+		if (equiID == 2) {
+			num = 1;
+			feedbackARM[1] = TRUE; //表明获取到了温度2的数据
+		}
+		temperature[0 + num*3] = ((OnePackArray[3] & 0xFF) * 256.0 + (OnePackArray[4] & 0xFF)) / 10.0;
+		temperature[1 + num * 3] = ((OnePackArray[5] & 0xFF) * 256.0 + (OnePackArray[6] & 0xFF)) / 10.0;
+		temperature[2 + num * 3] = ((OnePackArray[7] & 0xFF) * 256.0 + (OnePackArray[8] & 0xFF)) / 10.0;
 	}
 }
 
@@ -242,6 +254,7 @@ void CXrays_64ChannelDlg::GetVoltCurrent() {
 		powerVolt = ((OnePackArray[2] & 0xFF) * 256.0 + (OnePackArray[3] & 0xFF)) / 100.0;
 		powerCurrent = ((OnePackArray[4] & 0xFF) * 256.0 + (OnePackArray[5] & 0xFF)) /1000.0;
 		
+		feedbackARM[1] = TRUE; //表明获取到了电压电流的数据
 		// 根据查询的顺序，先返回温度指令，再返回电压电流指令，因此在电流返回后再刷新
 		refreshBar();
 	}
@@ -249,12 +262,40 @@ void CXrays_64ChannelDlg::GetVoltCurrent() {
 
 void CXrays_64ChannelDlg::refreshBar() {
 	//刷新状态栏
-	CString strInfo;
-	strInfo.Format(_T("%.2f℃,%.2f℃,%.2f℃,Volt:%.2fV,I:%.2fA"), temperature[0], temperature[1],
-		temperature[2], powerVolt, powerCurrent);
+	CString strInfo1;
+	if(feedbackARM[0]){
+		strInfo1.Format(_T("%.2f℃,%.2f℃,%.2f℃,"), temperature[0], temperature[1], temperature[2]);
+	}
+	else {
+		strInfo1 = _T("--℃,--℃,--℃,");
+	}
+
+	CString strInfo2;
+	if (feedbackARM[1]) {
+		strInfo2.Format(_T("%.2f℃,%.2f℃,%.2f℃,"), temperature[3], temperature[4], temperature[5]);
+	}
+	else {
+		strInfo2 = _T("--℃,--℃,--℃,");
+	}
+
+	CString strInfo3;
+	if (feedbackARM[2]) {
+		strInfo3.Format(_T("%.2fV,%.2fA"), powerVolt, powerCurrent);
+	}
+	else {
+		strInfo3 = _T("--V,--A");
+	}
+
+	CString strInfo = strInfo1 + strInfo2 + strInfo3;
 	m_statusBar.SetPaneText(1, strInfo);
 	
 	// 保存数据到文件
-	double data[5] = { temperature[0], temperature[1], temperature[2], powerVolt, powerCurrent};
+	double data[8] = { temperature[0], temperature[1], temperature[2], temperature[3], temperature[4], temperature[5], 
+						powerVolt, powerCurrent};
 	SaveEnviromentFile(data);
+
+	// 重置温度/电压/电流查询反馈状态
+	for (int i = 0; i < 3; i++) {
+		feedbackARM[i] = FALSE;
+	}
 }

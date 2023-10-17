@@ -67,7 +67,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, ARMnetStatus(FALSE)
 	, powerVolt(0.0)
 	, powerCurrent(0.0)
-	, refreshTime_ARM(10)
+	, refreshTime_ARM(30)
 	, ArmTimer(0)
 	, timer(0)
 	, saveAsPath("")
@@ -106,6 +106,14 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 {
 	CLog::WriteMsg(_T("正在退出软件，释放相关资源！"));
 
+	for (int i = 0; i < 6; i++) {
+		temperature[i] = 0;
+	}
+
+	for (int i = 0; i < 3; i++) {
+		feedbackARM[i] = FALSE;
+	}
+	
 	for(int num = 0; num<4; num++){
 		if(connectStatusList[num]) {
 			connectStatusList[num] = FALSE; // 用来控制关闭线程
@@ -254,14 +262,14 @@ void CXrays_64ChannelDlg::InitBarSettings(){
 	//添加状态栏面板，参数为ID数组和面板数量
 	m_statusBar.SetIndicators(nID, sizeof(nID) / sizeof(UINT));
 	//设置面板序号，ID，样式和宽度，SBPS_NORMAL为普通样式，固定宽度，SBPS_STRETCH为弹簧样式，会自动扩展它的空间
-	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, int(0.5 * rectDlg.Width()));
-	m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, int(0.35 * rectDlg.Width()));
+	m_statusBar.SetPaneInfo(0, 1001, SBPS_NORMAL, int(0.45 * rectDlg.Width()));
+	m_statusBar.SetPaneInfo(1, 1002, SBPS_STRETCH, int(0.40 * rectDlg.Width()));
 	m_statusBar.SetPaneInfo(2, 1003, SBPS_NORMAL, int(0.15 * rectDlg.Width()));
 	//设置状态栏位置
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	//设置状态栏面板文本，参数为面板序号和对应文本
 	m_statusBar.SetPaneText(0, _T("探测器数据"));
-	m_statusBar.SetPaneText(1, _T("T1:℃,T2:℃,T3:℃,Volt:V,I:A"));
+	m_statusBar.SetPaneText(1, _T("T1:℃,T2:℃,T3:℃,T4:℃,T5:℃,T6:℃,Volt:V,I:A"));
 	m_statusBar.SetPaneText(2, _T("日期"));
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	//开启定时器，刷新状态栏参数
@@ -626,11 +634,21 @@ UINT Recv_Th1(LPVOID p)
 						mk[i] = mk[remainLen+i];
 					}
 				}
+				
+				//线程锁
+				singleLock.Lock(); 
+				if (singleLock.IsLocked()){
+					dlg->RecvMsg[0] = tempChar;
+					dlg->recievedFBLength[0] = receLen;
+				}
+				singleLock.Unlock();
 
-				dlg->RecvMsg[0] = tempChar;
-				dlg->recievedFBLength[0] = receLen;
 				if (receLen == dlg->FeedbackLen[0]) {
-					dlg->ifFeedback[0] = FALSE; //接收完12字节，重置标志位
+					singleLock.Lock(); //线程锁
+					if (singleLock.IsLocked()){
+						dlg->ifFeedback[0] = FALSE; //接收完12字节，重置标志位
+					}
+					singleLock.Unlock();
 				}
 			}
 
@@ -639,21 +657,21 @@ UINT Recv_Th1(LPVOID p)
 			// 普通数据
 			CString fileName = dlg->m_targetID + _T("CH1");
 			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(1, mk, nLength);
+			dlg->AddTCPData(0, mk, nLength);
 
-			// MeasureMode=2,硬件触发信号反馈
-			if(dlg->MeasureMode[0] == 2){
-				if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
-					dlg->MeasureMode[0] = 0;
-					CString info = _T("已收到硬件触发信号,CH1 RECV HEX:") + Char2HexCString((char*)mk, nLength);
-					dlg->m_page1.PrintLog(info,FALSE);
-				}
-				continue;
-			}
-
-			// 有效测量数据开始
 			singleLock.Lock(); //Mutex
 			if (singleLock.IsLocked()){
+				// MeasureMode=2,硬件触发信号反馈
+				if(dlg->MeasureMode[0] == 2){
+					if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
+						dlg->MeasureMode[0] = 0;
+						CString info = _T("已收到硬件触发信号,CH1 RECV HEX:") + Char2HexCString((char*)mk, nLength);
+						dlg->m_page1.PrintLog(info,FALSE);
+					}
+					continue;
+				}
+
+				// 有效测量数据开始
 				dlg->GetDataStatus = TRUE; //线程锁的变量
 			}
 			singleLock.Unlock(); //Mutex
@@ -724,10 +742,20 @@ UINT Recv_Th2(LPVOID p)
 					}
 				}
 
-				dlg->RecvMsg[1] = tempChar;
-				dlg->recievedFBLength[1] = receLen;
+				//线程锁
+				singleLock.Lock(); 
+				if (singleLock.IsLocked()){
+					dlg->RecvMsg[1] = tempChar;
+					dlg->recievedFBLength[1] = receLen;
+				}
+				singleLock.Unlock();
+
 				if (receLen == dlg->FeedbackLen[1]) {
-					dlg->ifFeedback[1] = FALSE; //接收完12字节，重置标志位
+					singleLock.Lock(); //线程锁
+					if (singleLock.IsLocked()){
+						dlg->ifFeedback[1] = FALSE; //接收完12字节，重置标志位
+					}
+					singleLock.Unlock();					
 				}
 			}
 
@@ -736,22 +764,21 @@ UINT Recv_Th2(LPVOID p)
 			// 普通数据
 			CString fileName = dlg->m_targetID + _T("CH2");
 			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(2, mk, nLength);
+			dlg->AddTCPData(1, mk, nLength);
 
-			// MeasureMode=2,硬件触发信号反馈
-			if(dlg->MeasureMode[1] == 2){
-				if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
-					dlg->MeasureMode[1] = 0;
-					CString info = _T("已收到硬件触发信号,CH2 RECV HEX:") + Char2HexCString((char*)mk, nLength);
-					dlg->m_page1.PrintLog(info,FALSE);
-				}
-				continue;
-			}
-
-			// 有效测量数据开始
 			singleLock.Lock(); //Mutex
 			if (singleLock.IsLocked())
 			{
+				// MeasureMode=2,硬件触发信号反馈
+				if(dlg->MeasureMode[1] == 2){
+					if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
+						dlg->MeasureMode[1] = 0;
+						CString info = _T("已收到硬件触发信号,CH2 RECV HEX:") + Char2HexCString((char*)mk, nLength);
+						dlg->m_page1.PrintLog(info,FALSE);
+					}
+					continue;
+				}
+				// 有效测量数据开始
 				dlg->GetDataStatus = TRUE;	
 			}
 			singleLock.Unlock(); //Mutex
@@ -822,11 +849,20 @@ UINT Recv_Th3(LPVOID p)
 						mk[i] = mk[remainLen+i];
 					}
 				}
+				
+				singleLock.Lock(); //线程锁
+				if (singleLock.IsLocked()){
+					dlg->RecvMsg[2] = tempChar;
+					dlg->recievedFBLength[2] = receLen;
+				}
+				singleLock.Unlock();
 
-				dlg->RecvMsg[2] = tempChar;
-				dlg->recievedFBLength[2] = receLen;
 				if (receLen == dlg->FeedbackLen[2]) {
-					dlg->ifFeedback[2] = FALSE; //接收完12字节，重置标志位
+					singleLock.Lock(); //线程锁
+					if (singleLock.IsLocked()){
+						dlg->ifFeedback[2] = FALSE; //接收完12字节，重置标志位
+					}
+					singleLock.Unlock();					
 				}
 			}
 
@@ -835,7 +871,7 @@ UINT Recv_Th3(LPVOID p)
 			// 普通数据
 			CString fileName = dlg->m_targetID + _T("CH3");
 			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(3, mk, nLength);
+			dlg->AddTCPData(2, mk, nLength);
 
 			// MeasureMode=2,硬件触发信号反馈
 			/*if(dlg->MeasureMode[2] == 2){
@@ -919,10 +955,20 @@ UINT Recv_Th4(LPVOID p)
 					}
 				}
 
-				dlg->RecvMsg[3] = tempChar;
-				dlg->recievedFBLength[3] = receLen;
+				//线程锁
+				singleLock.Lock(); 
+				if (singleLock.IsLocked()){
+					dlg->RecvMsg[3] = tempChar;
+					dlg->recievedFBLength[3] = receLen;
+				}
+				singleLock.Unlock();
+
 				if (receLen == dlg->FeedbackLen[3]) {
-					dlg->ifFeedback[3] = FALSE; //接收完12字节，重置标志位
+					singleLock.Lock(); //线程锁
+					if (singleLock.IsLocked()){
+						dlg->ifFeedback[3] = FALSE; //接收完12字节，重置标志位
+					}
+					singleLock.Unlock();					
 				}
 			}
 
@@ -931,7 +977,7 @@ UINT Recv_Th4(LPVOID p)
 			// 普通数据
 			CString fileName = dlg->m_targetID + _T("CH4");
 			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(4, mk, nLength);
+			dlg->AddTCPData(3, mk, nLength);
 
 			// MeasureMode=2,硬件触发信号反馈
 			/*if(dlg->MeasureMode[3] == 2){
@@ -958,6 +1004,7 @@ UINT Recv_Th4(LPVOID p)
 //定时器
 void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 	// 计时MeasureTime=3000ms。定时结束后向网口发送停止指令
+	CSingleLock singleLock(&Mutex); //线程锁
 	switch (nIDEvent)
 	{
 	case 1:
@@ -994,10 +1041,16 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				{
 					SetDlgItemText(IDC_Start, _T("开始测量"));
 					timer = 0;
-					GetDataStatus = FALSE;
-					for(int num=0; num<4; num++){
-						MeasureMode[num] = 0;
+
+					singleLock.Lock(); //Mutex线程锁
+					if (singleLock.IsLocked()){
+						GetDataStatus = FALSE;
+
+						for(int num=0; num<4; num++){
+							MeasureMode[num] = 0;
+						}
 					}
+					singleLock.Unlock(); //Mutex
 					sendStopFlag = FALSE;
 
 					//往TCP发送的控制板配置参数允许输入
@@ -1068,10 +1121,16 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				{
 					// 重置部分数据
 					timer = 0;
-					for(int num=0; num<4; num++){
-						MeasureMode[num] = 0;
+					
+					singleLock.Lock(); //Mutex线程锁
+					if (singleLock.IsLocked()){
+						GetDataStatus = FALSE;
+						for(int num=0; num<4; num++){
+							MeasureMode[num] = 0;
+						}
 					}
-					GetDataStatus = FALSE;
+					singleLock.Unlock(); //Mutex
+
 					sendStopFlag = FALSE;
 
 					if (RECVLength[0] + RECVLength[1] + RECVLength[2] + RECVLength[3]> 0) {
@@ -1116,15 +1175,24 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				Mkdir(saveAsTargetPath);
 
 				// 发送停止指令，复位。以保证把上一次测量重置。	
-				for(int num=0; num<4; num++){
-					MeasureMode[num] = 0;
-					// if(connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1); //这里带指令反馈检测
-				}			
-				
+				singleLock.Lock(); //Mutex
+				if (singleLock.IsLocked()){
+					for(int num=0; num<4; num++){
+						MeasureMode[num] = 0;
+						// if(connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1); //这里带指令反馈检测
+					}			
+				}
+				singleLock.Unlock(); //Mutex
 				// 重置从网口接收的缓存数据
 				ResetTCPData();
-				//重置接受数据标志位
-				GetDataStatus = FALSE;
+
+				//重置接受数据标志位					
+				singleLock.Lock(); //Mutex线程锁
+				if (singleLock.IsLocked()){
+					GetDataStatus = FALSE;
+				}
+				singleLock.Unlock(); //Mutex
+
 				//重置接受数据计数器
 				timer = 0;
 				//重置测量状态
@@ -1134,7 +1202,12 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				//发送开始测量指令，采用硬件触发
 				for (int num = 0; num < 4; num++) {
 					if(connectStatusList[num]) BackSend(num, Order::StartHardTrigger, 12, 0, 1);
-					MeasureMode[num] = 2;
+					
+					singleLock.Lock(); //Mutex
+					if (singleLock.IsLocked()){
+						MeasureMode[num] = 2;
+					}
+					singleLock.Unlock(); //Mutex
 				}
 				
 				CString info = _T("\"硬件触发\"工作模式");
@@ -1153,8 +1226,10 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			if (ARMnetStatus && (refreshTime_ARM == ArmTimer))
 			{
 				ArmTimer = 0;
-				send(armSocket, (char*)Order::ARM_Temperature, 12, 0);
-				Sleep(1);//是否有必要
+				send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
+				Sleep(10); // ARM需要较长的缓冲时间
+				send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
+				Sleep(10);
 				send(armSocket, (char*)Order::ARM_VoltCurrent, 12, 0);
 			}
 		}
@@ -1170,15 +1245,23 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
+	
+	CSingleLock singleLock(&Mutex); //线程锁
 
 	CString strTemp;
 	GetDlgItemText(IDC_Start, strTemp);
 	if (strTemp == _T("开始测量")) {
 		timer = 0;
-		GetDataStatus = FALSE;
-		for(int num = 0; num < 4; num++){
+		
+		singleLock.Lock(); // 线程锁
+		if (singleLock.IsLocked()){
+			GetDataStatus = FALSE;
+			for(int num = 0; num < 4; num++){
 			MeasureMode[num] = 0;
+			}
 		}
+		singleLock.Unlock();
+		
 		//向TCP发送配置参数。
 		SendParameterToTCP(); 
 		//TCP发送的控制板配置参数禁止输入
@@ -1189,7 +1272,11 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		//向TCP发送开始指令
 		for (int num = 0; num < 4; num++) {
 			if(connectStatusList[num]) BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
-			MeasureMode[num] = 1;
+			singleLock.Lock(); //Mutex
+			if (singleLock.IsLocked()){
+				MeasureMode[num] = 1;
+			}
+			singleLock.Unlock(); //Mutex
 		}
 
 		SetDlgItemText(IDC_Start, _T("停止测量"));
@@ -1221,9 +1308,13 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
 	}
 	else {
-		for(int num=0; num<4; num++){
-			MeasureMode[num] = 0;
+		singleLock.Lock(); //Mutex
+		if (singleLock.IsLocked()){
+			for(int num=0; num<4; num++){
+				MeasureMode[num] = 0;
+			}
 		}
+		singleLock.Unlock(); //Mutex
 		//往TCP发送的控制板配置参数允许输入
 		SetParameterInputStatus(TRUE);
 
@@ -1256,9 +1347,10 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 {
 	// TODO: 在此添加控件通知处理程序代码
+	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 	UpdateData(TRUE);
 
-	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
+	CSingleLock singleLock(&Mutex); //线程锁
 
 	CString strTemp;
 	GetDlgItemText(IDC_AutoMeasure, strTemp);
@@ -1271,19 +1363,24 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		AutoMeasureStatus = TRUE;
 		// 重新初始化部分数据
 		timer = 0;
-		for(int num=0; num<4; num++){
-			MeasureMode[num] = 0;
+		
+		singleLock.Lock(); // 线程锁
+		if (singleLock.IsLocked()){
+			for(int num=0; num<4; num++){
+				MeasureMode[num] = 0;
+				ifFeedback[num] = FALSE; //接收完12字节，重置标志位
+			}
+			GetDataStatus = FALSE;
 		}
-		GetDataStatus = FALSE;
+		singleLock.Unlock();
+
 		m_getTargetChange = FALSE;
 		for(int num=0; num<4; num++){
-			ifFeedback[num] = FALSE;
 			TCPfeedback[num] = FALSE;
 			LastSendMsg[num] = NULL;
 			RecvMsg[num] = NULL;
 			recievedFBLength[num] = 0;
 			FeedbackLen[num] = 12;
-			MeasureMode[num] = 0;
 		}
 
 		SendParameterToTCP();
