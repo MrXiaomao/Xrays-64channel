@@ -97,6 +97,11 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 		FeedbackLen[num] = 12;
 		MeasureMode[num] = 0;
 	}
+
+	for(int i=0;i<4;i++){
+		m_nTimerId[i] = 0;
+	}
+
 	NetSwitchList[4] = TRUE;
 	armSocket = NULL;
 	CLog::WriteMsg(_T("打开软件，软件环境初始化！"));
@@ -116,25 +121,35 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 	
 	for(int num = 0; num<4; num++){
 		if(connectStatusList[num]) {
-			connectStatusList[num] = FALSE; // 用来控制关闭线程
+			connectStatusList[num] = FALSE; // 停止线程执行，用来控制关闭线程
+			// WaitForSingleObject(m_pThread_CH[num]->m_hThread, INFINITE);   //一直等待线程退出，无限期等待
+			// CString info;
+			// info.Format(_T("CH%d网口数据线程退出成功！"),num+1);
+			// CLog::WriteMsg(info);
+
 			closesocket(SocketList[num]); //关闭套接字
 		}
 	}
 	if(ARMnetStatus) {
-		ARMnetStatus = FALSE;
+		ARMnetStatus = FALSE; //停止线程执行
+		//WaitForSingleObject(m_pThread_ARM->m_hThread, INFINITE);   //一直等待线程退出
+		//CLog::WriteMsg(_T("ARM线程退出成功！"));
 		closesocket(armSocket);
 	}
 
-	if (UDPStatus) CloseUDP();
+	//if (UDPStatus) CloseUDP();
 	if (m_UDPSocket != NULL) delete m_UDPSocket;
 	delete DataCH1;
 	delete DataCH2;
 	delete DataCH3;
 	delete DataCH4;
 
+	for(int i=0;i<4;i++){
+		if(m_nTimerId[i] > 0) KillTimer(m_nTimerId[i]);
+	}
+
 	delete m_page1;
 	delete m_page2;
-	KillTimer(4);
 	CLog::WriteMsg(_T("退出软件，软件关闭成功！"));
 }
 
@@ -198,6 +213,9 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_COMMAND(ID_NETSETTING_MENU, &CXrays_64ChannelDlg::OnNetSettingMenu)
 	ON_BN_CLICKED(IDC_POWER_BUTTON, &CXrays_64ChannelDlg::OnBnClickedPowerButton)
 	ON_BN_CLICKED(IDC_TEMP_VOLT, &CXrays_64ChannelDlg::TempVoltMonitorON_OFF)
+	ON_MESSAGE(WM_UPDATE_ARM, &CXrays_64ChannelDlg::OnUpdateARMStatic) //子线程发送消息通知主线程处理  
+	ON_MESSAGE(WM_UPDATE_TRIGER_LOG, &CXrays_64ChannelDlg::OnUpdateTrigerLog) 
+	ON_MESSAGE(WM_UPDATE_CH_DATA, &CXrays_64ChannelDlg::OnUpdateTimer2)
 END_MESSAGE_MAP()
 
 
@@ -451,10 +469,10 @@ void CXrays_64ChannelDlg::OnConnect()
 			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
 			
 			// 开启线程接收数据
-			AfxBeginThread(&Recv_Th1, this);
-			AfxBeginThread(&Recv_Th2, this);
-			AfxBeginThread(&Recv_Th3, this);
-			AfxBeginThread(&Recv_Th4, this);
+			if(connectStatusList[0]) m_pThread_CH[0] = AfxBeginThread(&Recv_Th1, this);
+			if(connectStatusList[1]) m_pThread_CH[1] = AfxBeginThread(&Recv_Th2, this);
+			if(connectStatusList[2]) m_pThread_CH[2] = AfxBeginThread(&Recv_Th3, this);
+			if(connectStatusList[3]) m_pThread_CH[3] = AfxBeginThread(&Recv_Th4, this);
 
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE);
 			// 必须TCP和UDP同时工作才能使用自动测量
@@ -485,6 +503,11 @@ void CXrays_64ChannelDlg::OnConnect()
 		for(int num=0; num<4; num++){
 			if(connectStatusList[num]) {
 				connectStatusList[num] = FALSE; // 用来控制关闭线程
+				// WaitForSingleObject(m_pThread_CH[num]->m_hThread, 2000);   //等待时间：ms。一直等待线程退出,若为INFINITE则无限期等待下去
+				// CString info;
+				// info.Format(_T("CH%d网口数据线程退出成功！"),num+1);
+				// CLog::WriteMsg(info);
+
 				closesocket(SocketList[num]); // 关闭套接字
 				m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
 			}
@@ -576,260 +599,47 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 //线程1，接收TCP网口数据
 UINT Recv_Th1(LPVOID p)
 {
+	const int num = 0;
 	CSingleLock singleLock(&Mutex); //线程锁
 	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
 	while (1)
 	{
 		// 断开网络后关闭本线程
-		if (!dlg->connectStatusList[0]) return 0;
-		const int dataLen = 10000; //接收的数据包长度
-		char mk[dataLen];
-		int nLength;
-		nLength = recv(dlg->SocketList[0], mk, dataLen, 0); //阻塞模式
-		
-		if (nLength == -1) 
-		{
-			return 0;
-		}
-		else {
-			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback[0]){
-				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength[0]; //上一次已接收数据长度
-				
-				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen[0]) {
-					receLen = receivedLen + nLength;
-				}
-				else {
-					receLen = dlg->FeedbackLen[0];
-				}
-
-				char* tempChar = (char*)malloc(receLen);
-				//先取旧数据
-				if (dlg->RecvMsg[0] != NULL) {
-					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg[0] + i);
-					}
-				}
-
-				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen[0]) {
-					// 拼接反馈指令
-					for (int i = 0; i < nLength; i++) {
-						tempChar[receivedLen + i] = mk[i];
-					}
-					nLength = 0;
-				} 
-				else{
-					// 先拼反馈指令
-					int remainLen = 12 - receivedLen; //剩余拼接长度
-					for (int i = 0; i < remainLen; i++) {
-						tempChar[receivedLen + i] = mk[i];
-					}
-					
-					// 再处理剩余字符数组
-					nLength = nLength - remainLen;
-					for (int i = 0; i < nLength; i++) {
-						mk[i] = mk[remainLen+i];
-					}
-				}
-				
-				//线程锁
-				singleLock.Lock(); 
-				if (singleLock.IsLocked()){
-					dlg->RecvMsg[0] = tempChar;
-					dlg->recievedFBLength[0] = receLen;
-				}
-				singleLock.Unlock();
-
-				if (receLen == dlg->FeedbackLen[0]) {
-					singleLock.Lock(); //线程锁
-					if (singleLock.IsLocked()){
-						dlg->ifFeedback[0] = FALSE; //接收完12字节，重置标志位
-					}
-					singleLock.Unlock();
-				}
-			}
-
-			if (nLength < 1) continue; //提前结束本次循环
-
-			// 普通数据
-			CString fileName = dlg->m_targetID + _T("CH1");
-			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(0, mk, nLength);
-
-			singleLock.Lock(); //Mutex
-			if (singleLock.IsLocked()){
-				// MeasureMode=2,硬件触发信号反馈
-				if(dlg->MeasureMode[0] == 2){
-					if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
-						dlg->MeasureMode[0] = 0;
-						CString info = _T("已收到硬件触发信号,CH1 RECV HEX:") + Char2HexCString((char*)mk, nLength);
-						dlg->m_page1.PrintLog(info,FALSE);
-					}
-					continue;
-				}
-
-				// 有效测量数据开始
-				dlg->GetDataStatus = TRUE; //线程锁的变量
-			}
-			singleLock.Unlock(); //Mutex
-		}
-	}
-	return 0;
-}
-
-//线程2，接收TCP网口数据
-UINT Recv_Th2(LPVOID p)
-{
-	CSingleLock singleLock(&Mutex); //线程锁
-	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
-	while (1)
-	{
-		// 断开网络后关闭本线程
-		if (!dlg->connectStatusList[1]) return 0;
+		if (!dlg->connectStatusList[num]) return 0;
 
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
+
 		int nLength;
-		nLength = recv(dlg->SocketList[1], mk, dataLen, 0);
+		nLength = recv(dlg->SocketList[num], mk, dataLen, 0);
 		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
 		{
 			return 0;
 		}
 		else {
 			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback[1]){
+			if(dlg->ifFeedback[num]){
 				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength[1]; //上一次已接收数据长度
+				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
 				
 				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen[1]) {
+				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
 					receLen = receivedLen + nLength;
 				}
 				else {
-					receLen = dlg->FeedbackLen[1];
+					receLen = dlg->FeedbackLen[num];
 				}
 
 				char* tempChar = (char*)malloc(receLen);
 				//先取旧数据
-				if (dlg->RecvMsg[1] != NULL) {
+				if (dlg->RecvMsg[num] != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg[1] + i);
+						tempChar[i] = *(dlg->RecvMsg[num] + i);
 					}
 				}
 
 				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen[1]) {
-					// 拼接反馈指令
-					for (int i = 0; i < nLength; i++) {
-						tempChar[receivedLen + i] = mk[i];
-					}
-					nLength = 0;
-				} 
-				else{
-					// 先拼反馈指令
-					int remainLen = 12 - receivedLen; //剩余拼接长度
-					for (int i = 0; i < remainLen; i++) {
-						tempChar[receivedLen + i] = mk[i];
-					}
-					
-					// 再处理剩余字符数组
-					nLength = nLength - remainLen;
-					for (int i = 0; i < nLength; i++) {
-						mk[i] = mk[remainLen+i];
-					}
-				}
-
-				//线程锁
-				singleLock.Lock(); 
-				if (singleLock.IsLocked()){
-					dlg->RecvMsg[1] = tempChar;
-					dlg->recievedFBLength[1] = receLen;
-				}
-				singleLock.Unlock();
-
-				if (receLen == dlg->FeedbackLen[1]) {
-					singleLock.Lock(); //线程锁
-					if (singleLock.IsLocked()){
-						dlg->ifFeedback[1] = FALSE; //接收完12字节，重置标志位
-					}
-					singleLock.Unlock();					
-				}
-			}
-
-			if (nLength < 1) continue; //提前结束本次循环
-
-			// 普通数据
-			CString fileName = dlg->m_targetID + _T("CH2");
-			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(1, mk, nLength);
-
-			singleLock.Lock(); //Mutex
-			if (singleLock.IsLocked())
-			{
-				// MeasureMode=2,硬件触发信号反馈
-				if(dlg->MeasureMode[1] == 2){
-					if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
-						dlg->MeasureMode[1] = 0;
-						CString info = _T("已收到硬件触发信号,CH2 RECV HEX:") + Char2HexCString((char*)mk, nLength);
-						dlg->m_page1.PrintLog(info,FALSE);
-					}
-					continue;
-				}
-				// 有效测量数据开始
-				dlg->GetDataStatus = TRUE;	
-			}
-			singleLock.Unlock(); //Mutex
-		}
-	}
-	return 0;
-}
-
-//线程3，接收TCP网口数据
-UINT Recv_Th3(LPVOID p)
-{
-	CSingleLock singleLock(&Mutex); //线程锁
-	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
-	while (1)
-	{
-		// 断开网络后关闭本线程
-		if (!dlg->connectStatusList[2]) return 0;
-
-		const int dataLen = 10000; //接收的数据包长度
-		char mk[dataLen];
-
-		int nLength;
-		nLength = recv(dlg->SocketList[2], mk, dataLen, 0);
-		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
-		{
-			return 0;
-		}
-		else {
-			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback[2]){
-				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength[2]; //上一次已接收数据长度
-				
-				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen[2]) {
-					receLen = receivedLen + nLength;
-				}
-				else {
-					receLen = dlg->FeedbackLen[2];
-				}
-
-				char* tempChar = (char*)malloc(receLen);
-				//先取旧数据
-				if (dlg->RecvMsg[2] != NULL) {
-					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg[2] + i);
-					}
-				}
-
-				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen[2]) {
+				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
 					// 拼接反馈指令
 					for (int i = 0; i < nLength; i++) {
 						tempChar[receivedLen + i] = mk[i];
@@ -852,15 +662,15 @@ UINT Recv_Th3(LPVOID p)
 				
 				singleLock.Lock(); //线程锁
 				if (singleLock.IsLocked()){
-					dlg->RecvMsg[2] = tempChar;
-					dlg->recievedFBLength[2] = receLen;
+					dlg->RecvMsg[num] = tempChar;
+					dlg->recievedFBLength[num] = receLen;
 				}
 				singleLock.Unlock();
 
-				if (receLen == dlg->FeedbackLen[2]) {
+				if (receLen == dlg->FeedbackLen[num]) {
 					singleLock.Lock(); //线程锁
 					if (singleLock.IsLocked()){
-						dlg->ifFeedback[2] = FALSE; //接收完12字节，重置标志位
+						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
 					}
 					singleLock.Unlock();					
 				}
@@ -869,72 +679,86 @@ UINT Recv_Th3(LPVOID p)
 			if (nLength < 1) continue; //提前结束本次循环
 
 			// 普通数据
-			CString fileName = dlg->m_targetID + _T("CH3");
+			CString strCH;
+			strCH.Format(_T("CH%d"),num);
+			CString fileName = dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(2, mk, nLength);
+			dlg->AddTCPData(num, mk, nLength);
 
-			// MeasureMode=2,硬件触发信号反馈
-			/*if(dlg->MeasureMode[2] == 2){
-				if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
-					dlg->MeasureMode[2] = 0;
-					CString info = _T("已收到硬件触发信号,CH3 RECV HEX:") + Char2HexCString((char*)mk, nLength);
-					dlg->m_page1.PrintLog(info,FALSE);
+			// 触发信号甄别
+			if(dlg->MeasureMode[num] == 2){
+				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
+					singleLock.Lock();
+					if (singleLock.IsLocked()){
+						dlg->MeasureMode[num] = 0;
+					}
+					singleLock.Unlock();
+					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
 				}
 				continue;
 			}
-			*/
+
 			// 有效测量数据开始
-			singleLock.Lock(); //Mutex
+			singleLock.Lock();
 			if (singleLock.IsLocked()){
-				dlg->GetDataStatus = TRUE;
+				dlg->GetDataStatus = TRUE; //线程锁的变量
 			}
-			singleLock.Unlock(); //Mutex
+			singleLock.Unlock();
+		
+			//发送消息通知主界面,进入定时测量状态
+			if (dlg->m_nTimerId[1] == 0) {
+				//PostMessage非阻塞函数，发送完消息，不管界面线程是否处理，都继续运行
+				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0); 
+			}
 		}
 	}
 	return 0;
 }
 
-//线程4，接收TCP网口数据
-UINT Recv_Th4(LPVOID p)
+//线程2，接收TCP网口数据
+UINT Recv_Th2(LPVOID p)
 {
+	const int num = 1;
 	CSingleLock singleLock(&Mutex); //线程锁
 	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
 	while (1)
 	{
 		// 断开网络后关闭本线程
-		if (!dlg->connectStatusList[3]) return 0;
+		if (!dlg->connectStatusList[num]) return 0;
+
 		const int dataLen = 10000; //接收的数据包长度
 		char mk[dataLen];
 
 		int nLength;
-		nLength = recv(dlg->SocketList[3], mk, dataLen, 0); //阻塞模式，如果没有数据，则一直等待
-		if (nLength == -1) { 
+		nLength = recv(dlg->SocketList[num], mk, dataLen, 0);
+		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+		{
 			return 0;
 		}
 		else {
 			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback[3]){
+			if(dlg->ifFeedback[num]){
 				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength[3]; //上一次已接收数据长度
+				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
 				
 				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen[3]) {
+				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
 					receLen = receivedLen + nLength;
 				}
 				else {
-					receLen = dlg->FeedbackLen[3];
+					receLen = dlg->FeedbackLen[num];
 				}
 
 				char* tempChar = (char*)malloc(receLen);
 				//先取旧数据
-				if (dlg->RecvMsg[3] != NULL) {
+				if (dlg->RecvMsg[num] != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg[3] + i);
+						tempChar[i] = *(dlg->RecvMsg[num] + i);
 					}
 				}
 
 				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen[3]) {
+				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
 					// 拼接反馈指令
 					for (int i = 0; i < nLength; i++) {
 						tempChar[receivedLen + i] = mk[i];
@@ -954,19 +778,18 @@ UINT Recv_Th4(LPVOID p)
 						mk[i] = mk[remainLen+i];
 					}
 				}
-
-				//线程锁
-				singleLock.Lock(); 
+				
+				singleLock.Lock(); //线程锁
 				if (singleLock.IsLocked()){
-					dlg->RecvMsg[3] = tempChar;
-					dlg->recievedFBLength[3] = receLen;
+					dlg->RecvMsg[num] = tempChar;
+					dlg->recievedFBLength[num] = receLen;
 				}
 				singleLock.Unlock();
 
-				if (receLen == dlg->FeedbackLen[3]) {
+				if (receLen == dlg->FeedbackLen[num]) {
 					singleLock.Lock(); //线程锁
 					if (singleLock.IsLocked()){
-						dlg->ifFeedback[3] = FALSE; //接收完12字节，重置标志位
+						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
 					}
 					singleLock.Unlock();					
 				}
@@ -975,27 +798,275 @@ UINT Recv_Th4(LPVOID p)
 			if (nLength < 1) continue; //提前结束本次循环
 
 			// 普通数据
-			CString fileName = dlg->m_targetID + _T("CH4");
+			CString strCH;
+			strCH.Format(_T("CH%d"),num);
+			CString fileName = dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(3, mk, nLength);
+			dlg->AddTCPData(num, mk, nLength);
 
-			// MeasureMode=2,硬件触发信号反馈
-			/*if(dlg->MeasureMode[3] == 2){
-				if(nLength==12 && strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0){
-					dlg->MeasureMode[3] = 0;
-					CString info = _T("已收到硬件触发信号,CH3 RECV HEX:") + Char2HexCString((char*)mk, nLength);
-					dlg->m_page1.PrintLog(info,FALSE);
+			// 触发信号甄别
+			if(dlg->MeasureMode[num] == 2){
+				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
+					singleLock.Lock();
+					if (singleLock.IsLocked()){
+						dlg->MeasureMode[num] = 0;
+					}
+					singleLock.Unlock();
+					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
 				}
 				continue;
 			}
-			*/
-			
+
 			// 有效测量数据开始
-			singleLock.Lock(); //Mutex
+			singleLock.Lock();
 			if (singleLock.IsLocked()){
-				dlg->GetDataStatus = TRUE;
+				dlg->GetDataStatus = TRUE; //线程锁的变量
 			}
-			singleLock.Unlock(); //Mutex
+			singleLock.Unlock();
+			
+			//发送消息通知主界面,进入定时测量状态
+			if (dlg->m_nTimerId[1] == 0) {
+				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
+			}
+		}
+	}
+	return 0;
+}
+
+//线程3，接收TCP网口数据
+UINT Recv_Th3(LPVOID p)
+{
+	const int num = 2;
+	CSingleLock singleLock(&Mutex); //线程锁
+	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
+	while (1)
+	{
+		// 断开网络后关闭本线程
+		if (!dlg->connectStatusList[num]) return 0;
+
+		const int dataLen = 10000; //接收的数据包长度
+		char mk[dataLen];
+
+		int nLength;
+		nLength = recv(dlg->SocketList[num], mk, dataLen, 0);
+		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+		{
+			return 0;
+		}
+		else {
+			// 提取指令反馈数据,只取前12字节
+			if(dlg->ifFeedback[num]){
+				int receLen = 0; //本次接受总反馈指令长度
+				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
+				
+				// 计算本次及之前接受到的反馈指令字节数
+				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
+					receLen = receivedLen + nLength;
+				}
+				else {
+					receLen = dlg->FeedbackLen[num];
+				}
+
+				char* tempChar = (char*)malloc(receLen);
+				//先取旧数据
+				if (dlg->RecvMsg[num] != NULL) {
+					for (int i = 0; i < receivedLen; i++) {
+						tempChar[i] = *(dlg->RecvMsg[num] + i);
+					}
+				}
+
+				// 拼接新数据
+				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
+					// 拼接反馈指令
+					for (int i = 0; i < nLength; i++) {
+						tempChar[receivedLen + i] = mk[i];
+					}
+					nLength = 0;
+				} 
+				else{
+					// 先拼反馈指令
+					int remainLen = 12 - receivedLen; //剩余拼接长度
+					for (int i = 0; i < remainLen; i++) {
+						tempChar[receivedLen + i] = mk[i];
+					}
+					
+					// 再处理剩余字符数组
+					nLength = nLength - remainLen;
+					for (int i = 0; i < nLength; i++) {
+						mk[i] = mk[remainLen+i];
+					}
+				}
+				
+				singleLock.Lock(); //线程锁
+				if (singleLock.IsLocked()){
+					dlg->RecvMsg[num] = tempChar;
+					dlg->recievedFBLength[num] = receLen;
+				}
+				singleLock.Unlock();
+
+				if (receLen == dlg->FeedbackLen[num]) {
+					singleLock.Lock(); //线程锁
+					if (singleLock.IsLocked()){
+						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
+					}
+					singleLock.Unlock();					
+				}
+			}
+
+			if (nLength < 1) continue; //提前结束本次循环
+
+			// 普通数据
+			CString strCH;
+			strCH.Format(_T("CH%d"),num);
+			CString fileName = dlg->m_targetID + strCH;
+			dlg->SaveFile(fileName, mk, nLength);
+			dlg->AddTCPData(num, mk, nLength);
+
+			// 触发信号甄别
+			if(dlg->MeasureMode[num] == 2){
+				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
+					singleLock.Lock();
+					if (singleLock.IsLocked()){
+						dlg->MeasureMode[num] = 0;
+					}
+					singleLock.Unlock();
+					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
+				}
+				continue;
+			}
+
+			// 有效测量数据开始
+			singleLock.Lock();
+			if (singleLock.IsLocked()){
+				dlg->GetDataStatus = TRUE; //线程锁的变量
+			}
+			singleLock.Unlock();
+
+			//发送消息通知主界面,进入定时测量状态
+			if (dlg->m_nTimerId[1] == 0) {
+				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
+			}
+		}
+	}
+	return 0;
+}
+
+//线程4，接收TCP网口数据
+UINT Recv_Th4(LPVOID p)
+{
+	const int num = 3;
+	CSingleLock singleLock(&Mutex); //线程锁
+	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
+	while (1)
+	{
+		// 断开网络后关闭本线程
+		if (!dlg->connectStatusList[num]) return 0;
+
+		const int dataLen = 10000; //接收的数据包长度
+		char mk[dataLen];
+
+		int nLength;
+		nLength = recv(dlg->SocketList[num], mk, dataLen, 0);
+		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
+		{
+			return 0;
+		}
+		else {
+			// 提取指令反馈数据,只取前12字节
+			if(dlg->ifFeedback[num]){
+				int receLen = 0; //本次接受总反馈指令长度
+				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
+				
+				// 计算本次及之前接受到的反馈指令字节数
+				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
+					receLen = receivedLen + nLength;
+				}
+				else {
+					receLen = dlg->FeedbackLen[num];
+				}
+
+				char* tempChar = (char*)malloc(receLen);
+				//先取旧数据
+				if (dlg->RecvMsg[num] != NULL) {
+					for (int i = 0; i < receivedLen; i++) {
+						tempChar[i] = *(dlg->RecvMsg[num] + i);
+					}
+				}
+
+				// 拼接新数据
+				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
+					// 拼接反馈指令
+					for (int i = 0; i < nLength; i++) {
+						tempChar[receivedLen + i] = mk[i];
+					}
+					nLength = 0;
+				} 
+				else{
+					// 先拼反馈指令
+					int remainLen = 12 - receivedLen; //剩余拼接长度
+					for (int i = 0; i < remainLen; i++) {
+						tempChar[receivedLen + i] = mk[i];
+					}
+					
+					// 再处理剩余字符数组
+					nLength = nLength - remainLen;
+					for (int i = 0; i < nLength; i++) {
+						mk[i] = mk[remainLen+i];
+					}
+				}
+				
+				singleLock.Lock(); //线程锁
+				if (singleLock.IsLocked()){
+					dlg->RecvMsg[num] = tempChar;
+					dlg->recievedFBLength[num] = receLen;
+				}
+				singleLock.Unlock();
+
+				if (receLen == dlg->FeedbackLen[num]) {
+					singleLock.Lock(); //线程锁
+					if (singleLock.IsLocked()){
+						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
+					}
+					singleLock.Unlock();					
+				}
+			}
+
+			if (nLength < 1) continue; //提前结束本次循环
+
+			// 普通数据
+			CString strCH;
+			strCH.Format(_T("CH%d"),num);
+			CString fileName = dlg->m_targetID + strCH;
+			dlg->SaveFile(fileName, mk, nLength);
+			dlg->AddTCPData(num, mk, nLength);
+
+			// 触发信号甄别
+			if(dlg->MeasureMode[num] == 2){
+				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
+					singleLock.Lock();
+					if (singleLock.IsLocked()){
+						dlg->MeasureMode[num] = 0;
+					}
+					singleLock.Unlock();
+					CString info;
+					info.Format(_T("CH%d已收到硬件触发信号,from Thread"), num+1);
+					dlg->m_page1.PrintLog(info,FALSE);
+					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
+				}
+				continue;
+			}
+
+			// 有效测量数据开始
+			singleLock.Lock();
+			if (singleLock.IsLocked()){
+				dlg->GetDataStatus = TRUE; //线程锁的变量
+			}
+			singleLock.Unlock();
+
+			//发送消息通知主界面,进入定时测量状态
+			if (dlg->m_nTimerId[1] == 0) {
+				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
+			}
 		}
 	}
 	return 0;
@@ -1089,7 +1160,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 		break;
 	case 2:
 		// 自动测量定时器:硬件触发后3秒定时发送关闭指令
-		if (GetDataStatus) {
+		{
 			timer++;
 
 			//状态栏显示
@@ -1103,7 +1174,6 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					for(int num=0; num<4; num++){
 						if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
 					}
-
 					sendStopFlag = TRUE;
 
 					// 打印日志
@@ -1141,6 +1211,9 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 							RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 						m_page1.PrintLog(info);
 					}
+					KillTimer(2);	
+					//重置定时器开关状态
+					m_nTimerId[1] = 0;
 				}
 			}
 
@@ -1387,9 +1460,6 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		SetParameterInputStatus(FALSE);
 		SetDlgItemText(IDC_AutoMeasure, _T("停止测量"));
 
-		//开启定时器，第1个参数表示ID号，第二个参数表示刷新时间ms
-		SetTimer(2, TIMER_INTERVAL, NULL);  
-
 		// 锁死其他相关按键
 		GetDlgItem(IDC_Start)->EnableWindow(FALSE); //手动测量
 		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接TCP网络
@@ -1409,6 +1479,8 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 
 		//关闭定时器
 		KillTimer(2);	
+		//重置定时器开关状态
+		m_nTimerId[1] = 0;
 
 		// 打开其他相关按键使能
 		GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量

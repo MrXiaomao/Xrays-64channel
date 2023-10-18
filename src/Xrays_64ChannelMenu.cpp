@@ -44,7 +44,7 @@ void CXrays_64ChannelDlg::TempVoltMonitorON_OFF()
 		if (ConnectGeneralTCP(armSocket, StrIP_ARM, portARM)) {
 			// 连接成功
 			// 开启线程接收数据
-			AfxBeginThread(&Recv_ARM, this);
+			m_pThread_ARM = AfxBeginThread(&Recv_ARM, this);
 
 			//更新相关按钮以及状态
 			ARMnetStatus = TRUE;
@@ -102,9 +102,9 @@ UINT Recv_ARM(LPVOID p) // 多线程接收ARM网口数据
 				buffer.Add((BYTE)mk[i]);
 			}
 			dlg->TotalARMArray.Append(buffer); //拼接
-
-			dlg->GetTemperature(); //尝试解析温度
-			dlg->GetVoltCurrent(); //尝试解析电压电流
+			::PostMessage(dlg->m_hWnd, WM_UPDATE_ARM, 0, 0); //发送消息通知主界面处理，更新温度、电压、电流
+			// dlg->GetTemperature(); //尝试解析温度
+			// dlg->GetVoltCurrent(); //尝试解析电压电流
 			//dlg->refreshBar(); //刷新界面温度、电压、电流显示
 		}
 	}
@@ -133,6 +133,12 @@ BOOL CXrays_64ChannelDlg::ConnectGeneralTCP(SOCKET &my_socket, CString strIP, in
 		return FALSE;
 	}
 	return TRUE;
+}
+
+LRESULT CXrays_64ChannelDlg::OnUpdateARMStatic(WPARAM wParam, LPARAM lParam){
+	GetTemperature(); //尝试解析温度
+	GetVoltCurrent(); //尝试解析电压电流
+	return 0;
 }
 
 void CXrays_64ChannelDlg::GetTemperature() {
@@ -254,7 +260,7 @@ void CXrays_64ChannelDlg::GetVoltCurrent() {
 		powerVolt = ((OnePackArray[2] & 0xFF) * 256.0 + (OnePackArray[3] & 0xFF)) / 100.0;
 		powerCurrent = ((OnePackArray[4] & 0xFF) * 256.0 + (OnePackArray[5] & 0xFF)) /1000.0;
 		
-		feedbackARM[1] = TRUE; //表明获取到了电压电流的数据
+		feedbackARM[2] = TRUE; //表明获取到了电压电流的数据
 		// 根据查询的顺序，先返回温度指令，再返回电压电流指令，因此在电流返回后再刷新
 		refreshBar();
 	}

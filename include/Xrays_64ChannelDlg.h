@@ -10,6 +10,10 @@
 #include "UDP_Log.h"
 #include "RunningLog.h"
 #include "MyConst.h"
+
+#define WM_UPDATE_ARM (WM_USER + 100)
+#define WM_UPDATE_TRIGER_LOG (WM_USER + 120)
+#define WM_UPDATE_CH_DATA (WM_USER + 130)
 using namespace std;
 
 UINT Recv_Th1(LPVOID p); // 多线程接收CH1网口数据
@@ -18,7 +22,10 @@ UINT Recv_Th3(LPVOID p); // 多线程接收CH3网口数据
 UINT Recv_Th4(LPVOID p); // 多线程接收CH4网口数据
 UINT Recv_ARM(LPVOID p); // 多线程接收ARM网口数据
 
-extern CMutex Mutex; //mutex，线程锁
+//线程锁
+extern CMutex Mutex; 
+//定时器时间间隔
+extern const int TIMER_INTERVAL;
 
 // CXrays_64ChannelDlg 对话框
 class CXrays_64ChannelDlg : public CDialogEx
@@ -125,7 +132,8 @@ public:
 	int ArmTimer; //计数器，计算流逝的时间,units:s
 	LEDButton m_AMR_LED; // 网络状态LED灯
 	CByteArray TotalARMArray; //ARM网口接收的数据
-
+	
+	UINT_PTR m_nTimerId[4]; //4个定时器的状态，0为非工作状态，>0为工作状态
 	int timer; // 计时器，满测量时长后则发送停止测量
 	CString saveAsPath; // 数据存储根路径
 	CString saveAsTargetPath; // 数据存储炮号路径
@@ -137,6 +145,9 @@ public:
 	CRect m_rect;
 	CLayout m_layout;
 	int m_currentTab; //Tab子窗口序号
+
+	CWinThread *m_pThread_ARM; //线程函数返回指针，
+	CWinThread* m_pThread_CH[4]; //线程函数返回指针
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -176,22 +187,40 @@ public:
 	afx_msg void OnBnClickedUdpButton();//UDP开关
 
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
+	//选择刻度曲线数据文件，并发送指令到FPGA
 	afx_msg void OnBnClickedCalibration();
-	afx_msg void OnCbnSelchangeWaveMode(); //选择能谱模式
-	afx_msg void OnBnClickedCheck0(); //网络选择，总开关
-	afx_msg void OnBnClickedCheck1(); //网络选择，CH1
-	afx_msg void OnBnClickedCheck2(); //网络选择，CH2
-	afx_msg void OnBnClickedCheck3(); //网络选择，CH3
-	afx_msg void OnBnClickedCheck4(); //网络选择，CH4
+	//选择能谱模式
+	afx_msg void OnCbnSelchangeWaveMode(); 
+	//网络选择复选框，总开关
+	afx_msg void OnBnClickedCheck0(); 
+	//网络选择复选框，CH1
+	afx_msg void OnBnClickedCheck1(); 
+	//网络选择复选框，CH2
+	afx_msg void OnBnClickedCheck2(); 
+	//网络选择复选框，CH3
+	afx_msg void OnBnClickedCheck3(); 
+	//网络选择复选框，CH4
+	afx_msg void OnBnClickedCheck4(); 
+
+	afx_msg void OnPowerMenu(); 
+	afx_msg void OnNetSettingMenu();
+	// 继电器开关
+	afx_msg void OnBnClickedPowerButton();
+	//温度、电压电流监测开关
+	afx_msg void TempVoltMonitorON_OFF();
+	//从ARM来的网口接受到数据，进行相关数据处理
+	afx_msg LRESULT OnUpdateARMStatic(WPARAM wParam, LPARAM lParam);
+	// 接收到触发信号，刷新文本日志，可以刷新界面日志显示
+	afx_msg LRESULT OnUpdateTrigerLog(WPARAM wParam, LPARAM lParam);
+	//接收到数据信号，开启定时器2，进行相关的处理
+	afx_msg LRESULT OnUpdateTimer2(WPARAM wParam, LPARAM lParam);
 
 	// 网址IP
 	CIPAddressCtrl ServerIP;
 	// 网络状态LED灯
 	LEDButton m_NetStatusLEDList[4];
-
 	// TCP端口号
 	int PortList[4];
-
 	// 触发方式下拉框
 	CComboBox m_TriggerType;
 	// 能谱模式选择下拉框
@@ -200,15 +229,10 @@ public:
 	CString m_targetID;
 	// UDP端口号
 	int m_UDPPort;
+	// 主界面Tab对话框
 	CTabCtrl m_Tab;
 	// 界面输入的能谱总测量时间,ms
 	int MeasureTime;
 	// 界面输入的能谱刷新时间，ms
 	int RefreshTime;
-	afx_msg void OnPowerMenu(); 
-	afx_msg void OnNetSettingMenu();
-	// 继电器开关
-	afx_msg void OnBnClickedPowerButton();
-	//温度、电压电流监测开关
-	afx_msg void TempVoltMonitorON_OFF();
 };

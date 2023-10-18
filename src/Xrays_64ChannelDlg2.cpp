@@ -17,7 +17,7 @@
 #include <iostream>
 #include <fstream>
 using namespace std;
-
+extern const int TIMER_INTERVAL;
 //CMutex Mutex; //mutex，线程锁
 
 // 设置TCP的IP、PORT、复选框的输入使能状态
@@ -686,8 +686,27 @@ void CXrays_64ChannelDlg::OnBnClickedCheck3()
 
 void CXrays_64ChannelDlg::OnBnClickedCheck4()
 {
-	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
+	UpdateData(TRUE);//控件的值—>变量
 	NetSwitchList[0] = NetSwitchList[1] & NetSwitchList[2] & NetSwitchList[3] & NetSwitchList[4];
-	UpdateData(FALSE);//刷新控件
+	UpdateData(FALSE);//变量值—>控件显示
+}
+
+LRESULT CXrays_64ChannelDlg::OnUpdateTrigerLog(WPARAM wParam, LPARAM lParam){
+	int num = (int) wParam;
+	CString info;
+	info.Format(_T("CH%d已收到硬件触发信号"), num+1);
+	m_page1.PrintLog(info,FALSE);
+	return 0;
+}
+
+LRESULT CXrays_64ChannelDlg::OnUpdateTimer2(WPARAM wParam, LPARAM lParam){
+	int num = (int)wParam;
+	if (m_nTimerId[1]==0) {
+		m_nTimerId[1] = SetTimer(2, TIMER_INTERVAL, NULL); //如果已经开启则不再重复开启
+
+		CString info;
+		info.Format(_T("CH%d开启2号定时计时器"), num + 1);
+		m_page1.PrintLog(info, FALSE);
+	}
+	return 0;
 }
