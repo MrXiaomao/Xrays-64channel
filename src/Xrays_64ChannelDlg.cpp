@@ -216,6 +216,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_MESSAGE(WM_UPDATE_ARM, &CXrays_64ChannelDlg::OnUpdateARMStatic) //子线程发送消息通知主线程处理  
 	ON_MESSAGE(WM_UPDATE_TRIGER_LOG, &CXrays_64ChannelDlg::OnUpdateTrigerLog) 
 	ON_MESSAGE(WM_UPDATE_CH_DATA, &CXrays_64ChannelDlg::OnUpdateTimer2)
+	ON_MESSAGE(WM_UPDATE_SHOT, &CXrays_64ChannelDlg::OnUpdateShot)
 END_MESSAGE_MAP()
 
 
@@ -1085,7 +1086,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			//状态栏显示
 			CString strInfo;
-			strInfo.Format(_T("Data Length:CH1= %d,CH2=%d,CH3=%d,CH4=%d"),
+			strInfo.Format(_T("Data Length:CH1=%d,CH2=%d,CH3=%d,CH4=%d"),
 				RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 			m_statusBar.SetPaneText(0, strInfo);
 
@@ -1139,7 +1140,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 						// 打印日志
 						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
 						m_page1.PrintLog(info);
-						info.Format(_T("Data Length(字节) : CH1 = % d, CH2 = % d, CH3 = % d, CH4 = % d"),
+						info.Format(_T("Data Length(字节) : CH1 = %d, CH2 = %d, CH3 = %d, CH4 = %d"),
 							RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 						m_page1.PrintLog(info);
 					}
@@ -1165,7 +1166,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			//状态栏显示
 			CString strInfo;
-			strInfo.Format(_T("Data Length:CH1= %d,CH2=%d,CH3=%d,CH4=%d"),
+			strInfo.Format(_T("Data Length:CH1=%d,CH2=%d,CH3=%d,CH4=%d"),
 				RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 			m_statusBar.SetPaneText(0, strInfo);
 
@@ -1207,13 +1208,14 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 						// 打印日志
 						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
 						m_page1.PrintLog(info);
-						info.Format(_T("Data Length : CH1 = % d, CH2 = % d, CH3 = % d, CH4 = % d"),
+						info.Format(_T("Data Length: CH1 = %d, CH2 = %d, CH3 = %d, CH4 = %d"),
 							RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 						m_page1.PrintLog(info);
 					}
-					KillTimer(2);	
 					//重置定时器开关状态
 					m_nTimerId[1] = 0;
+					m_page1.PrintLog(_T("数据接收完毕，测量结束，关闭2号定时器"));
+					KillTimer(2);	
 				}
 			}
 

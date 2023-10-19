@@ -705,8 +705,30 @@ LRESULT CXrays_64ChannelDlg::OnUpdateTimer2(WPARAM wParam, LPARAM lParam){
 		m_nTimerId[1] = SetTimer(2, TIMER_INTERVAL, NULL); //如果已经开启则不再重复开启
 
 		CString info;
-		info.Format(_T("CH%d开启2号定时计时器"), num + 1);
+		info.Format(_T("CH%d开启2号定时器"), num + 1);
 		m_page1.PrintLog(info, FALSE);
+	}
+	return 0;
+}
+
+LRESULT CXrays_64ChannelDlg::OnUpdateShot(WPARAM wParam, LPARAM lParam){
+	
+	int nLength = (int)wParam;
+	char* recBuf = (char*)lParam;
+	CString tempStr(recBuf);
+	m_page2.PrintLog(_T("RECV ASCII: ") + tempStr);
+
+	if (recBuf[0] == '+' && recBuf[1] == 'P' && recBuf[2] == 'L' && recBuf[3] == 'S') {
+		CString str_new_ID;
+		str_new_ID = CString(recBuf[5]) + CString(recBuf[6]) + CString(recBuf[7]) 
+					+ CString(recBuf[8]) + CString(recBuf[9]);
+		if (str_new_ID != m_targetID) {
+			m_targetID = str_new_ID;
+			m_getTargetChange = TRUE;
+			recBuf[nLength] = (char)'\r\n'; // 追加一个换行符号
+			int saveLength = nLength + 1;
+			SaveFile(saveAsPath + _T("ShotNumber"), recBuf, saveLength);
+		}
 	}
 	return 0;
 }

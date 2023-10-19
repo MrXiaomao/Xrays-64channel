@@ -11,9 +11,11 @@
 #include "RunningLog.h"
 #include "MyConst.h"
 
+//自定义消息，必须大于100，100以内系统自己使用
 #define WM_UPDATE_ARM (WM_USER + 100)
 #define WM_UPDATE_TRIGER_LOG (WM_USER + 120)
 #define WM_UPDATE_CH_DATA (WM_USER + 130)
+#define WM_UPDATE_SHOT (WM_USER + 140)  //炮号刷新
 using namespace std;
 
 UINT Recv_Th1(LPVOID p); // 多线程接收CH1网口数据
@@ -214,6 +216,8 @@ public:
 	afx_msg LRESULT OnUpdateTrigerLog(WPARAM wParam, LPARAM lParam);
 	//接收到数据信号，开启定时器2，进行相关的处理
 	afx_msg LRESULT OnUpdateTimer2(WPARAM wParam, LPARAM lParam);
+	//UDP接收到炮号数据,更新主界面相关动作
+	afx_msg LRESULT OnUpdateShot(WPARAM wParam, LPARAM lParam);
 
 	// 网址IP
 	CIPAddressCtrl ServerIP;
