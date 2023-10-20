@@ -50,7 +50,12 @@ public:
 	void ConfinePortRange(int &myPort); //限制端口号输入范围
 	void SetTCPInputStatus(BOOL flag); //设置TCP的IP、PORT、复选框的输入使能状态
 	void SetParameterInputStatus(BOOL flag); //设置配置参数框的使能状态
-	void SaveFile(CString myID, char* mk, int length); // 保存文件
+	/* 保存文件
+		fileName:文件名
+		mk: 待存储的字符串
+		length：字符串长度
+	*/
+	void SaveFile(CString fileName, char* mk, int length); 
 	void AddTCPData(int num, char* tempChar, int len); // 缓存网口数据
 	void ResetTCPData(); // 重置缓存数据
 	void SetSocketSize(SOCKET &sock, int nsize); //设置Socket缓冲区的大小
@@ -102,8 +107,8 @@ public:
 	const int DataMaxlen;
 	BOOL connectStatusList[4]; // 各网络联网状态
 	BOOL UDPStatus; // UDP工作状态
-	int MeasureMode[4]; // 测量模式。0:非测量状态，1:软件触发模式，2：硬件触发模式（带硬件触发反馈）。用于处理数据内容判别（指令反馈/测量数据）。
-	BOOL AutoMeasureStatus; // 自动测量状态
+	int MeasureMode; // 测量状态。0：非测量状态，1：手动测量状态，2：自动测量状态。
+	int TrigerMode[4]; // 触发模式。0:非测量状态，1:软件触发模式，2：硬件触发模式（带硬件触发反馈）。用于处理数据内容判别（指令反馈/测量数据）。
 	BOOL GetDataStatus; // 是否接受到TCP网口的数据
 	BOOL m_getTargetChange; // 检测炮号是否变化
 	BOOL sendStopFlag; // 用来告知是否发送停止指令的标志，防止重复发送停止指令
@@ -135,7 +140,7 @@ public:
 	LEDButton m_AMR_LED; // 网络状态LED灯
 	CByteArray TotalARMArray; //ARM网口接收的数据
 	
-	UINT_PTR m_nTimerId[4]; //4个定时器的状态，0为非工作状态，>0为工作状态
+	UINT_PTR m_nTimerId[3]; //3个定时器的状态，0为非工作状态，>0为工作状态
 	int timer; // 计时器，满测量时长后则发送停止测量
 	CString saveAsPath; // 数据存储根路径
 	CString saveAsTargetPath; // 数据存储炮号路径
@@ -186,7 +191,7 @@ public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent); //定时器
 	afx_msg void OnBnClickedSaveas();//保存文件，设置文件存储路径
 	afx_msg void OnBnClickedClearLog();// 清空日志
-	afx_msg void OnBnClickedUdpButton();//UDP开关
+	afx_msg void OnBnClickedUDPButton();//UDP开关
 
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 	//选择刻度曲线数据文件，并发送指令到FPGA
@@ -214,8 +219,8 @@ public:
 	afx_msg LRESULT OnUpdateARMStatic(WPARAM wParam, LPARAM lParam);
 	// 接收到触发信号，刷新文本日志，可以刷新界面日志显示
 	afx_msg LRESULT OnUpdateTrigerLog(WPARAM wParam, LPARAM lParam);
-	//接收到数据信号，开启定时器2，进行相关的处理
-	afx_msg LRESULT OnUpdateTimer2(WPARAM wParam, LPARAM lParam);
+	//接收到数据信号，开启定时器1，进行相关的处理
+	afx_msg LRESULT OnUpdateTimer1(WPARAM wParam, LPARAM lParam);
 	//UDP接收到炮号数据,更新主界面相关动作
 	afx_msg LRESULT OnUpdateShot(WPARAM wParam, LPARAM lParam);
 

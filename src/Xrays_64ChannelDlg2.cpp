@@ -114,11 +114,11 @@ void CXrays_64ChannelDlg::CloseUDP()
 }
 
 //保存TCP传输过来的测量数据
-void CXrays_64ChannelDlg::SaveFile(CString myID, char *mk, int length)
+void CXrays_64ChannelDlg::SaveFile(CString fileName, char *mk, int length)
 {
 	if (length < 1)
 		return;
-	CString filename = myID + _T(".dat");
+	CString filename = fileName;
 	CString wholePath = saveAsTargetPath + filename;
 	fstream datafile(wholePath, ios::out | ios::app | ios::binary); // 追加
 	if (datafile.is_open())
@@ -639,6 +639,7 @@ void CXrays_64ChannelDlg::NoBackSend(int num, BYTE* msg, int msgLength, int flag
 	CString info;
 	info.Format(_T("CH%d SEND HEX :"), num + 1);
 	info = info + Char2HexCString((char*)msg, msgLength);
+	m_page1.PrintLog(info, FALSE);
 	Sleep(sleepTime);
 }
 
@@ -699,10 +700,10 @@ LRESULT CXrays_64ChannelDlg::OnUpdateTrigerLog(WPARAM wParam, LPARAM lParam){
 	return 0;
 }
 
-LRESULT CXrays_64ChannelDlg::OnUpdateTimer2(WPARAM wParam, LPARAM lParam){
+LRESULT CXrays_64ChannelDlg::OnUpdateTimer1(WPARAM wParam, LPARAM lParam){
 	int num = (int)wParam;
-	if (m_nTimerId[1]==0) {
-		m_nTimerId[1] = SetTimer(2, TIMER_INTERVAL, NULL); //如果已经开启则不再重复开启
+	if (m_nTimerId[0]==0) {
+		m_nTimerId[0] = SetTimer(1, TIMER_INTERVAL, NULL); //如果已经开启则不再重复开启
 
 		CString info;
 		info.Format(_T("CH%d开启2号定时器"), num + 1);
@@ -712,22 +713,29 @@ LRESULT CXrays_64ChannelDlg::OnUpdateTimer2(WPARAM wParam, LPARAM lParam){
 }
 
 LRESULT CXrays_64ChannelDlg::OnUpdateShot(WPARAM wParam, LPARAM lParam){
-	
 	int nLength = (int)wParam;
 	char* recBuf = (char*)lParam;
-	CString tempStr(recBuf);
+	CString tempStr;
+	tempStr.Format(_T("%S"), recBuf);
 	m_page2.PrintLog(_T("RECV ASCII: ") + tempStr);
 
 	if (recBuf[0] == '+' && recBuf[1] == 'P' && recBuf[2] == 'L' && recBuf[3] == 'S') {
 		CString str_new_ID;
 		str_new_ID = CString(recBuf[5]) + CString(recBuf[6]) + CString(recBuf[7]) 
 					+ CString(recBuf[8]) + CString(recBuf[9]);
-		if (str_new_ID != m_targetID) {
+		if (str_new_ID.Compare(m_targetID)) { //不相同
 			m_targetID = str_new_ID;
 			m_getTargetChange = TRUE;
-			recBuf[nLength] = (char)'\r\n'; // 追加一个换行符号
+			recBuf[nLength] = (char)'\n'; // 追加一个换行符号
 			int saveLength = nLength + 1;
-			SaveFile(saveAsPath + _T("ShotNumber"), recBuf, saveLength);
+			SaveFile(saveAsPath + _T("ShotNumber.dat"), recBuf, saveLength);
+
+			CString info = _T("炮号已刷新：") + m_targetID;
+			m_page1.PrintLog(info);
+			UpdateData(FALSE);
+
+			// 打开定时器2，开始新的一次测量
+			m_nTimerId[1] = SetTimer(2, TIMER_INTERVAL, NULL);
 		}
 	}
 	return 0;

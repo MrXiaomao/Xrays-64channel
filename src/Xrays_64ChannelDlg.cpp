@@ -60,7 +60,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, m_UDPSocket(NULL)
 	, DataMaxlen(5000)
 	, UDPStatus(FALSE)
-	, AutoMeasureStatus(FALSE)
+	, MeasureMode(0)
 	, GetDataStatus(FALSE)
 	, m_getTargetChange(FALSE)
 	, sendStopFlag(FALSE)
@@ -95,10 +95,10 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 		RecvMsg[num] = NULL;
 		recievedFBLength[num] = 0;
 		FeedbackLen[num] = 12;
-		MeasureMode[num] = 0;
+		TrigerMode[num] = 0;
 	}
 
-	for(int i=0;i<4;i++){
+	for(int i=0; i<3; i++){
 		m_nTimerId[i] = 0;
 	}
 
@@ -144,7 +144,7 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 	delete DataCH3;
 	delete DataCH4;
 
-	for(int i=0;i<4;i++){
+	for(int i=0;i<3;i++){
 		if(m_nTimerId[i] > 0) KillTimer(m_nTimerId[i]);
 	}
 
@@ -200,7 +200,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_AutoMeasure, &CXrays_64ChannelDlg::OnBnClickedAutomeasure)
 	ON_BN_CLICKED(IDC_SaveAs, &CXrays_64ChannelDlg::OnBnClickedSaveas)
 	ON_BN_CLICKED(IDC_CLEAR_LOG, &CXrays_64ChannelDlg::OnBnClickedClearLog)
-	ON_BN_CLICKED(IDC_UDP_BUTTON, &CXrays_64ChannelDlg::OnBnClickedUdpButton)
+	ON_BN_CLICKED(IDC_UDP_BUTTON, &CXrays_64ChannelDlg::OnBnClickedUDPButton)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
 	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
 	ON_CBN_SELCHANGE(IDC_WAVE_MODE, &CXrays_64ChannelDlg::OnCbnSelchangeWaveMode)
@@ -215,7 +215,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_TEMP_VOLT, &CXrays_64ChannelDlg::TempVoltMonitorON_OFF)
 	ON_MESSAGE(WM_UPDATE_ARM, &CXrays_64ChannelDlg::OnUpdateARMStatic) //子线程发送消息通知主线程处理  
 	ON_MESSAGE(WM_UPDATE_TRIGER_LOG, &CXrays_64ChannelDlg::OnUpdateTrigerLog) 
-	ON_MESSAGE(WM_UPDATE_CH_DATA, &CXrays_64ChannelDlg::OnUpdateTimer2)
+	ON_MESSAGE(WM_UPDATE_CH_DATA, &CXrays_64ChannelDlg::OnUpdateTimer1)
 	ON_MESSAGE(WM_UPDATE_SHOT, &CXrays_64ChannelDlg::OnUpdateShot)
 END_MESSAGE_MAP()
 
@@ -292,7 +292,7 @@ void CXrays_64ChannelDlg::InitBarSettings(){
 	m_statusBar.SetPaneText(2, _T("日期"));
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	//开启定时器，刷新状态栏参数
-	SetTimer(4, 1000, NULL);
+	SetTimer(3, 1000, NULL);
 }
 
 
@@ -435,6 +435,91 @@ void CXrays_64ChannelDlg::OnPaint()
 HCURSOR CXrays_64ChannelDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
+}
+
+// UDP网络连接与断开
+void CXrays_64ChannelDlg::OnBnClickedUDPButton()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	CString strTemp;
+	GetDlgItemText(IDC_UDP_BUTTON, strTemp);
+	if (strTemp == _T("开启UDP网络")) {
+		//打开定时器2，用来刷新炮号
+		// SetTimer(2, TIMER_INTERVAL, NULL);
+		OpenUDP();
+		SetDlgItemText(IDC_UDP_BUTTON, _T("断开UDP网络"));
+	}
+	else {
+		CloseUDP();
+		SetDlgItemText(IDC_UDP_BUTTON, _T("开启UDP网络"));
+	}
+}
+
+//选择能谱模式
+void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
+{
+	// TODO: 在此添加控件通知处理程序代码
+}
+
+// 获取刻度曲线数据文件的全路径
+void CXrays_64ChannelDlg::OnBnClickedCalibration()
+{
+	CString fileName(_T(""));
+	if(!ChooseFile(fileName)) return;
+
+	SendCalibration(fileName);
+}
+
+//发送刻度曲线数据
+//fileName为发送文件路径（绝对路径）
+void CXrays_64ChannelDlg::SendCalibration(CString fileName)
+{
+	CString info;
+	info = _T("刻度曲线指令发送中。。。");
+	m_page1.PrintLog(info);
+
+	BOOL sendStatus = TRUE; // 刻度曲线发送是否成功
+
+	vector<CString> messageList = ReadEnCalibration(fileName);
+	BYTE cmd[2000] = { 0 }; //144条指令*12字节=1728字节
+	BYTE cmd2[2000] = { 0 };
+	BYTE cmd3[2000] = { 0 };
+	BYTE cmd4[2000] = { 0 };
+	int iSize = 0;
+	
+	iSize = Str2Hex(messageList[0], cmd);
+	Str2Hex(messageList[1], cmd2);
+	Str2Hex(messageList[2], cmd3);
+	Str2Hex(messageList[3], cmd4);
+	// 将各个指令分开发送
+	for (int i = 0; i < iSize / 12; i++) {
+		BYTE temp[13] = { 0 };
+		BYTE temp2[13] = { 0 };
+		BYTE temp3[13] = { 0 };
+		BYTE temp4[13] = { 0 };
+		for (int j = 0; j < 12; j++) {
+			temp[j] = cmd[i * 12 + j];
+			temp2[j] = cmd2[i * 12 + j];
+			temp3[j] = cmd3[i * 12 + j];
+			temp4[j] = cmd4[i * 12 + j];
+		}
+
+		// 若当前是联网状态，则发送数据
+		if (connectStatusList[0]) sendStatus = sendStatus & BackSend(0, temp, 12, 0, 2, 10, FALSE);
+		if (connectStatusList[1]) sendStatus = sendStatus & BackSend(1, temp2, 12, 0, 2, 10, FALSE);
+		if (connectStatusList[2]) sendStatus = sendStatus & BackSend(2, temp3, 12, 0, 2, 10, FALSE);
+		if (connectStatusList[3]) sendStatus = sendStatus & BackSend(3, temp4, 12, 0, 2, 10, FALSE);
+	}
+	if(sendStatus){
+		CString info;
+		info = _T("刻度曲线指令发送成功");
+		m_page1.PrintLog(info);
+	}
+	else{
+		CString info;
+		info = _T("刻度曲线指令发送失败");
+		m_page1.PrintLog(info);
+	}
 }
 
 // 连接网络
@@ -583,9 +668,9 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 		m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 		// 打印日志
 		CString info;
-		info.Format(_T("CH%d网络连接失败。请重新尝试，若再次连接失败,请做以下尝试:\n\
-            1、检查网络参数设置是否正确；\n2、检查设备电源是否打开；\n\
-			3、检查电脑的网络适配器属性设置是否正确\n"), num+1);
+		info.Format(_T("CH%d网络连接失败。请重新尝试，若再次连接失败,请做以下尝试:\
+            1、检查网络参数设置是否正确；2、检查设备电源是否打开；\
+			3、检查电脑的网络适配器属性设置是否正确"), num+1);
 		m_page1.PrintLog(info);
 		return FALSE;
 	}
@@ -687,27 +772,27 @@ UINT Recv_Th1(LPVOID p)
 			dlg->AddTCPData(num, mk, nLength);
 
 			// 触发信号甄别
-			if(dlg->MeasureMode[num] == 2){
+			if(dlg->TrigerMode[num] == 2){
 				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
 					singleLock.Lock();
 					if (singleLock.IsLocked()){
-						dlg->MeasureMode[num] = 0;
+						dlg->TrigerMode[num] = 0;
 					}
 					singleLock.Unlock();
 					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
 				}
 				continue;
 			}
-
+			
 			// 有效测量数据开始
 			singleLock.Lock();
 			if (singleLock.IsLocked()){
 				dlg->GetDataStatus = TRUE; //线程锁的变量
 			}
 			singleLock.Unlock();
-		
+
 			//发送消息通知主界面,进入定时测量状态
-			if (dlg->m_nTimerId[1] == 0) {
+			if (dlg->m_nTimerId[0] == 0) {
 				//PostMessage非阻塞函数，发送完消息，不管界面线程是否处理，都继续运行
 				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0); 
 			}
@@ -806,11 +891,11 @@ UINT Recv_Th2(LPVOID p)
 			dlg->AddTCPData(num, mk, nLength);
 
 			// 触发信号甄别
-			if(dlg->MeasureMode[num] == 2){
+			if(dlg->TrigerMode[num] == 2){
 				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
 					singleLock.Lock();
 					if (singleLock.IsLocked()){
-						dlg->MeasureMode[num] = 0;
+						dlg->TrigerMode[num] = 0;
 					}
 					singleLock.Unlock();
 					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
@@ -824,9 +909,9 @@ UINT Recv_Th2(LPVOID p)
 				dlg->GetDataStatus = TRUE; //线程锁的变量
 			}
 			singleLock.Unlock();
-			
+
 			//发送消息通知主界面,进入定时测量状态
-			if (dlg->m_nTimerId[1] == 0) {
+			if (dlg->m_nTimerId[0] == 0) {
 				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
 			}
 		}
@@ -924,18 +1009,18 @@ UINT Recv_Th3(LPVOID p)
 			dlg->AddTCPData(num, mk, nLength);
 
 			// 触发信号甄别
-			if(dlg->MeasureMode[num] == 2){
+			if(dlg->TrigerMode[num] == 2){
 				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
 					singleLock.Lock();
 					if (singleLock.IsLocked()){
-						dlg->MeasureMode[num] = 0;
+						dlg->TrigerMode[num] = 0;
 					}
 					singleLock.Unlock();
 					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
 				}
 				continue;
 			}
-
+			
 			// 有效测量数据开始
 			singleLock.Lock();
 			if (singleLock.IsLocked()){
@@ -944,7 +1029,7 @@ UINT Recv_Th3(LPVOID p)
 			singleLock.Unlock();
 
 			//发送消息通知主界面,进入定时测量状态
-			if (dlg->m_nTimerId[1] == 0) {
+			if (dlg->m_nTimerId[0] == 0) {
 				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
 			}
 		}
@@ -1042,21 +1127,18 @@ UINT Recv_Th4(LPVOID p)
 			dlg->AddTCPData(num, mk, nLength);
 
 			// 触发信号甄别
-			if(dlg->MeasureMode[num] == 2){
+			if(dlg->TrigerMode[num] == 2){
 				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
 					singleLock.Lock();
 					if (singleLock.IsLocked()){
-						dlg->MeasureMode[num] = 0;
+						dlg->TrigerMode[num] = 0;
 					}
 					singleLock.Unlock();
-					CString info;
-					info.Format(_T("CH%d已收到硬件触发信号,from Thread"), num+1);
-					dlg->m_page1.PrintLog(info,FALSE);
 					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
 				}
 				continue;
 			}
-
+			
 			// 有效测量数据开始
 			singleLock.Lock();
 			if (singleLock.IsLocked()){
@@ -1080,18 +1162,16 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 	switch (nIDEvent)
 	{
 	case 1:
-		//开始测量(手动测量)模式
-		if (GetDataStatus) {
+		{
 			timer++;
 
 			//状态栏显示
 			CString strInfo;
-			strInfo.Format(_T("Data Length:CH1=%d,CH2=%d,CH3=%d,CH4=%d"),
+			strInfo.Format(_T("Receieve:CH1=%d,CH2=%d,CH3=%d,CH4=%d"),
 				RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 			m_statusBar.SetPaneText(0, strInfo);
 
-			if (timer * TIMER_INTERVAL > MeasureTime)
-			{
+			if (timer * TIMER_INTERVAL >= MeasureTime){
 				if (!sendStopFlag) {
 					for(int num=0; num<4; num++){
 						if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
@@ -1103,50 +1183,66 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					info.Format(_T("测量时间：%dms, 已发送停止测量指令,请耐心等待数据完全接收！"), MeasureTime);
 					m_page1.PrintLog(info);
 				}
-				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-
+				
 				//在这规定时间内四个线程均没有接收到新的数据，即全部stop了
+				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 				if (RECVLength[0] == jsonSetting["RECVLength_CH1"].asInt() 
 					&& RECVLength[1] == jsonSetting["RECVLength_CH2"].asInt()
-				 	&& RECVLength[2] == jsonSetting["RECVLength_CH3"].asInt() 
+				 	&& RECVLength[2] == jsonSetting["RECVLength_CH3"].asInt()
 					&& RECVLength[3] == jsonSetting["RECVLength_CH4"].asInt())
 				{
-					SetDlgItemText(IDC_Start, _T("开始测量"));
+					// 重置部分数据
 					timer = 0;
 
 					singleLock.Lock(); //Mutex线程锁
 					if (singleLock.IsLocked()){
-						GetDataStatus = FALSE;
-
 						for(int num=0; num<4; num++){
-							MeasureMode[num] = 0;
+							TrigerMode[num] = 0;
 						}
+						GetDataStatus = FALSE;
 					}
 					singleLock.Unlock(); //Mutex
+
 					sendStopFlag = FALSE;
-
-					//往TCP发送的控制板配置参数允许输入
-					SetParameterInputStatus(TRUE);
-
-					// 按键互斥锁,测量结束，恢复各按钮使能
-					GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
-					GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
-					GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
-					GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
-					GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
-					GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
+					
+					// 测量结束，恢复各按钮使能
+					if(MeasureMode == 1){
+						SetDlgItemText(IDC_Start, _T("开始测量"));
+						GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
+						GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
+					}
+					else if(MeasureMode == 0){ // 表明按下了停止测量按钮
+						SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
+						GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
+						GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
+					}
+					
+					//按下停止手动测量或者自动测量。还有一种情况是仍然在自动测量，但是随着炮号刷新一直测量
+					if ((MeasureMode == 1) || (MeasureMode == 0)) {
+						MeasureMode = 0;
+						//往TCP发送的控制板配置参数允许输入
+						SetParameterInputStatus(TRUE);
+						//打开其他相关按键使能
+						GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+						GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
+						GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
+						GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
+					}
 
 					if (RECVLength[0] + RECVLength[1] + RECVLength[2] + RECVLength[3] > 0) {
 						// 打印日志
 						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
 						m_page1.PrintLog(info);
-						info.Format(_T("Data Length(字节) : CH1 = %d, CH2 = %d, CH3 = %d, CH4 = %d"),
+						info.Format(_T("Receieve Data(byte): CH1 = %d, CH2 = %d, CH3 = %d, CH4 = %d"),
 							RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 						m_page1.PrintLog(info);
 					}
-					KillTimer(1);	//测量结束，关闭定时器
+					//重置定时器开关状态
+					m_nTimerId[0] = 0;
+					m_page1.PrintLog(_T("数据接收完毕，测量结束"));
+					KillTimer(1);
 				}
-			}			
+			}	
 			
 			if (timer % 10 == 0)//每间隔10个timer记录一次
 			{	// 写入配置文件
@@ -1160,87 +1256,11 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 		}
 		break;
 	case 2:
-		// 自动测量定时器:硬件触发后3秒定时发送关闭指令
-		{
-			timer++;
-
-			//状态栏显示
-			CString strInfo;
-			strInfo.Format(_T("Data Length:CH1=%d,CH2=%d,CH3=%d,CH4=%d"),
-				RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
-			m_statusBar.SetPaneText(0, strInfo);
-
-			if (timer * TIMER_INTERVAL >= MeasureTime) {
-				if (!sendStopFlag) {
-					for(int num=0; num<4; num++){
-						if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
-					}
-					sendStopFlag = TRUE;
-
-					// 打印日志
-					CString info;
-					info.Format(_T("测量时间：%dms, 已发送停止测量指令,请耐心等待数据完全接收！"), MeasureTime);
-					m_page1.PrintLog(info);
-				}
-
-				//在规定时间内四个线程均没有接收到新的数据，即全部stop了
-				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-				if (RECVLength[0] == jsonSetting["RECVLength_CH1"].asInt()
-					&& RECVLength[1] == jsonSetting["RECVLength_CH2"].asInt()
-					&& RECVLength[2] == jsonSetting["RECVLength_CH3"].asInt()
-					&& RECVLength[3] == jsonSetting["RECVLength_CH4"].asInt())
-				{
-					// 重置部分数据
-					timer = 0;
-					
-					singleLock.Lock(); //Mutex线程锁
-					if (singleLock.IsLocked()){
-						GetDataStatus = FALSE;
-						for(int num=0; num<4; num++){
-							MeasureMode[num] = 0;
-						}
-					}
-					singleLock.Unlock(); //Mutex
-
-					sendStopFlag = FALSE;
-
-					if (RECVLength[0] + RECVLength[1] + RECVLength[2] + RECVLength[3]> 0) {
-						// 打印日志
-						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
-						m_page1.PrintLog(info);
-						info.Format(_T("Data Length: CH1 = %d, CH2 = %d, CH3 = %d, CH4 = %d"),
-							RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
-						m_page1.PrintLog(info);
-					}
-					//重置定时器开关状态
-					m_nTimerId[1] = 0;
-					m_page1.PrintLog(_T("数据接收完毕，测量结束，关闭2号定时器"));
-					KillTimer(2);	
-				}
-			}
-
-			if (timer % 10 == 0)//每间隔10个timer记录一次
-			{	// 写入配置文件
-				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-				jsonSetting["RECVLength_CH1"] = RECVLength[0];
-				jsonSetting["RECVLength_CH2"] = RECVLength[1];
-				jsonSetting["RECVLength_CH3"] = RECVLength[2];
-				jsonSetting["RECVLength_CH4"] = RECVLength[3];
-				WriteSetting(_T("Setting.json"), jsonSetting);
-			}
-		}
-		break;
-	case 3:
 		// 炮号检测定时器：检测炮号是否刷新
-		if (m_getTargetChange) {
-			//刷新炮号相关显示以及日志
+		{
 			m_getTargetChange = FALSE;
-			CString info = _T("炮号已刷新：") + m_targetID;
-			m_page1.PrintLog(info);
-			UpdateData(FALSE);
-
 			//若处于自动测量状态，创建对应炮号文件夹，并发送开始测量指令
-			if (AutoMeasureStatus) {
+			if (MeasureMode == 2) {
 				//创建对应炮号文件夹
 				CString pathPostfix;
 				//(.4表示将占用4位，如果数字超过4位将输出所有数字，不会截断)
@@ -1253,14 +1273,13 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				singleLock.Lock(); //Mutex
 				if (singleLock.IsLocked()){
 					for(int num=0; num<4; num++){
-						MeasureMode[num] = 0;
-						// if(connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1); //这里带指令反馈检测
-					}			
+						TrigerMode[num] = 0;
+					}
 				}
 				singleLock.Unlock(); //Mutex
 				// 重置从网口接收的缓存数据
 				ResetTCPData();
-
+				
 				//重置接受数据标志位					
 				singleLock.Lock(); //Mutex线程锁
 				if (singleLock.IsLocked()){
@@ -1280,17 +1299,19 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					
 					singleLock.Lock(); //Mutex
 					if (singleLock.IsLocked()){
-						MeasureMode[num] = 2;
+						TrigerMode[num] = 2;
 					}
 					singleLock.Unlock(); //Mutex
 				}
 				
-				CString info = _T("\"硬件触发\"工作模式");
-				m_page1.PrintLog(info);
+				m_page1.PrintLog(_T("\"硬件触发\"工作模式"));
 			}
+			
+			m_nTimerId[1] = 0;
+			KillTimer(2);
 		}
 		break;
-	case 4:
+	case 3:
 		//状态栏，软件界面的一些常规参数刷新
 		{
 			ArmTimer++;
@@ -1327,13 +1348,16 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 	GetDlgItemText(IDC_Start, strTemp);
 	if (strTemp == _T("开始测量")) {
 		timer = 0;
-		
+		MeasureMode = 1;
+		m_nTimerId[0] = 0;
+		sendStopFlag = FALSE;
+
 		singleLock.Lock(); // 线程锁
 		if (singleLock.IsLocked()){
-			GetDataStatus = FALSE;
 			for(int num = 0; num < 4; num++){
-			MeasureMode[num] = 0;
+				TrigerMode[num] = 0;
 			}
+			GetDataStatus = FALSE;
 		}
 		singleLock.Unlock();
 		
@@ -1347,18 +1371,15 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		//向TCP发送开始指令
 		for (int num = 0; num < 4; num++) {
 			if(connectStatusList[num]) BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
-			singleLock.Lock(); //Mutex
+			singleLock.Lock();
 			if (singleLock.IsLocked()){
-				MeasureMode[num] = 1;
+				TrigerMode[num] = 1;
 			}
-			singleLock.Unlock(); //Mutex
+			singleLock.Unlock();
 		}
 
 		SetDlgItemText(IDC_Start, _T("停止测量"));
 		
-		//开启定时器，第1个参数表示ID号，第二个参数表示刷新时间ms
-		SetTimer(1, TIMER_INTERVAL, NULL); 
-
 		CTime t = CTime::GetCurrentTime();
 		// 打印日志
 		CString info;
@@ -1381,41 +1402,38 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(FALSE); //连接UDP网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
+		
+		//恢复按键
+		GetDlgItem(IDC_Start)->EnableWindow(TRUE);
 	}
 	else {
 		singleLock.Lock(); //Mutex
 		if (singleLock.IsLocked()){
 			for(int num=0; num<4; num++){
-				MeasureMode[num] = 0;
+				TrigerMode[num] = 0;
 			}
 		}
 		singleLock.Unlock(); //Mutex
-		//往TCP发送的控制板配置参数允许输入
-		SetParameterInputStatus(TRUE);
 
 		//往TCP发送停止指令
 		for(int num=0; num<4; num++){
 			if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
 		}
+		sendStopFlag = TRUE;
+		if (GetDataStatus) {
+			//打印日志
+			m_page1.PrintLog(_T("\r\n已停止（手动）测量，请等待剩余数据接收完毕\r\n"));
 
-		SetDlgItemText(IDC_Start, _T("开始测量"));
-		KillTimer(1);	//关闭定时器
-
-		//打印日志
-		CString info;
-		info = _T("\r\n已停止（手动）测量\r\n");
-		m_page1.PrintLog(info);
-
-		// 按键互斥锁
-		GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
-		GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
-		GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
-		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
-		GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
-		GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
+			// 这里不能直接KillTimer，因为在发送停止指令后还会有剩余数据。
+			// 通过强制让计数器满值，来使其进入收尾状态，接收停止指令后的剩余数据。
+			timer = ceil(MeasureTime/TIMER_INTERVAL);
+		}
+		else{
+			//打印日志
+			m_page1.PrintLog(_T("\r\n已停止（手动）测量\r\n"));
+		}
+		//按键在定时器中自动在数据接收完毕后恢复使能
 	}
-	
-	GetDlgItem(IDC_Start)->EnableWindow(TRUE);
 }
 
 //自动测量按钮
@@ -1431,18 +1449,18 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	GetDlgItemText(IDC_AutoMeasure, strTemp);
 	if (strTemp == _T("自动测量")) {
 		// 打印日志
-		CString info;
-		info = _T("\r\n开始自动测量。。。");
-		m_page1.PrintLog(info);
+		m_page1.PrintLog(_T("\r\n开始自动测量。。。"));
 
-		AutoMeasureStatus = TRUE;
 		// 重新初始化部分数据
+		MeasureMode = 2;
 		timer = 0;
-		
+		m_nTimerId[0] = 0;
+		sendStopFlag = TRUE;
+
 		singleLock.Lock(); // 线程锁
 		if (singleLock.IsLocked()){
 			for(int num=0; num<4; num++){
-				MeasureMode[num] = 0;
+				TrigerMode[num] = 0;
 				ifFeedback[num] = FALSE; //接收完12字节，重置标志位
 			}
 			GetDataStatus = FALSE;
@@ -1464,123 +1482,52 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 
 		// 锁死其他相关按键
 		GetDlgItem(IDC_Start)->EnableWindow(FALSE); //手动测量
-		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接TCP网络
+		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
 		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(FALSE); //连接UDP网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
+
+		// 恢复按键
+		GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 	}
 	else {
-		AutoMeasureStatus = FALSE;
-		SetParameterInputStatus(TRUE);
-		
-		// 发送停止指令，带指令反馈，确保上一次测量结束。
-		for(int num=0; num<4; num++){
-			if(connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1);
+		MeasureMode = 0;
+		singleLock.Lock();
+		if (singleLock.IsLocked()){
+			for(int num=0; num<4; num++){
+				TrigerMode[num] = 0;
+			}
 		}
-		SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
+		singleLock.Unlock(); 
 
-		//关闭定时器
-		KillTimer(2);	
-		//重置定时器开关状态
-		m_nTimerId[1] = 0;
+		// 若处于测量状态,则利用定时器进行自动关闭复位
+		if (GetDataStatus) {
+			// 发送停止指令，带指令反馈，确保上一次测量结束。
+			for (int num = 0; num < 4; num++) {
+				if (connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
+			}
+			sendStopFlag = TRUE;
 
-		// 打开其他相关按键使能
-		GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
-		GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
-		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
-		GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
-		GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
+			// 打印日志
+			m_page1.PrintLog(_T("\r\n已停止自动测量，请等待剩余数据接收\r\n"));
 
-		// 打印日志
-		CString info;
-		info = _T("\r\n已停止自动测量。。。\r\n");
-		m_page1.PrintLog(info);
-	}
-
-	GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
-}
-
-// UDP网络连接与断开
-void CXrays_64ChannelDlg::OnBnClickedUdpButton()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	CString strTemp;
-	GetDlgItemText(IDC_UDP_BUTTON, strTemp);
-	if (strTemp == _T("开启UDP网络")) {
-		//打开定时器3，用来刷新炮号
-		SetTimer(3, TIMER_INTERVAL, NULL);
-		OpenUDP();
-		SetDlgItemText(IDC_UDP_BUTTON, _T("断开UDP网络"));
-	}
-	else {
-		CloseUDP();
-		SetDlgItemText(IDC_UDP_BUTTON, _T("开启UDP网络"));
-	}
-}
-
-// 获取刻度曲线数据文件的全路径
-void CXrays_64ChannelDlg::OnBnClickedCalibration()
-{
-	CString fileName(_T(""));
-	if(!ChooseFile(fileName)) return;
-
-	SendCalibration(fileName);
-}
-
-//发送刻度曲线数据
-//fileName为发送文件路径（绝对路径）
-void CXrays_64ChannelDlg::SendCalibration(CString fileName)
-{
-	CString info;
-	info = _T("刻度曲线指令发送中。。。");
-	m_page1.PrintLog(info);
-
-	BOOL sendStatus = TRUE; // 刻度曲线发送是否成功
-
-	vector<CString> messageList = ReadEnCalibration(fileName);
-	BYTE cmd[2000] = { 0 }; //144条指令*12字节=1728字节
-	BYTE cmd2[2000] = { 0 };
-	BYTE cmd3[2000] = { 0 };
-	BYTE cmd4[2000] = { 0 };
-	int iSize = 0;
-	
-	iSize = Str2Hex(messageList[0], cmd);
-	Str2Hex(messageList[1], cmd2);
-	Str2Hex(messageList[2], cmd3);
-	Str2Hex(messageList[3], cmd4);
-	// 将各个指令分开发送
-	for (int i = 0; i < iSize / 12; i++) {
-		BYTE temp[13] = { 0 };
-		BYTE temp2[13] = { 0 };
-		BYTE temp3[13] = { 0 };
-		BYTE temp4[13] = { 0 };
-		for (int j = 0; j < 12; j++) {
-			temp[j] = cmd[i * 12 + j];
-			temp2[j] = cmd2[i * 12 + j];
-			temp3[j] = cmd3[i * 12 + j];
-			temp4[j] = cmd4[i * 12 + j];
+			// 关闭定时器，这里不能直接KillTimer，因为在发送停止指令后还会有剩余数据。
+			// 通过强制让计数器满值，来使其进入收尾状态，接收停止指令后的剩余数据。
+			timer = ceil(MeasureTime/TIMER_INTERVAL);
 		}
-
-		// 若当前是联网状态，则发送数据
-		if (connectStatusList[0]) sendStatus = sendStatus & BackSend(0, temp, 12, 0, 2, 10, FALSE);
-		if (connectStatusList[1]) sendStatus = sendStatus & BackSend(1, temp2, 12, 0, 2, 10, FALSE);
-		if (connectStatusList[2]) sendStatus = sendStatus & BackSend(2, temp3, 12, 0, 2, 10, FALSE);
-		if (connectStatusList[3]) sendStatus = sendStatus & BackSend(3, temp4, 12, 0, 2, 10, FALSE);
+		else{
+			SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
+			//往TCP发送的控制板配置参数允许输入
+			SetParameterInputStatus(TRUE);
+			//打开其他相关按键使能
+			GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
+			GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
+			GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
+			GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
+			GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
+			// 打印日志
+			m_page1.PrintLog(_T("\r\n已停止自动测量\r\n"));
+		}
 	}
-	if(sendStatus){
-		CString info;
-		info = _T("刻度曲线指令发送成功");
-		m_page1.PrintLog(info);
-	}
-	else{
-		CString info;
-		info = _T("刻度曲线指令发送失败");
-		m_page1.PrintLog(info);
-	}
-}
-
-//选择能谱模式
-void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
-{
-	// TODO: 在此添加控件通知处理程序代码
 }
