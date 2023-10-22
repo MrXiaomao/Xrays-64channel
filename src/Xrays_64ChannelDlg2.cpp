@@ -118,9 +118,7 @@ void CXrays_64ChannelDlg::SaveFile(CString fileName, char *mk, int length)
 {
 	if (length < 1)
 		return;
-	CString filename = fileName;
-	CString wholePath = saveAsTargetPath + filename;
-	fstream datafile(wholePath, ios::out | ios::app | ios::binary); // 追加
+	fstream datafile(fileName, ios::out | ios::app); // 追加  | ios::binary
 	if (datafile.is_open())
 	{
 		datafile.write(mk, length);
@@ -728,6 +726,7 @@ LRESULT CXrays_64ChannelDlg::OnUpdateShot(WPARAM wParam, LPARAM lParam){
 			m_getTargetChange = TRUE;
 			recBuf[nLength] = (char)'\n'; // 追加一个换行符号
 			int saveLength = nLength + 1;
+			
 			SaveFile(saveAsPath + _T("ShotNumber.dat"), recBuf, saveLength);
 
 			CString info = _T("炮号已刷新：") + m_targetID;

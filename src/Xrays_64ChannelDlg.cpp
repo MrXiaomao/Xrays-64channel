@@ -767,7 +767,7 @@ UINT Recv_Th1(LPVOID p)
 			// 普通数据
 			CString strCH;
 			strCH.Format(_T("CH%d"),num);
-			CString fileName = dlg->m_targetID + strCH;
+			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
 
@@ -886,7 +886,7 @@ UINT Recv_Th2(LPVOID p)
 			// 普通数据
 			CString strCH;
 			strCH.Format(_T("CH%d"),num);
-			CString fileName = dlg->m_targetID + strCH;
+			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
 
@@ -1004,7 +1004,7 @@ UINT Recv_Th3(LPVOID p)
 			// 普通数据
 			CString strCH;
 			strCH.Format(_T("CH%d"),num);
-			CString fileName = dlg->m_targetID + strCH;
+			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
 
@@ -1122,7 +1122,7 @@ UINT Recv_Th4(LPVOID p)
 			// 普通数据
 			CString strCH;
 			strCH.Format(_T("CH%d"),num);
-			CString fileName = dlg->m_targetID + strCH;
+			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
 
@@ -1304,7 +1304,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					singleLock.Unlock(); //Mutex
 				}
 				
-				m_page1.PrintLog(_T("\"硬件触发\"工作模式"));
+				m_page1.PrintLog(_T("\"硬件触发\"工作模式，等待触发信号"));
 			}
 			
 			m_nTimerId[1] = 0;
@@ -1426,7 +1426,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 			// 这里不能直接KillTimer，因为在发送停止指令后还会有剩余数据。
 			// 通过强制让计数器满值，来使其进入收尾状态，接收停止指令后的剩余数据。
-			timer = ceil(MeasureTime/TIMER_INTERVAL);
+			timer = (int)floor(MeasureTime/TIMER_INTERVAL);
 		}
 		else{
 			//打印日志
@@ -1500,9 +1500,9 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		}
 		singleLock.Unlock(); 
 
-		// 若处于测量状态,则利用定时器进行自动关闭复位
+		// 若处于接收数据状态,则利用定时器进行自动关闭复位
 		if (GetDataStatus) {
-			// 发送停止指令，带指令反馈，确保上一次测量结束。
+			// 发送停止指令，带指令反馈，结束上一次测量结束。
 			for (int num = 0; num < 4; num++) {
 				if (connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 1);
 			}
@@ -1513,9 +1513,15 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 
 			// 关闭定时器，这里不能直接KillTimer，因为在发送停止指令后还会有剩余数据。
 			// 通过强制让计数器满值，来使其进入收尾状态，接收停止指令后的剩余数据。
-			timer = ceil(MeasureTime/TIMER_INTERVAL);
+			timer = (int)floor(MeasureTime/TIMER_INTERVAL);
 		}
 		else{
+			// 发送停止指令，带指令反馈，结束上一次测量结束。
+			for (int num = 0; num < 4; num++) {
+				if (connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1);
+			}
+			sendStopFlag = TRUE;
+
 			SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
 			//往TCP发送的控制板配置参数允许输入
 			SetParameterInputStatus(TRUE);
