@@ -118,6 +118,78 @@ char HexChar(char c)
 		return 0x10;
 }
 
+BOOL GetOnePackage(CByteArray &TotalArray, CByteArray &OnePackArray, BYTE* head, BYTE* tail, int checkLen, int PackLength) 
+{
+	if (TotalArray.GetSize() >= PackLength)
+	{
+		// 一个包11个字节
+		int PackLength = 11;
+		//包头包尾判断
+		// BYTE head[2] = { 0xAA, 0xBB };
+		// BYTE tail[2] = { 0xCC, 0xDD };
+		//----------------------------------寻找包头包尾---------------------------------//
+		int HeadIndex = -1; // 赋初值在0-258之外
+		int TailIndex = -1;
+
+		// DataHead
+		for (int i = 0; i < TotalArray.GetSize() - 1; i++)
+		{
+            bool isHead = true;
+            for(int j=0; j<checkLen; j++){
+                if ((TotalArray[i+j] & 0xFF) != head[j]){
+                    isHead = false;
+                    break;
+                }
+            }
+            if(isHead) {
+                HeadIndex = i;
+                break;
+            }
+		}
+
+		// DataTail
+        for (int i = 0; i < TotalArray.GetSize() - 1; i++)
+		{
+            bool isTail = true;
+            for(int j = 0; j<checkLen; j++){
+                if ((TotalArray[i+j] & 0xFF) != tail[j]){
+                    isTail = false;
+                    break;
+                }
+            }
+            if(isTail) {
+                TailIndex = i;
+                break;
+            }
+		}
+
+		//-----------------------数据包异常处理------------------------//
+		// 如果没有检测到包头或者包尾则返回。不执行后面语句
+		if ((HeadIndex == -1) || (TailIndex == -1))  return FALSE;
+
+		if (HeadIndex > TailIndex) // 如果包头大于包尾则清除包头之前的数据
+		{
+			TotalArray.RemoveAt(0, HeadIndex);
+			return FALSE;
+		}
+
+		//提取一个数据包
+		// CByteArray OnePackArray;
+		if ((TailIndex - HeadIndex) == (PackLength - checkLen)) {
+			OnePackArray.Copy(TotalArray);
+			TotalArray.RemoveAt(0, PackLength);
+			return TRUE;
+		}
+		else {
+			TotalArray.RemoveAt(0, TailIndex + checkLen);
+			return FALSE;
+		}
+    }
+    else{
+        return FALSE;
+    }
+}
+
 //Str2Hex函数的功能则是将如“66 03 ...”形式的字符串以空格为间隔转换为对应的16进制数
 //并存放在BYTE型(typdef unsigned char BYTE)数组中，
 //data数组作为发送缓冲数组写入串口即可。

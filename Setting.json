@@ -6,7 +6,7 @@
 	"IP_Detector4" : "192.168.10.12",
 	"IP_Relay" : "192.168.10.22",
 	"IP_UDP" : "192.168.1.120",
-	"Port_ARM" : 12100,
+	"Port_ARM" : 6000,
 	"Port_Detector1" : 5000,
 	"Port_Detector2" : 6000,
 	"Port_Detector3" : 7000,

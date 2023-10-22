@@ -32,6 +32,15 @@ char* CstringToWideCharArry(CString CstrText);
 //HexChar函数的功能是将16进制字符由ASCII码转为相应大小的16进制数
 char HexChar(char c);
 
+/*
+CByteArray TotalArray:输入的数据包
+BYTE* head：包头 		// BYTE head[2] = { 0xAA, 0xBB };
+BYTE* tail：包尾        // BYTE tail[2] = { 0xCC, 0xDD };
+int CheckLen：包头包尾各自的长度，包头包尾长度必须一样
+int PackLength：数据包长度（包含包头包尾）
+*/
+BOOL GetOnePackage(CByteArray &TotalArray, CByteArray &OnePackArray, BYTE* head, BYTE* tail, int checkLen, int PackLength);
+
 //Str2Hex函数的功能则是将如“66 03 ...”形式的字符串以空格为间隔转换为对应的16进制数
 //并存放在BYTE型(typdef unsigned char BYTE)数组中，
 //data数组作为发送缓冲数组写入串口即可。

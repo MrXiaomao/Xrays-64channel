@@ -103,9 +103,6 @@ UINT Recv_ARM(LPVOID p) // 多线程接收ARM网口数据
 			}
 			dlg->TotalARMArray.Append(buffer); //拼接
 			::PostMessage(dlg->m_hWnd, WM_UPDATE_ARM, 0, 0); //发送消息通知主界面处理，更新温度、电压、电流
-			// dlg->GetTemperature(); //尝试解析温度
-			// dlg->GetVoltCurrent(); //尝试解析电压电流
-			//dlg->refreshBar(); //刷新界面温度、电压、电流显示
 		}
 	}
 }
@@ -142,7 +139,32 @@ LRESULT CXrays_64ChannelDlg::OnUpdateARMStatic(WPARAM wParam, LPARAM lParam){
 }
 
 void CXrays_64ChannelDlg::GetTemperature() {
+	//包头包尾判断
+	BYTE head[2] = { 0xAA, 0xBB };
+	BYTE tail[2] = { 0xCC, 0xDD };
+	CByteArray outArray;
+	BOOL foundPackage = GetOnePackage(TotalARMArray, outArray, head, tail, 2, 11);
 
+	if(foundPackage)
+	{
+		int equiID = (outArray[2] & 0xFF); 
+		int num = 0;
+		if (equiID == 1) {
+			num = 0;
+			feedbackARM[0] = TRUE; //表明获取到了温度1的数据
+		}
+		if (equiID == 2) {
+			num = 1;
+			feedbackARM[1] = TRUE; //表明获取到了温度2的数据
+		}
+		else {
+			return;
+		}
+		temperature[0 + num*3] = ((outArray[3] & 0xFF) * 256.0 + (outArray[4] & 0xFF)) / 10.0;
+		temperature[1 + num * 3] = ((outArray[5] & 0xFF) * 256.0 + (outArray[6] & 0xFF)) / 10.0;
+		temperature[2 + num * 3] = ((outArray[7] & 0xFF) * 256.0 + (outArray[8] & 0xFF)) / 10.0;
+	}
+	/*
 	int StandardPackLength = 11;
 	if (TotalARMArray.GetSize() >= StandardPackLength)
 	{
@@ -191,7 +213,7 @@ void CXrays_64ChannelDlg::GetTemperature() {
 		CByteArray OnePackArray;
 		OnePackArray.Copy(TotalARMArray);
 		TotalARMArray.RemoveAt(0, StandardPackLength);
-		int equiID = (OnePackArray[3] & 0xFF); 
+		int equiID = (OnePackArray[2] & 0xFF); 
 		int num = 0;
 		if (equiID == 1) {
 			num = 0;
@@ -204,7 +226,7 @@ void CXrays_64ChannelDlg::GetTemperature() {
 		temperature[0 + num*3] = ((OnePackArray[3] & 0xFF) * 256.0 + (OnePackArray[4] & 0xFF)) / 10.0;
 		temperature[1 + num * 3] = ((OnePackArray[5] & 0xFF) * 256.0 + (OnePackArray[6] & 0xFF)) / 10.0;
 		temperature[2 + num * 3] = ((OnePackArray[7] & 0xFF) * 256.0 + (OnePackArray[8] & 0xFF)) / 10.0;
-	}
+	}*/
 }
 
 void CXrays_64ChannelDlg::GetVoltCurrent() {
