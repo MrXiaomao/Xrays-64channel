@@ -37,43 +37,25 @@ public:
 	CXrays_64ChannelDlg(CWnd* pParent = nullptr);	// 标准构造函数
 	virtual ~CXrays_64ChannelDlg();
 
-	void InitBarSettings(); //初始化状态栏
-	void InitTabSettings(); //初始化Tab对话框
-	void InitOtherSettings(); // 初始化界面其他控件参数
-	void ResizeBar(); //重新绘制状态栏
-	void OpenUDP(); //打开UDP通信
-	void CloseUDP(); //关闭UDP通信，以及相应资源
-	void SendParameterToTCP(); //发送配置参数
-	void SendCalibration(CString fileName); //发送刻度曲线
-	BOOL ConnectTCP(int num); //连接TCP网络
-	BOOL ConnectGeneralTCP(SOCKET& my_socket, CString strIP, int port); //连接常规TCP网络
-	void ConfinePortRange(int &myPort); //限制端口号输入范围
-	void SetTCPInputStatus(BOOL flag); //设置TCP的IP、PORT、复选框的输入使能状态
-	void SetParameterInputStatus(BOOL flag); //设置配置参数框的使能状态
-	/* 保存文件
-		fileName:文件名
-		mk: 待存储的字符串
-		length：字符串长度
-	*/
-	void SaveFile(CString fileName, char* mk, int length); 
-	void AddTCPData(int num, char* tempChar, int len); // 缓存网口数据
-	void ResetTCPData(); // 重置缓存数据
-	void SetSocketSize(SOCKET &sock, int nsize); //设置Socket缓冲区的大小
-	void refreshBar(); //刷新状态栏中通道1,温度，电压/电流
-	/*解析ARM返回的电压电流数据，根据包头包尾判断
-	输入：
-		packge：网口新接收的数据包
-	返回：未判断到完整的包头包尾时，返回电压为-1000
-	*/
-	void GetVoltCurrent(); 
-
-	/*解析ARM返回的温度数据，根据包头包尾判断
-		输入：
-			packge：网口新接收的数据包
-		返回：未判断到完整的包头包尾时，返回温度为-1000
-	*/
-	void GetTemperature();//GetTemperature(CByteArray& packge)
-
+	//初始化状态栏
+	void InitBarSettings(); 
+	//初始化Tab对话框
+	void InitTabSettings(); 
+	// 初始化界面其他控件参数
+	void InitOtherSettings(); 
+	//重新绘制状态栏
+	void ResizeBar(); 
+	//打开UDP通信
+	void OpenUDP(); 
+	//关闭UDP通信，以及相应资源
+	void CloseUDP();
+	
+	//----------------其他----------------
+	//连接一般TCP网络
+	BOOL ConnectGeneralTCP(SOCKET& my_socket, CString strIP, int port); 
+	//设置Socket缓冲区的大小
+	void SetSocketSize(SOCKET &sock, int nsize); 
+	
 	/*阻塞式发送，网口发送数据到FPGA，直到检测到指令反馈成功或者等待超时才退出。
 	* num 网口编号，从0开始
 	* msg 发送信息
@@ -96,17 +78,62 @@ public:
 	void NoBackSend(int num, BYTE* msg, int msgLength, int flags,
 		int sleepTime = 1);
 
-	CUDP_Socket* m_UDPSocket; //本地UDP服务
+	//-------------------四个探测器网络相关设置函数--------------
+	//发送配置参数
+	void SendParameterToTCP(); 
+	//发送刻度曲线
+	void SendCalibration(CString fileName); 
+	//连接探测器设备网络
+	BOOL ConnectTCP(int num); 
+	//限制端口号输入范围
+	void ConfinePortRange(int &myPort); 
+	//设置TCP的IP、PORT、复选框的输入使能状态
+	void SetTCPInputStatus(BOOL flag); 
+	//设置配置参数框的使能状态
+	void SetParameterInputStatus(BOOL flag); 
+	/* 保存文件
+		fileName:文件名
+		mk: 待存储的字符串
+		length：字符串长度
+	*/
+	void SaveFile(CString fileName, char* mk, int length); 
+	// 缓存网口数据
+	void AddTCPData(int num, char* tempChar, int len); 
+	// 重置缓存数据
+	void ResetTCPData(); 
 
+	//----------------------ARM有关的网络相关函数--------------------
+	//刷新状态栏中通道1,温度，电压/电流
+	void refreshBar(); 
+	/*解析ARM返回的电压电流数据，根据包头包尾判断
+	输入：
+		packge：网口新接收的数据包
+	返回：未判断到完整的包头包尾时，返回电压为-1000
+	*/
+	void GetVoltCurrent(); 
+
+	/*解析ARM返回的温度数据，根据包头包尾判断
+		输入：
+			packge：网口新接收的数据包
+		返回：未判断到完整的包头包尾时，返回温度为-1000
+	*/
+	void GetTemperature();//GetTemperature(CByteArray& packge)
+	
+	//保存ARM监测的温度数据
+	void SaveEnviromentFile(double data[]);
+
+	//-----------------自定义变量-------------------
+public: 
+	CUDP_Socket* m_UDPSocket; //本地UDP服务
+	BOOL UDPStatus; // UDP工作状态
 	SOCKET SocketList[4]; // FPGA的TCP端口，也就是CH1~CH4
-	SOCKET armSocket; // ARM网络的TCP端口
 	BOOL NetSwitchList[5]; // 网络开关,其中0位置对应总开关
 
-	// 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
-	// 16通道=20*4字节（1ms刷新，10秒测量时长对应总包长=1000*10*20*4）
+	/* 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
+		16通道=20*4字节（1ms刷新，10秒测量时长对应总包长=1000*10*20*4）
+	*/
 	const int DataMaxlen;
 	BOOL connectStatusList[4]; // 各网络联网状态
-	BOOL UDPStatus; // UDP工作状态
 	int MeasureMode; // 测量状态。0：非测量状态，1：手动测量状态，2：自动测量状态。
 	int TrigerMode[4]; // 触发模式。0:非测量状态，1:软件触发模式，2：硬件触发模式（带硬件触发反馈）。用于处理数据内容判别（指令反馈/测量数据）。
 	BOOL GetDataStatus; // 是否接受到TCP网口的数据
@@ -129,7 +156,7 @@ public:
 	int RECVLength[4];//网口已接收数据长度
 
 	//----------------ARM网络监测温度/电压/电流相关变量-------------
-	void SaveEnviromentFile(double data[]);
+	SOCKET armSocket; // ARM网络的TCP端口
 	BOOL ARMnetStatus; //ARM联网状态，无法实时监测，只能在联网后置TRUE，断开连接后置FALSE
 	BOOL feedbackARM[3]; //获取到数据包状态，前两个是温度包，最后一个电压电流包
 	double temperature[6]; //三个通道的温度
@@ -162,6 +189,7 @@ public:
 #endif
 
 	protected:
+	//退出窗口，关闭窗口
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
 
 
@@ -171,28 +199,48 @@ protected:
 
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
+	// OnClose()后进入该函数
+	virtual BOOL DestroyWindow();
+	// 关闭窗口
+	afx_msg void OnClose();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnSize(UINT nType, int cx, int cy); //变化后的尺寸
-	afx_msg void OnSizing(UINT fwSide, LPRECT pRect); //鼠标拖动时的尺寸变化
-	afx_msg void OnConnect(); // 连接网络
+	//变化后的尺寸
+	afx_msg void OnSize(UINT nType, int cx, int cy); 
+	//鼠标拖动时的尺寸变化
+	afx_msg void OnSizing(UINT fwSide, LPRECT pRect); 
+	//连接探测器网络
+	afx_msg void OnConnect(); 
+	//限制TCP端口输入范围
 	afx_msg void OnEnKillfocusPort1();
+	//限制TCP端口输入范围
 	afx_msg void OnEnKillfocusPort2();
+	//限制TCP端口输入范围
 	afx_msg void OnEnKillfocusPort3();
+	//限制TCP端口输入范围
 	afx_msg void OnEnKillfocusPort4();
+	//限制UDP端口输入范围
 	afx_msg void OnEnKillfocusUDPPort();
-	afx_msg void OnEnKillfocusRefreshTime(); //限制刷新时间输入范围
-	afx_msg void OnEnKillfocusMeasureTime(); //限制能谱测量总时长输入范围
-	afx_msg void OnBnClickedStart(); // 开始测量（手动测量）
-	afx_msg void OnBnClickedAutomeasure(); //自动测量
-	afx_msg void OnTimer(UINT_PTR nIDEvent); //定时器
-	afx_msg void OnBnClickedSaveas();//保存文件，设置文件存储路径
-	afx_msg void OnBnClickedClearLog();// 清空日志
-	afx_msg void OnBnClickedUDPButton();//UDP开关
-
+	//限制刷新时间输入范围
+	afx_msg void OnEnKillfocusRefreshTime(); 
+	//限制能谱测量总时长输入范围
+	afx_msg void OnEnKillfocusMeasureTime(); 
+	//开始测量（手动测量）
+	afx_msg void OnBnClickedStart(); 
+	//自动测量
+	afx_msg void OnBnClickedAutomeasure(); 
+	//定时器
+	afx_msg void OnTimer(UINT_PTR nIDEvent); 
+	//保存文件，设置文件存储路径
+	afx_msg void OnBnClickedSaveas();
+	//清空日志按钮
+	afx_msg void OnBnClickedClearLog();
+	//UDP开关按钮
+	afx_msg void OnBnClickedUDPButton();
+	//多页对话框选择
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 	//选择刻度曲线数据文件，并发送指令到FPGA
 	afx_msg void OnBnClickedCalibration();
@@ -208,13 +256,16 @@ public:
 	afx_msg void OnBnClickedCheck3(); 
 	//网络选择复选框，CH4
 	afx_msg void OnBnClickedCheck4(); 
-
+	//菜单栏的电源设置选项
 	afx_msg void OnPowerMenu(); 
+	//菜单栏“设置”按钮
 	afx_msg void OnNetSettingMenu();
 	// 继电器开关
 	afx_msg void OnBnClickedPowerButton();
 	//温度、电压电流监测开关
 	afx_msg void TempVoltMonitorON_OFF();
+
+	//-------------------------自定义消息---------------------
 	//从ARM来的网口接受到数据，进行相关数据处理
 	afx_msg LRESULT OnUpdateARMStatic(WPARAM wParam, LPARAM lParam);
 	// 接收到触发信号，刷新文本日志，可以刷新界面日志显示

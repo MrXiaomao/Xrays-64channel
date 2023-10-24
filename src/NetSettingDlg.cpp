@@ -19,18 +19,45 @@ CNetSetting::CNetSetting(CWnd* pParent /*=nullptr*/)
 	isDataChange = FALSE;
 	m_PortUDP = 5000;
 	m_PortARM = 6000;
+	StrIP_ARM = _T("192.168.10.22");
 	for (int num = 0; num < 4; num++) {
 		PortCHList[num] = 1000 + num;
+		StrIP_CH[num] = _T("192.168.10.22");
 	}
 }
 
 CNetSetting::~CNetSetting()
 {
+	// 保存界面部分参数设置
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	char* pStrIP = CstringToWideCharArry(StrIP_CH[0]);
+	jsonSetting["IP_Detector1"] = pStrIP;
+	pStrIP = CstringToWideCharArry(StrIP_CH[1]);
+	jsonSetting["IP_Detector2"] = pStrIP;
+	pStrIP = CstringToWideCharArry(StrIP_CH[2]);
+	jsonSetting["IP_Detector3"] = pStrIP;
+	pStrIP = CstringToWideCharArry(StrIP_CH[3]);
+	jsonSetting["IP_Detector3"] = pStrIP;
+ 	pStrIP = CstringToWideCharArry(StrIP_ARM);
+ 	jsonSetting["IP_ARM"] = pStrIP;
+
+	jsonSetting["Port_Detector1"] = PortCHList[0];
+	jsonSetting["Port_Detector2"] = PortCHList[1];
+	jsonSetting["Port_Detector3"] = PortCHList[2];
+	jsonSetting["Port_Detector4"] = PortCHList[3];
+	jsonSetting["Port_UDP"] = m_PortUDP;
+	jsonSetting["Port_ARM"] = m_PortARM;
+	WriteSetting(_T("Setting.json"), jsonSetting);
 }
 
 void CNetSetting::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Text(pDX, IDC_IPADDRESS_CH1, StrIP_CH[0]);
+	DDX_Text(pDX, IDC_IPADDRESS_CH2, StrIP_CH[1]);
+	DDX_Text(pDX, IDC_IPADDRESS_CH3, StrIP_CH[2]);
+	DDX_Text(pDX, IDC_IPADDRESS_CH4, StrIP_CH[3]);
+	DDX_Text(pDX, IDC_IPADDRESS_ARM, StrIP_ARM);
 	DDX_Text(pDX, IDC_UDP_PORT, m_PortUDP);
 	DDX_Text(pDX, IDC_CH1_PORT, PortCHList[0]);
 	DDX_Text(pDX, IDC_CH2_PORT, PortCHList[1]);
@@ -38,7 +65,6 @@ void CNetSetting::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_CH4_PORT, PortCHList[3]);
 	DDX_Text(pDX, IDC_ARM_PORT, m_PortARM);
 }
-
 
 BEGIN_MESSAGE_MAP(CNetSetting, CDialogEx)
 	ON_BN_CLICKED(IDC_NETSETTING_APPLY, &CNetSetting::SaveNetSetting)
@@ -52,41 +78,47 @@ BOOL CNetSetting::OnInitDialog()
 
 	// TODO:  在此添加额外的初始化
 	// ------------------读取配置参数并设置到相应控件上---------------------
-	CString StrIP_CH1 = _T("192.168.10.22");
-	CString StrIP_CH2 = _T("192.168.10.22");
-	CString StrIP_CH3 = _T("192.168.10.22");
-	CString StrIP_CH4 = _T("192.168.10.22");
-	CString StrIP_ARM = _T("192.168.10.22");
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	if (!jsonSetting.isNull()) {
-		StrIP_CH1 = jsonSetting["IP_Detector1"].asCString();
-		StrIP_CH2 = jsonSetting["IP_Detector2"].asCString();
-		StrIP_CH3 = jsonSetting["IP_Detector3"].asCString();
-		StrIP_CH4 = jsonSetting["IP_Detector4"].asCString();
-		StrIP_ARM = jsonSetting["IP_ARM"].asCString();
+		if(jsonSetting.isMember("IP_Detector1")) {
+			StrIP_CH[0] = jsonSetting["IP_Detector1"].asCString();
+		}
+		if(jsonSetting.isMember("IP_Detector2")) {
+			StrIP_CH[1] = jsonSetting["IP_Detector2"].asCString();
+		}
+		if(jsonSetting.isMember("IP_Detector3")) {
+			StrIP_CH[2] = jsonSetting["IP_Detector3"].asCString();
+		}
+		if(jsonSetting.isMember("IP_Detector4")) {
+			StrIP_CH[3] = jsonSetting["IP_Detector4"].asCString();
+		}
+		if (jsonSetting.isMember("IP_ARM")) {
+			StrIP_ARM = jsonSetting["IP_ARM"].asCString();
+		}
 
-		PortCHList[0] = jsonSetting["Port_Detector1"].asInt();
-		PortCHList[1] = jsonSetting["Port_Detector2"].asInt();
-		PortCHList[2] = jsonSetting["Port_Detector3"].asInt();
-		PortCHList[3] = jsonSetting["Port_Detector4"].asInt();
-		m_PortUDP = jsonSetting["Port_UDP"].asInt();
-		m_PortARM = jsonSetting["Port_ARM"].asInt();
+		if(jsonSetting.isMember("Port_Detector1")) {
+			PortCHList[0] = jsonSetting["Port_Detector1"].asInt();
+		}
+		if(jsonSetting.isMember("Port_Detector2")) {
+			PortCHList[1] = jsonSetting["Port_Detector2"].asInt();
+		}
+		if(jsonSetting.isMember("Port_Detector3")) {
+			PortCHList[2] = jsonSetting["Port_Detector3"].asInt();
+		}
+		if(jsonSetting.isMember("Port_Detector4")) {
+			PortCHList[3] = jsonSetting["Port_Detector4"].asInt();
+		}
+
+		if (jsonSetting.isMember("Port_UDP")) {
+			m_PortUDP = jsonSetting["Port_UDP"].asInt();
+		}
+		if (jsonSetting.isMember("Port_ARM")) {
+			m_PortARM = jsonSetting["Port_ARM"].asInt();
+		}
 	}
 
-	SetDlgItemText(IDC_IPADDRESS_CH1, StrIP_CH1);
-	SetDlgItemText(IDC_IPADDRESS_CH2, StrIP_CH2);
-	SetDlgItemText(IDC_IPADDRESS_CH3, StrIP_CH3);
-	SetDlgItemText(IDC_IPADDRESS_CH4, StrIP_CH4);
-	SetDlgItemText(IDC_IPADDRESS_ARM, StrIP_ARM);
-
-	SetDlgItemInt(IDC_CH1_PORT, PortCHList[0]);
-	SetDlgItemInt(IDC_CH2_PORT, PortCHList[1]);
-	SetDlgItemInt(IDC_CH3_PORT, PortCHList[2]);
-	SetDlgItemInt(IDC_CH4_PORT, PortCHList[3]);
-	SetDlgItemInt(IDC_ARM_PORT, m_PortARM);
-	SetDlgItemInt(IDC_UDP_PORT, m_PortUDP);
-
 	GetDlgItem(IDC_NETSETTING_APPLY)->EnableWindow(FALSE);
+	UpdateData(FALSE);
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
 }
@@ -136,34 +168,6 @@ void CNetSetting::SaveNetSetting()
 void CNetSetting::OnBnClickedCancel()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	//检测前后变量是否发生改变
-	/*BOOL isChange = FALSE;
-	UpdateData(FALSE);
-	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-	if (!jsonSetting.isNull()) {
-		CString StrIP_CH1, StrIP_CH2, StrIP_CH3, StrIP_CH4;
-		CString StrIP_ARM;
-		GetDlgItemText(IDC_IPADDRESS_CH1, StrIP_CH1);
-		GetDlgItemText(IDC_IPADDRESS_CH2, StrIP_CH2);
-		GetDlgItemText(IDC_IPADDRESS_CH3, StrIP_CH3);
-		GetDlgItemText(IDC_IPADDRESS_CH4, StrIP_CH4);
-		GetDlgItemText(IDC_IPADDRESS_ARM, StrIP_ARM);
-
-		if (StrIP_CH1 != jsonSetting["IP_Detector1"].asCString()) { 
-			isChange = TRUE; 
-		}
-		else if(StrIP_CH2 != jsonSetting["IP_Detector2"].asCString());
-		StrIP_CH3 = jsonSetting["IP_Detector3"].asCString();
-		StrIP_CH4 = jsonSetting["IP_Detector4"].asCString();
-		StrIP_ARM = jsonSetting["IP_ARM"].asCString();
-
-		PortCHList[0] = jsonSetting["Port_Detector1"].asInt();
-		PortCHList[1] = jsonSetting["Port_Detector2"].asInt();
-		PortCHList[2] = jsonSetting["Port_Detector3"].asInt();
-		PortCHList[3] = jsonSetting["Port_Detector4"].asInt();
-		m_PortUDP = jsonSetting["Port_UDP"].asInt();
-		m_PortARM = jsonSetting["Port_ARM"].asInt();
-	}*/
 	CDialogEx::OnCancel();
 }
 

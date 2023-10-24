@@ -58,8 +58,8 @@ END_MESSAGE_MAP()
 CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_XRAYS64CHANNEL_DIALOG, pParent)
 	, m_UDPSocket(NULL)
-	, DataMaxlen(5000)
 	, UDPStatus(FALSE)
+	, DataMaxlen(5000)
 	, MeasureMode(0)
 	, GetDataStatus(FALSE)
 	, m_getTargetChange(FALSE)
@@ -109,6 +109,17 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 
 CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 {
+	// 保存界面部分参数设置
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	jsonSetting["NetSwitchTotal"] = NetSwitchList[0];
+	jsonSetting["NetSwitchCH1"] = NetSwitchList[1];
+	jsonSetting["NetSwitchCH2"] = NetSwitchList[2];
+	jsonSetting["NetSwitchCH3"] = NetSwitchList[3];
+	jsonSetting["NetSwitchCH4"] = NetSwitchList[4];
+	jsonSetting["Measure_Time"] = MeasureTime;
+	jsonSetting["Refresh_Time"] = RefreshTime;
+	WriteSetting(_T("Setting.json"), jsonSetting);
+
 	CLog::WriteMsg(_T("正在退出软件，释放相关资源！"));
 
 	for (int i = 0; i < 6; i++) {
@@ -217,6 +228,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_MESSAGE(WM_UPDATE_TRIGER_LOG, &CXrays_64ChannelDlg::OnUpdateTrigerLog) 
 	ON_MESSAGE(WM_UPDATE_CH_DATA, &CXrays_64ChannelDlg::OnUpdateTimer1)
 	ON_MESSAGE(WM_UPDATE_SHOT, &CXrays_64ChannelDlg::OnUpdateShot)
+	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 
@@ -254,8 +266,6 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 	InitLayout(m_layout, this);
-	//UpdateData(TRUE); //表示写数据，将窗口控制变量写入内存（更新数据）
-	UpdateData(FALSE); //表示读数据，即显示窗口读取内存的数据以供实时显示
 	
 	//---------------初始化状态栏---------------
 	InitBarSettings();
@@ -265,6 +275,9 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 
 	//-------------------读取配置参数，初始化界面其他控件-----------
 	InitOtherSettings();
+
+	//UpdateData(TRUE); //表示写数据，将窗口控制变量写入内存（更新数据）
+	UpdateData(FALSE); //表示读数据，即显示窗口读取内存的数据以供实时显示
 
 	CLog::WriteMsg(_T("软件加载完成！"));
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -357,29 +370,83 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	CString StrSerIp4 = _T("192.168.10.22");
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	if (!jsonSetting.isNull()) {
-		StrSerIp = jsonSetting["IP_Detector1"].asCString();
-		StrSerIp2 = jsonSetting["IP_Detector2"].asCString();
-		StrSerIp3 = jsonSetting["IP_Detector3"].asCString();
-		StrSerIp4 = jsonSetting["IP_Detector4"].asCString();
+		if(jsonSetting.isMember("IP_Detector1"))
+		{
+			StrSerIp = jsonSetting["IP_Detector1"].asCString();
+		}
+		if(jsonSetting.isMember("IP_Detector2"))
+		{
+			StrSerIp2 = jsonSetting["IP_Detector2"].asCString();
+		}
+		if(jsonSetting.isMember("IP_Detector3"))
+		{
+			StrSerIp3 = jsonSetting["IP_Detector3"].asCString();
+		}
+		if(jsonSetting.isMember("IP_Detector4"))
+		{
+			StrSerIp4 = jsonSetting["IP_Detector4"].asCString();
+		}
+		if(jsonSetting.isMember("IP_Detector1"))
+		{
+			StrSerIp = jsonSetting["IP_Detector1"].asCString();
+		}
 
-		PortList[0] = jsonSetting["Port_Detector1"].asInt();
-		PortList[1] = jsonSetting["Port_Detector2"].asInt();
-		PortList[2] = jsonSetting["Port_Detector3"].asInt();
-		PortList[3] = jsonSetting["Port_Detector4"].asInt();
+		if(jsonSetting.isMember("Port_Detector1"))
+		{
+			PortList[0] = jsonSetting["Port_Detector1"].asInt();
+		}
+		if(jsonSetting.isMember("Port_Detector2"))
+		{
+			PortList[1] = jsonSetting["Port_Detector2"].asInt();
+		}
+		if(jsonSetting.isMember("Port_Detector3"))
+		{
+			PortList[2] = jsonSetting["Port_Detector3"].asInt();
+		}
+		if(jsonSetting.isMember("Port_Detector4"))
+		{
+			PortList[3] = jsonSetting["Port_Detector4"].asInt();
+		}
 
-		m_UDPPort = jsonSetting["Port_UDP"].asInt();
+		if(jsonSetting.isMember("NetSwitchTotal"))
+		{
+			NetSwitchList[0] = jsonSetting["NetSwitchTotal"].asBool();
+		}
+		if(jsonSetting.isMember("NetSwitchCH1"))
+		{
+			NetSwitchList[1] = jsonSetting["NetSwitchCH1"].asBool();
+		}
+		if(jsonSetting.isMember("NetSwitchCH2"))
+		{
+			NetSwitchList[2] = jsonSetting["NetSwitchCH2"].asBool();
+		}
+		if(jsonSetting.isMember("NetSwitchCH3"))
+		{
+			NetSwitchList[3] = jsonSetting["NetSwitchCH3"].asBool();
+		}
+		if(jsonSetting.isMember("NetSwitchCH4"))
+		{
+			NetSwitchList[4] = jsonSetting["NetSwitchCH4"].asBool();
+		}
+		
+		if(jsonSetting.isMember("Port_UDP"))
+		{
+			m_UDPPort = jsonSetting["Port_UDP"].asInt();
+		}
+
+		if (jsonSetting.isMember("Measure_Time"))
+		{
+			MeasureTime = jsonSetting["Measure_Time"].asInt();
+		}
+		if (jsonSetting.isMember("Refresh_Time"))
+		{
+			RefreshTime = jsonSetting["Refresh_Time"].asInt();
+		}
 	}
 	SetDlgItemText(IDC_IPADDRESS1, StrSerIp);
 	SetDlgItemText(IDC_IPADDRESS2, StrSerIp2);
 	SetDlgItemText(IDC_IPADDRESS3, StrSerIp3);
 	SetDlgItemText(IDC_IPADDRESS4, StrSerIp4);
-
-	SetDlgItemInt(IDC_PORT1, PortList[0]);
-	SetDlgItemInt(IDC_PORT2, PortList[1]);
-	SetDlgItemInt(IDC_PORT3, PortList[2]);
-	SetDlgItemInt(IDC_PORT4, PortList[3]);
-
-	SetDlgItemInt(IDC_UDPPORT, m_UDPPort);
 	
 	// ---------------设置部分按钮初始化使能状态-------------
 	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
@@ -766,7 +833,7 @@ UINT Recv_Th1(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d"),num);
+			strCH.Format(_T("CH%d.dat"),num);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
@@ -885,7 +952,7 @@ UINT Recv_Th2(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d"),num);
+			strCH.Format(_T("CH%d.dat"),num);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
@@ -1003,7 +1070,7 @@ UINT Recv_Th3(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d"),num);
+			strCH.Format(_T("CH%d.dat"),num);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
@@ -1121,7 +1188,7 @@ UINT Recv_Th4(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d"),num);
+			strCH.Format(_T("CH%d.dat"),num);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);

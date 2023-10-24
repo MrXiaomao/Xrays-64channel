@@ -142,8 +142,10 @@ void CXrays_64ChannelDlg::GetTemperature() {
 	//包头包尾判断
 	BYTE head[2] = { 0xAA, 0xBB };
 	BYTE tail[2] = { 0xCC, 0xDD };
+	int headLen = 2;
+	int packageLen = 11;
 	CByteArray outArray;
-	BOOL foundPackage = GetOnePackage(TotalARMArray, outArray, head, tail, 2, 11);
+	BOOL foundPackage = GetOnePackage(TotalARMArray, outArray, head, tail, headLen, packageLen);
 
 	if(foundPackage)
 	{
@@ -164,123 +166,21 @@ void CXrays_64ChannelDlg::GetTemperature() {
 		temperature[1 + num * 3] = ((outArray[5] & 0xFF) * 256.0 + (outArray[6] & 0xFF)) / 10.0;
 		temperature[2 + num * 3] = ((outArray[7] & 0xFF) * 256.0 + (outArray[8] & 0xFF)) / 10.0;
 	}
-	/*
-	int StandardPackLength = 11;
-	if (TotalARMArray.GetSize() >= StandardPackLength)
-	{
-		// 一个包11个字节
-		int StandardPackLength = 11;
-		//包头包尾判断
-		BYTE head[2] = { 0xAA, 0xBB };
-		BYTE tail[2] = { 0xCC, 0xDD };
-		//----------------------------------寻找包头包尾---------------------------------//
-		int HeadIndex = -1; // 赋初值在0-258之外
-		int TailIndex = -1;
-
-		// DataHead
-		for (int i = 0; i < TotalARMArray.GetSize() - 1; i++)
-		{
-			if (((char)TotalARMArray.GetAt(i) & 0xFF) == head[0])
-				if (((char)TotalARMArray.GetAt(i + 1) & 0xFF) == head[1])
-				{
-					HeadIndex = i;
-					break;
-				}
-		}
-
-		// DataTail
-		for (int i = 0; i < TotalARMArray.GetSize() - 1; i++)
-		{
-			if (((char)TotalARMArray.GetAt(i) & 0xFF) == tail[0])
-				if (((char)TotalARMArray.GetAt(i + 1) & 0xFF) == tail[1])
-				{
-					TailIndex = i;
-					break;
-				}
-		}
-
-		//-----------------------数据包异常处理------------------------//
-		// 如果没有检测到包头或者包尾则返回。不执行后面语句
-		if ((HeadIndex == -1) || (TailIndex == -1))  return;
-
-		if (HeadIndex > TailIndex) // 如果包头大于包尾则清除包头之前的数据
-		{
-			TotalARMArray.RemoveAt(0, HeadIndex);
-			return;
-		}
-
-		//提取一个数据包
-		CByteArray OnePackArray;
-		OnePackArray.Copy(TotalARMArray);
-		TotalARMArray.RemoveAt(0, StandardPackLength);
-		int equiID = (OnePackArray[2] & 0xFF); 
-		int num = 0;
-		if (equiID == 1) {
-			num = 0;
-			feedbackARM[0] = TRUE; //表明获取到了温度1的数据
-		}
-		if (equiID == 2) {
-			num = 1;
-			feedbackARM[1] = TRUE; //表明获取到了温度2的数据
-		}
-		temperature[0 + num*3] = ((OnePackArray[3] & 0xFF) * 256.0 + (OnePackArray[4] & 0xFF)) / 10.0;
-		temperature[1 + num * 3] = ((OnePackArray[5] & 0xFF) * 256.0 + (OnePackArray[6] & 0xFF)) / 10.0;
-		temperature[2 + num * 3] = ((OnePackArray[7] & 0xFF) * 256.0 + (OnePackArray[8] & 0xFF)) / 10.0;
-	}*/
 }
 
 void CXrays_64ChannelDlg::GetVoltCurrent() {
+	//包头包尾判断
+	BYTE head[2] = { 0xAA, 0xCC };
+	BYTE tail[2] = { 0xBB, 0xDD };
+	int headLen = 2;
+	int packageLen = 11;
+	CByteArray outArray;
+	BOOL foundPackage = GetOnePackage(TotalARMArray, outArray, head, tail, headLen, packageLen);
 
-	// 一个包8个字节
-	int StandardPackLength = 8;
-	if (TotalARMArray.GetSize() >= StandardPackLength)
+	if(foundPackage)
 	{
-		//包头包尾判断
-		BYTE head[2] = { 0xAA, 0xCC };
-		BYTE tail[2] = { 0xBB, 0xDD };
-		//----------------------------------寻找包头包尾---------------------------------//
-		int HeadIndex = -1; // 赋初值在0-258之外
-		int TailIndex = -1;
-
-		// DataHead
-		for (int i = 0; i < TotalARMArray.GetSize() - 1; i++)
-		{
-			if (((char)TotalARMArray.GetAt(i) & 0xFF) == head[0])
-				if (((char)TotalARMArray.GetAt(i + 1) & 0xFF) == head[1])
-				{
-					HeadIndex = i;
-					break;
-				}
-		}
-
-		// DataTail
-		for (int i = 0; i < TotalARMArray.GetSize() - 1; i++)
-		{
-			if (((char)TotalARMArray.GetAt(i) & 0xFF) == tail[0])
-				if (((char)TotalARMArray.GetAt(i + 1) & 0xFF) == tail[1])
-				{
-					TailIndex = i;
-					break;
-				}
-		}
-
-		//-----------------------数据包异常处理------------------------//
-		// 如果没有检测到包头或者包尾则返回。不执行后面语句
-		if ((HeadIndex == -1) || (TailIndex == -1))  return;
-
-		if (HeadIndex > TailIndex) // 如果包头大于包尾则清除包头之前的数据
-		{
-			TotalARMArray.RemoveAt(0, HeadIndex);
-			return;
-		}
-
-		//提取一个数据包
-		CByteArray OnePackArray;
-		OnePackArray.Copy(TotalARMArray);
-		TotalARMArray.RemoveAt(0, StandardPackLength);
-
-		powerVolt = ((OnePackArray[2] & 0xFF) * 256.0 + (OnePackArray[3] & 0xFF)) / 100.0;
-		powerCurrent = ((OnePackArray[4] & 0xFF) * 256.0 + (OnePackArray[5] & 0xFF)) /1000.0;
+		powerVolt = ((outArray[2] & 0xFF) * 256.0 + (outArray[3] & 0xFF)) / 100.0;
+		powerCurrent = ((outArray[4] & 0xFF) * 256.0 + (outArray[5] & 0xFF)) /1000.0;
 		
 		feedbackARM[2] = TRUE; //表明获取到了电压电流的数据
 		// 根据查询的顺序，先返回温度指令，再返回电压电流指令，因此在电流返回后再刷新

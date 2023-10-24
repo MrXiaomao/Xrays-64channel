@@ -122,8 +122,8 @@ BOOL GetOnePackage(CByteArray &TotalArray, CByteArray &OnePackArray, BYTE* head,
 {
 	if (TotalArray.GetSize() >= PackLength)
 	{
-		// 一个包11个字节
-		int PackLength = 11;
+		// 一个包的字节数
+		//int PackLength = 11;
 		//包头包尾判断
 		// BYTE head[2] = { 0xAA, 0xBB };
 		// BYTE tail[2] = { 0xCC, 0xDD };
@@ -265,7 +265,7 @@ Json::Value ReadSetting(CString fileName)
 	char* file = CstringToWideCharArry(fileName);
 	Json::Value root;
 	std::ifstream ifs;
-	ifs.open(file);
+	ifs.open(file, ifstream::out | ifstream::app);
 	if (!ifs.is_open()) {
 		CString msg;
 		msg.Format(_T("%s文件打开失败,请检查当前路径下存在该文件"), fileName);

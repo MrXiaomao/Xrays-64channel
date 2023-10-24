@@ -23,6 +23,12 @@ extern const int TIMER_INTERVAL;
 // 设置TCP的IP、PORT、复选框的输入使能状态
 void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag)
 {
+	//网络复选框
+	GetDlgItem(IDC_CHECK1)->EnableWindow(flag);
+	GetDlgItem(IDC_CHECK2)->EnableWindow(flag);
+	GetDlgItem(IDC_CHECK3)->EnableWindow(flag);
+	GetDlgItem(IDC_CHECK4)->EnableWindow(flag);
+	GetDlgItem(IDC_CHECK5)->EnableWindow(flag);
 	// IP
 	GetDlgItem(IDC_IPADDRESS1)->EnableWindow(flag);
 	GetDlgItem(IDC_IPADDRESS2)->EnableWindow(flag);
@@ -738,4 +744,35 @@ LRESULT CXrays_64ChannelDlg::OnUpdateShot(WPARAM wParam, LPARAM lParam){
 		}
 	}
 	return 0;
+}
+
+BOOL CXrays_64ChannelDlg::DestroyWindow()
+{
+	// TODO: 在此添加专用代码和/或调用基类
+	CDialogEx::OnOK();
+
+	return CDialogEx::DestroyWindow();
+}
+
+
+void CXrays_64ChannelDlg::OnClose()
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	BOOL AllconnectStatus = TRUE;
+	// 判断探测器网络连接状态，勾选的设备是否都是连接
+	for (int num = 0; num < 4; num++) {
+		if (connectStatusList[num] != NetSwitchList[num + 1]) AllconnectStatus = FALSE;
+	}
+
+	// 若ARM或者探测器处于联网状态则提醒用户是否退出
+	if (AllconnectStatus || ARMnetStatus) {
+		int choose = MessageBox(L"是否关闭窗口？", L"提示", MB_YESNO | MB_ICONQUESTION);
+		if (choose == IDYES)
+		{
+			CDialog::OnClose();
+		}
+	}
+	else {
+		CDialog::OnClose();
+	}
 }
