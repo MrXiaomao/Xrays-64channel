@@ -58,8 +58,14 @@ BOOL CPowerDlg::OnInitDialog()
 	CString StrSerIp = _T("192.168.10.22");
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	if (!jsonSetting.isNull()) {
-		StrSerIp = jsonSetting["IP_Relay"].asCString();
-		m_RelayPort = jsonSetting["Port_Relay"].asInt();
+		if (jsonSetting.isMember("IP_Relay"))
+		{
+			StrSerIp = jsonSetting["IP_Relay"].asCString();
+		}
+		if (jsonSetting.isMember("Port_Relay"))
+		{
+			m_RelayPort = jsonSetting["Port_Relay"].asInt();
+		}
 	}
 	SetDlgItemText(IDC_IPADDRESS_RELAY, StrSerIp);
 	SetDlgItemInt(IDC_RELAY_PORT, m_RelayPort);

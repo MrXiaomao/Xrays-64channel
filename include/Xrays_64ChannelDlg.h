@@ -105,19 +105,13 @@ public:
 	//----------------------ARM有关的网络相关函数--------------------
 	//刷新状态栏中通道1,温度，电压/电流
 	void refreshBar(); 
-	/*解析ARM返回的电压电流数据，根据包头包尾判断
-	输入：
-		packge：网口新接收的数据包
-	返回：未判断到完整的包头包尾时，返回电压为-1000
-	*/
-	void GetVoltCurrent(); 
 
-	/*解析ARM返回的温度数据，根据包头包尾判断
+	/*解析ARM返回的温度设备1、温度设备2、电流、电压数据，根据包头包尾判断
 		输入：
 			packge：网口新接收的数据包
 		返回：未判断到完整的包头包尾时，返回温度为-1000
 	*/
-	void GetTemperature();//GetTemperature(CByteArray& packge)
+	void GetARMData();//GetARMData(CByteArray& packge)
 	
 	//保存ARM监测的温度数据
 	void SaveEnviromentFile(double data[]);

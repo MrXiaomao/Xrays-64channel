@@ -1390,10 +1390,6 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			{
 				ArmTimer = 0;
 				send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
-				Sleep(10); // ARM需要较长的缓冲时间
-				send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
-				Sleep(10);
-				send(armSocket, (char*)Order::ARM_VoltCurrent, 12, 0);
 			}
 		}
 		break;

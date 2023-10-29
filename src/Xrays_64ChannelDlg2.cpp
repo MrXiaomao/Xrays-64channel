@@ -168,33 +168,14 @@ void CXrays_64ChannelDlg::SaveEnviromentFile(double data[])
 	if (datafile.is_open())
 	{
 		datafile << setw(25) << _UnicodeToUtf8(strPart_Time);
-		if (feedbackARM[0]) {
-			datafile << setw(10) << data[0];
-			datafile << setw(10) << data[1];
-			datafile << setw(10) << data[2];
-		}
-		else {
-			datafile << setw(10) << "--";
-			datafile << setw(10) << "--";
-			datafile << setw(10) << "--";
-		}
-		if (feedbackARM[1]) {
-			datafile << setw(10) << data[3];
-			datafile << setw(10) << data[4];
-			datafile << setw(10) << data[5];
-		}
-		else {
-			datafile << setw(10) << "--";
-			datafile << setw(10) << "--";
-			datafile << setw(10) << "--";
-		}
-		if (feedbackARM[2]) {
-			datafile << setw(10) << data[6];
-			datafile << setw(10) << data[7];
-		}
-		else {
-			datafile << setw(10) << "--";
-			datafile << setw(10) << "--";
+		
+		for(int i=0; i<8; i++){
+			if(abs(data[i] - 6553.5)<0.01) {
+				datafile << setw(10) << "--";
+			}
+			else{
+				datafile << setw(10) << data[i];
+			}
 		}
 		datafile << endl;
 		datafile.close();

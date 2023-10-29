@@ -37,8 +37,14 @@ void CXrays_64ChannelDlg::TempVoltMonitorON_OFF()
 		Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 		CString StrIP_ARM = _T("192.168.10.22");
 		int portARM = 1000;
-		StrIP_ARM = jsonSetting["IP_ARM"].asCString();
-		portARM = jsonSetting["Port_ARM"].asInt();
+		if (jsonSetting.isMember("IP_ARM"))
+		{
+			StrIP_ARM = jsonSetting["IP_ARM"].asCString();
+		}
+		if (jsonSetting.isMember("Port_ARM"))
+		{
+			portARM = jsonSetting["Port_ARM"].asInt();
+		}
 
 		CString info;
 		if (ConnectGeneralTCP(armSocket, StrIP_ARM, portARM)) {
@@ -56,10 +62,6 @@ void CXrays_64ChannelDlg::TempVoltMonitorON_OFF()
 			
 			//首次连接上时直接查询一次温度/电压/电流
 			send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
-			Sleep(10);//是否有必要
-			send(armSocket, (char*)Order::ARM_Temperature2, 12, 0);
-			Sleep(10);//是否有必要
-			send(armSocket, (char*)Order::ARM_VoltCurrent, 12, 0);
 		}
 		else {
 			info = _T("无法连接温度/电压/电流监测网络");
@@ -132,89 +134,65 @@ BOOL CXrays_64ChannelDlg::ConnectGeneralTCP(SOCKET &my_socket, CString strIP, in
 	return TRUE;
 }
 
+//读取ARM消息，6个温度、电压、电流
 LRESULT CXrays_64ChannelDlg::OnUpdateARMStatic(WPARAM wParam, LPARAM lParam){
-	GetTemperature(); //尝试解析温度
-	GetVoltCurrent(); //尝试解析电压电流
+	GetARMData();
 	return 0;
 }
 
-void CXrays_64ChannelDlg::GetTemperature() {
+void CXrays_64ChannelDlg::GetARMData() {
 	//包头包尾判断
 	BYTE head[2] = { 0xAA, 0xBB };
 	BYTE tail[2] = { 0xCC, 0xDD };
 	int headLen = 2;
-	int packageLen = 11;
+	int packageLen = 26;
 	CByteArray outArray;
 	BOOL foundPackage = GetOnePackage(TotalARMArray, outArray, head, tail, headLen, packageLen);
 
 	if(foundPackage)
 	{
-		int equiID = (outArray[2] & 0xFF); 
-		int num = 0;
-		if (equiID == 1) {
-			num = 0;
-			feedbackARM[0] = TRUE; //表明获取到了温度1的数据
-		}
-		if (equiID == 2) {
-			num = 1;
-			feedbackARM[1] = TRUE; //表明获取到了温度2的数据
-		}
-		else {
-			return;
-		}
-		temperature[0 + num*3] = ((outArray[3] & 0xFF) * 256.0 + (outArray[4] & 0xFF)) / 10.0;
-		temperature[1 + num * 3] = ((outArray[5] & 0xFF) * 256.0 + (outArray[6] & 0xFF)) / 10.0;
-		temperature[2 + num * 3] = ((outArray[7] & 0xFF) * 256.0 + (outArray[8] & 0xFF)) / 10.0;
-	}
-}
+		powerVolt = ((outArray[3] & 0xFF) * 256.0 + (outArray[4] & 0xFF)) / 100.0;
+		powerCurrent = ((outArray[5] & 0xFF) * 256.0 + (outArray[6] & 0xFF)) /1000.0;
 
-void CXrays_64ChannelDlg::GetVoltCurrent() {
-	//包头包尾判断
-	BYTE head[2] = { 0xAA, 0xCC };
-	BYTE tail[2] = { 0xBB, 0xDD };
-	int headLen = 2;
-	int packageLen = 11;
-	CByteArray outArray;
-	BOOL foundPackage = GetOnePackage(TotalARMArray, outArray, head, tail, headLen, packageLen);
-
-	if(foundPackage)
-	{
-		powerVolt = ((outArray[2] & 0xFF) * 256.0 + (outArray[3] & 0xFF)) / 100.0;
-		powerCurrent = ((outArray[4] & 0xFF) * 256.0 + (outArray[5] & 0xFF)) /1000.0;
+		temperature[0] = ((outArray[8] & 0xFF) * 256.0 + (outArray[9] & 0xFF)) / 10.0;
+		temperature[1] = ((outArray[10] & 0xFF) * 256.0 + (outArray[11] & 0xFF)) / 10.0;
+		temperature[2] = ((outArray[12] & 0xFF) * 256.0 + (outArray[13] & 0xFF)) / 10.0;
 		
-		feedbackARM[2] = TRUE; //表明获取到了电压电流的数据
-		// 根据查询的顺序，先返回温度指令，再返回电压电流指令，因此在电流返回后再刷新
+		temperature[3] = ((outArray[15] & 0xFF) * 256.0 + (outArray[16] & 0xFF)) / 10.0;
+		temperature[4] = ((outArray[17] & 0xFF) * 256.0 + (outArray[18] & 0xFF)) / 10.0;
+		temperature[5] = ((outArray[19] & 0xFF) * 256.0 + (outArray[20] & 0xFF)) / 10.0;
+
 		refreshBar();
 	}
 }
 
+
+//刷新状态栏
 void CXrays_64ChannelDlg::refreshBar() {
-	//刷新状态栏
+	//温度监控设备1和2
 	CString strInfo1;
-	if(feedbackARM[0]){
-		strInfo1.Format(_T("%.2f℃,%.2f℃,%.2f℃,"), temperature[0], temperature[1], temperature[2]);
-	}
-	else {
-		strInfo1 = _T("--℃,--℃,--℃,");
+	//出现数值6553.5，则是温度传感器不存在，或者接触异常（如松动）等原因。
+	for(int i=0; i<6; i++){
+		CString tempStr;
+		if(abs(temperature[i] - 6553.5)<0.01){
+			tempStr = _T("--℃,");
+		}
+		else{
+			tempStr.Format(_T("%.2f℃,"),temperature[i]);
+		}
+		strInfo1 += tempStr;
 	}
 
+	//电压电流监控设备
 	CString strInfo2;
-	if (feedbackARM[1]) {
-		strInfo2.Format(_T("%.2f℃,%.2f℃,%.2f℃,"), temperature[3], temperature[4], temperature[5]);
+	if(abs(powerVolt - 6553.5)<0.01 || abs(powerCurrent - 6553.5)<0.01){
+		strInfo2 = _T("--V,--A");
 	}
 	else {
-		strInfo2 = _T("--℃,--℃,--℃,");
+		strInfo2.Format(_T("%.2fV,%.2fA"), powerVolt, powerCurrent);
 	}
 
-	CString strInfo3;
-	if (feedbackARM[2]) {
-		strInfo3.Format(_T("%.2fV,%.2fA"), powerVolt, powerCurrent);
-	}
-	else {
-		strInfo3 = _T("--V,--A");
-	}
-
-	CString strInfo = strInfo1 + strInfo2 + strInfo3;
+	CString strInfo = strInfo1 + strInfo2;
 	m_statusBar.SetPaneText(1, strInfo);
 	
 	// 保存数据到文件

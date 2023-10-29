@@ -176,6 +176,7 @@ BOOL GetOnePackage(CByteArray &TotalArray, CByteArray &OnePackArray, BYTE* head,
 		//提取一个数据包
 		// CByteArray OnePackArray;
 		if ((TailIndex - HeadIndex) == (PackLength - checkLen)) {
+			TotalArray.RemoveAt(0, HeadIndex);//移除包头以前的部分
 			OnePackArray.Copy(TotalArray);
 			TotalArray.RemoveAt(0, PackLength);
 			return TRUE;
