@@ -6,13 +6,24 @@
 #include "afxwin.h"
 #include "windows.h"
 //#include <iostream>
-//#include <fstream>
+#include <fstream>
 #include "json/json.h"
 using namespace std;
 
 // By maoxiaoqing 1207402640@qq.com 
 // 该文件存放常用的一些简单函数，供其他模块调用。
-
+//保存TCP传输过来的测量数据
+inline void SaveFile_BYTE(CString fileName, BYTE* mk, int length)
+{
+	if (length < 1)
+		return;
+	CFile mfile;
+	mfile.Open(fileName.GetBuffer(100), CFile::modeCreate | CFile::modeNoTruncate |CFile::modeWrite);
+	mfile.SeekToEnd();
+	mfile.Write(mk, length);
+	fileName.ReleaseBuffer();
+	mfile.Close();
+}
 
 // 判断文件夹路径是否存在
 BOOL IsPathExit(CString strPath);

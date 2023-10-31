@@ -765,20 +765,20 @@ UINT Recv_Th1(LPVOID p)
 		if (!dlg->connectStatusList[num]) return 0;
 
 		const int dataLen = 10000; //接收的数据包长度
-		char mk[dataLen];
+		BYTE mk[dataLen];
 
 		int nLength;
-		nLength = recv(dlg->SocketList[num], mk, dataLen, 0);
+		nLength = recv(dlg->SocketList[num], (char*)mk, dataLen, 0);
 		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
 		{
 			return 0;
 		}
 		else {
 			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback[num]){
+			if (dlg->ifFeedback[num]) {
 				int receLen = 0; //本次接受总反馈指令长度
 				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
-				
+
 				// 计算本次及之前接受到的反馈指令字节数
 				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
 					receLen = receivedLen + nLength;
@@ -802,23 +802,23 @@ UINT Recv_Th1(LPVOID p)
 						tempChar[receivedLen + i] = mk[i];
 					}
 					nLength = 0;
-				} 
-				else{
+				}
+				else {
 					// 先拼反馈指令
 					int remainLen = 12 - receivedLen; //剩余拼接长度
 					for (int i = 0; i < remainLen; i++) {
 						tempChar[receivedLen + i] = mk[i];
 					}
-					
+
 					// 再处理剩余字符数组
 					nLength = nLength - remainLen;
 					for (int i = 0; i < nLength; i++) {
-						mk[i] = mk[remainLen+i];
+						mk[i] = mk[remainLen + i];
 					}
 				}
-				
+
 				singleLock.Lock(); //线程锁
-				if (singleLock.IsLocked()){
+				if (singleLock.IsLocked()) {
 					dlg->RecvMsg[num] = tempChar;
 					dlg->recievedFBLength[num] = receLen;
 				}
@@ -826,10 +826,10 @@ UINT Recv_Th1(LPVOID p)
 
 				if (receLen == dlg->FeedbackLen[num]) {
 					singleLock.Lock(); //线程锁
-					if (singleLock.IsLocked()){
+					if (singleLock.IsLocked()) {
 						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
 					}
-					singleLock.Unlock();					
+					singleLock.Unlock();
 				}
 			}
 
@@ -837,16 +837,17 @@ UINT Recv_Th1(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d.dat"),num+1);
+			strCH.Format(_T("CH%d.dat"), num + 1);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
-			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(num, mk, nLength);
+			//dlg->SaveFile(fileName, mk, nLength);
+			SaveFile_BYTE(fileName, mk, nLength);
+			dlg->AddTCPData(num, (char*)mk, nLength);
 
 			// 触发信号甄别
-			if(dlg->TrigerMode[num] == 2){
-				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
+			if (dlg->TrigerMode[num] == 2) {
+				if (nLength == 12 && (strncmp((char*)mk, (char*)Order::HardTriggerBack, nLength) == 0)) {
 					singleLock.Lock();
-					if (singleLock.IsLocked()){
+					if (singleLock.IsLocked()) {
 						dlg->TrigerMode[num] = 0;
 					}
 					singleLock.Unlock();
@@ -854,18 +855,17 @@ UINT Recv_Th1(LPVOID p)
 				}
 				continue;
 			}
-			
+
 			// 有效测量数据开始
 			singleLock.Lock();
-			if (singleLock.IsLocked()){
+			if (singleLock.IsLocked()) {
 				dlg->GetDataStatus = TRUE; //线程锁的变量
 			}
 			singleLock.Unlock();
 
 			//发送消息通知主界面,进入定时测量状态
 			if (dlg->m_nTimerId[0] == 0) {
-				//PostMessage非阻塞函数，发送完消息，不管界面线程是否处理，都继续运行
-				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0); 
+				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
 			}
 		}
 	}
@@ -884,10 +884,10 @@ UINT Recv_Th2(LPVOID p)
 		if (!dlg->connectStatusList[num]) return 0;
 
 		const int dataLen = 10000; //接收的数据包长度
-		char mk[dataLen];
+		BYTE mk[dataLen];
 
 		int nLength;
-		nLength = recv(dlg->SocketList[num], mk, dataLen, 0);
+		nLength = recv(dlg->SocketList[num], (char*)mk, dataLen, 0);
 		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
 		{
 			return 0;
@@ -958,12 +958,13 @@ UINT Recv_Th2(LPVOID p)
 			CString strCH;
 			strCH.Format(_T("CH%d.dat"),num+1);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
-			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(num, mk, nLength);
+			//dlg->SaveFile(fileName, mk, nLength);
+			SaveFile_BYTE(fileName, mk, nLength);
+			dlg->AddTCPData(num, (char*)mk, nLength);
 
 			// 触发信号甄别
 			if(dlg->TrigerMode[num] == 2){
-				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
+				if(nLength==12 && (strncmp((char*)mk, (char *)Order::HardTriggerBack, nLength) == 0)){
 					singleLock.Lock();
 					if (singleLock.IsLocked()){
 						dlg->TrigerMode[num] = 0;
@@ -1002,20 +1003,20 @@ UINT Recv_Th3(LPVOID p)
 		if (!dlg->connectStatusList[num]) return 0;
 
 		const int dataLen = 10000; //接收的数据包长度
-		char mk[dataLen];
+		BYTE mk[dataLen];
 
 		int nLength;
-		nLength = recv(dlg->SocketList[num], mk, dataLen, 0);
+		nLength = recv(dlg->SocketList[num], (char*)mk, dataLen, 0);
 		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
 		{
 			return 0;
 		}
 		else {
 			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback[num]){
+			if (dlg->ifFeedback[num]) {
 				int receLen = 0; //本次接受总反馈指令长度
 				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
-				
+
 				// 计算本次及之前接受到的反馈指令字节数
 				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
 					receLen = receivedLen + nLength;
@@ -1039,23 +1040,23 @@ UINT Recv_Th3(LPVOID p)
 						tempChar[receivedLen + i] = mk[i];
 					}
 					nLength = 0;
-				} 
-				else{
+				}
+				else {
 					// 先拼反馈指令
 					int remainLen = 12 - receivedLen; //剩余拼接长度
 					for (int i = 0; i < remainLen; i++) {
 						tempChar[receivedLen + i] = mk[i];
 					}
-					
+
 					// 再处理剩余字符数组
 					nLength = nLength - remainLen;
 					for (int i = 0; i < nLength; i++) {
-						mk[i] = mk[remainLen+i];
+						mk[i] = mk[remainLen + i];
 					}
 				}
-				
+
 				singleLock.Lock(); //线程锁
-				if (singleLock.IsLocked()){
+				if (singleLock.IsLocked()) {
 					dlg->RecvMsg[num] = tempChar;
 					dlg->recievedFBLength[num] = receLen;
 				}
@@ -1063,10 +1064,10 @@ UINT Recv_Th3(LPVOID p)
 
 				if (receLen == dlg->FeedbackLen[num]) {
 					singleLock.Lock(); //线程锁
-					if (singleLock.IsLocked()){
+					if (singleLock.IsLocked()) {
 						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
 					}
-					singleLock.Unlock();					
+					singleLock.Unlock();
 				}
 			}
 
@@ -1074,16 +1075,17 @@ UINT Recv_Th3(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d.dat"),num+1);
+			strCH.Format(_T("CH%d.dat"), num + 1);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
-			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(num, mk, nLength);
+			//dlg->SaveFile(fileName, mk, nLength);
+			SaveFile_BYTE(fileName, mk, nLength);
+			dlg->AddTCPData(num, (char*)mk, nLength);
 
 			// 触发信号甄别
-			if(dlg->TrigerMode[num] == 2){
-				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
+			if (dlg->TrigerMode[num] == 2) {
+				if (nLength == 12 && (strncmp((char*)mk, (char*)Order::HardTriggerBack, nLength) == 0)) {
 					singleLock.Lock();
-					if (singleLock.IsLocked()){
+					if (singleLock.IsLocked()) {
 						dlg->TrigerMode[num] = 0;
 					}
 					singleLock.Unlock();
@@ -1091,10 +1093,10 @@ UINT Recv_Th3(LPVOID p)
 				}
 				continue;
 			}
-			
+
 			// 有效测量数据开始
 			singleLock.Lock();
-			if (singleLock.IsLocked()){
+			if (singleLock.IsLocked()) {
 				dlg->GetDataStatus = TRUE; //线程锁的变量
 			}
 			singleLock.Unlock();
@@ -1120,20 +1122,20 @@ UINT Recv_Th4(LPVOID p)
 		if (!dlg->connectStatusList[num]) return 0;
 
 		const int dataLen = 10000; //接收的数据包长度
-		char mk[dataLen];
+		BYTE mk[dataLen];
 
 		int nLength;
-		nLength = recv(dlg->SocketList[num], mk, dataLen, 0);
+		nLength = recv(dlg->SocketList[num], (char*)mk, dataLen, 0);
 		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
 		{
 			return 0;
 		}
 		else {
 			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback[num]){
+			if (dlg->ifFeedback[num]) {
 				int receLen = 0; //本次接受总反馈指令长度
 				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
-				
+
 				// 计算本次及之前接受到的反馈指令字节数
 				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
 					receLen = receivedLen + nLength;
@@ -1157,23 +1159,23 @@ UINT Recv_Th4(LPVOID p)
 						tempChar[receivedLen + i] = mk[i];
 					}
 					nLength = 0;
-				} 
-				else{
+				}
+				else {
 					// 先拼反馈指令
 					int remainLen = 12 - receivedLen; //剩余拼接长度
 					for (int i = 0; i < remainLen; i++) {
 						tempChar[receivedLen + i] = mk[i];
 					}
-					
+
 					// 再处理剩余字符数组
 					nLength = nLength - remainLen;
 					for (int i = 0; i < nLength; i++) {
-						mk[i] = mk[remainLen+i];
+						mk[i] = mk[remainLen + i];
 					}
 				}
-				
+
 				singleLock.Lock(); //线程锁
-				if (singleLock.IsLocked()){
+				if (singleLock.IsLocked()) {
 					dlg->RecvMsg[num] = tempChar;
 					dlg->recievedFBLength[num] = receLen;
 				}
@@ -1181,10 +1183,10 @@ UINT Recv_Th4(LPVOID p)
 
 				if (receLen == dlg->FeedbackLen[num]) {
 					singleLock.Lock(); //线程锁
-					if (singleLock.IsLocked()){
+					if (singleLock.IsLocked()) {
 						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
 					}
-					singleLock.Unlock();					
+					singleLock.Unlock();
 				}
 			}
 
@@ -1192,16 +1194,17 @@ UINT Recv_Th4(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d.dat"),num+1);
+			strCH.Format(_T("CH%d.dat"), num + 1);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
-			dlg->SaveFile(fileName, mk, nLength);
-			dlg->AddTCPData(num, mk, nLength);
+			//dlg->SaveFile(fileName, mk, nLength);
+			SaveFile_BYTE(fileName, mk, nLength);
+			dlg->AddTCPData(num, (char*)mk, nLength);
 
 			// 触发信号甄别
-			if(dlg->TrigerMode[num] == 2){
-				if(nLength==12 && (strncmp(mk, (char *)Order::HardTriggerBack, nLength) == 0)){
+			if (dlg->TrigerMode[num] == 2) {
+				if (nLength == 12 && (strncmp((char*)mk, (char*)Order::HardTriggerBack, nLength) == 0)) {
 					singleLock.Lock();
-					if (singleLock.IsLocked()){
+					if (singleLock.IsLocked()) {
 						dlg->TrigerMode[num] = 0;
 					}
 					singleLock.Unlock();
@@ -1209,16 +1212,16 @@ UINT Recv_Th4(LPVOID p)
 				}
 				continue;
 			}
-			
+
 			// 有效测量数据开始
 			singleLock.Lock();
-			if (singleLock.IsLocked()){
+			if (singleLock.IsLocked()) {
 				dlg->GetDataStatus = TRUE; //线程锁的变量
 			}
 			singleLock.Unlock();
 
 			//发送消息通知主界面,进入定时测量状态
-			if (dlg->m_nTimerId[1] == 0) {
+			if (dlg->m_nTimerId[0] == 0) {
 				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
 			}
 		}
@@ -1437,7 +1440,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 		//向TCP发送开始指令
 		for (int num = 0; num < 4; num++) {
-			if(connectStatusList[num]) NoBackSend(num, Order::StartSoftTrigger, 12, 0, 1);
+			if(connectStatusList[num]) BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
 			singleLock.Lock();
 			if (singleLock.IsLocked()){
 				TrigerMode[num] = 1;
