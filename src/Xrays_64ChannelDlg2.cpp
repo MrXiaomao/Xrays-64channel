@@ -54,7 +54,7 @@ void CXrays_64ChannelDlg::SetParameterInputStatus(BOOL flag)
 	//能谱模式选择
 	GetDlgItem(IDC_WAVE_MODE)->EnableWindow(flag);
 	//阈值设置
-	GetDlgItem(IDC_CH1Threahold)->EnableWindow(flag);
+	GetDlgItem(IDC_CH1Threshold)->EnableWindow(flag);
 }
 
 // 打开UDP通信
@@ -292,6 +292,27 @@ void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 	}
 }
 
+//限制触发阈值
+void CXrays_64ChannelDlg::OnEnKillfocusThreshold()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	UpdateData(true);
+	if ((m_Threshold < 1) || (m_Threshold > 2048))
+	{
+		CString message = _T("触发阈值范围为1~2048\n");
+		MessageBox(message);
+		if (m_Threshold > 2048)
+		{
+			m_Threshold = 2048;
+		}
+		else
+		{
+			m_Threshold = 1;
+		}
+		UpdateData(false);
+	}
+}
+
 //设置文件存储路径
 void CXrays_64ChannelDlg::OnBnClickedSaveas()
 {
@@ -332,6 +353,13 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	Order::WaveRefreshTime[7] = res[1];
 	Order::WaveRefreshTime[8] = res[2];
 	Order::WaveRefreshTime[9] = res[3];
+	
+	char res2[5];
+	DecToHex(m_Threshold, res2);
+	Order::TriggerThreshold[6] = res2[0];
+	Order::TriggerThreshold[7] = res2[1];
+	Order::TriggerThreshold[8] = res2[2];
+	Order::TriggerThreshold[9] = res2[3];
 
 	//能谱刷新时间，波形触发间隔，波形触发阈值
 	for (int num = 0; num < 4; num++) {

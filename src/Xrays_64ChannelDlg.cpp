@@ -77,6 +77,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, m_UDPPort(12100)
 	, MeasureTime(3000)
 	, RefreshTime(10)
+	, m_Threshold(15)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_NUCLEAR); //设置主界面图标
 	DataCH1 = new char[DataMaxlen];
@@ -96,6 +97,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 		recievedFBLength[num] = 0;
 		FeedbackLen[num] = 12;
 		TrigerMode[num] = 0;
+		StrIP_CH[num] = _T("192.168.10.22");
 	}
 
 	for(int i=0; i<3; i++){
@@ -118,6 +120,8 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 	jsonSetting["NetSwitchCH4"] = NetSwitchList[4];
 	jsonSetting["Measure_Time"] = MeasureTime;
 	jsonSetting["Refresh_Time"] = RefreshTime;
+	jsonSetting["Threshold"] = m_Threshold;
+	jsonSetting["WaveMode"] = m_WaveMode.GetCurSel();
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
 	CLog::WriteMsg(_T("正在退出软件，释放相关资源！"));
@@ -173,17 +177,21 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LED3, m_NetStatusLEDList[2]);		// “建立链接”LED
 	DDX_Control(pDX, IDC_LED4, m_NetStatusLEDList[3]);		// “建立链接”LED
 	DDX_Control(pDX, IDC_ARM_LED, m_AMR_LED);		// “建立链接”LED
-	DDX_Control(pDX, IDC_IPADDRESS1, ServerIP);
+	DDX_Text(pDX, IDC_IPADDRESS1, StrIP_CH[0]);
+	DDX_Text(pDX, IDC_IPADDRESS2, StrIP_CH[1]);
+	DDX_Text(pDX, IDC_IPADDRESS3, StrIP_CH[2]);
+	DDX_Text(pDX, IDC_IPADDRESS4, StrIP_CH[3]);
 	DDX_Text(pDX, IDC_PORT1, PortList[0]);
 	DDX_Text(pDX, IDC_PORT2, PortList[1]);
 	DDX_Text(pDX, IDC_PORT3, PortList[2]);
 	DDX_Text(pDX, IDC_PORT4, PortList[3]);
-	DDX_Control(pDX, IDC_COMBO1, m_TriggerType);
+	// DDX_Control(pDX, IDC_COMBO1, m_TriggerType);
 	DDX_Control(pDX, IDC_WAVE_MODE, m_WaveMode);
 	DDX_Text(pDX, IDC_TargetNum, m_targetID);
 	DDX_Text(pDX, IDC_UDPPORT, m_UDPPort);
 	DDX_Control(pDX, IDC_TAB1, m_Tab);
 	DDX_Text(pDX, IDC_MeasureTime, MeasureTime);
+	DDX_Text(pDX, IDC_CH1Threshold, m_Threshold);
 	DDX_Text(pDX, IDC_RefreshTimeEdit, RefreshTime);
 	DDX_Check(pDX, IDC_CHECK1, NetSwitchList[0]);
 	DDX_Check(pDX, IDC_CHECK2, NetSwitchList[1]);
@@ -205,6 +213,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_EN_KILLFOCUS(IDC_PORT3, &CXrays_64ChannelDlg::OnEnKillfocusPort3)
 	ON_EN_KILLFOCUS(IDC_PORT4, &CXrays_64ChannelDlg::OnEnKillfocusPort4)
 	ON_EN_KILLFOCUS(IDC_UDPPORT, &CXrays_64ChannelDlg::OnEnKillfocusUDPPort)
+	ON_EN_KILLFOCUS(IDC_CH1Threshold, &CXrays_64ChannelDlg::OnEnKillfocusThreshold)
 	ON_EN_KILLFOCUS(IDC_RefreshTimeEdit, &CXrays_64ChannelDlg::OnEnKillfocusRefreshTime)
 	ON_EN_KILLFOCUS(IDC_MeasureTime, &CXrays_64ChannelDlg::OnEnKillfocusMeasureTime)
 	ON_BN_CLICKED(IDC_Start, &CXrays_64ChannelDlg::OnBnClickedStart)
@@ -214,7 +223,6 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_UDP_BUTTON, &CXrays_64ChannelDlg::OnBnClickedUDPButton)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
 	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
-	ON_CBN_SELCHANGE(IDC_WAVE_MODE, &CXrays_64ChannelDlg::OnCbnSelchangeWaveMode)
 	ON_BN_CLICKED(IDC_CHECK1, &CXrays_64ChannelDlg::OnBnClickedCheck0)
 	ON_BN_CLICKED(IDC_CHECK2, &CXrays_64ChannelDlg::OnBnClickedCheck1)
 	ON_BN_CLICKED(IDC_CHECK3, &CXrays_64ChannelDlg::OnBnClickedCheck2)
@@ -347,10 +355,6 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	}
 	m_AMR_LED.RefreshWindow(FALSE, _T("OFF"));
 
-	// 设置下拉框默认选项
-	m_TriggerType.SetCurSel(0); 
-	m_WaveMode.SetCurSel(0);
-
 	CString strPath = GetExeDir();
 	if (IsPathExit(strPath)) {
 		saveAsPath = strPath;
@@ -364,7 +368,6 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	}
 	
 	// ------------------读取配置参数并设置到相应控件上---------------------
-	CString StrSerIp = _T("192.168.10.22");
 	CString StrSerIp2 = _T("192.168.10.22");
 	CString StrSerIp3 = _T("192.168.10.22");
 	CString StrSerIp4 = _T("192.168.10.22");
@@ -372,23 +375,19 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	if (!jsonSetting.isNull()) {
 		if(jsonSetting.isMember("IP_Detector1"))
 		{
-			StrSerIp = jsonSetting["IP_Detector1"].asCString();
+			StrIP_CH[0] = jsonSetting["IP_Detector1"].asCString();
 		}
 		if(jsonSetting.isMember("IP_Detector2"))
 		{
-			StrSerIp2 = jsonSetting["IP_Detector2"].asCString();
+			StrIP_CH[1] = jsonSetting["IP_Detector2"].asCString();
 		}
 		if(jsonSetting.isMember("IP_Detector3"))
 		{
-			StrSerIp3 = jsonSetting["IP_Detector3"].asCString();
+			StrIP_CH[2] = jsonSetting["IP_Detector3"].asCString();
 		}
 		if(jsonSetting.isMember("IP_Detector4"))
 		{
-			StrSerIp4 = jsonSetting["IP_Detector4"].asCString();
-		}
-		if(jsonSetting.isMember("IP_Detector1"))
-		{
-			StrSerIp = jsonSetting["IP_Detector1"].asCString();
+			StrIP_CH[3] = jsonSetting["IP_Detector4"].asCString();
 		}
 
 		if(jsonSetting.isMember("Port_Detector1"))
@@ -434,6 +433,10 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 			m_UDPPort = jsonSetting["Port_UDP"].asInt();
 		}
 
+		if (jsonSetting.isMember("Threshold"))
+		{
+			m_Threshold = jsonSetting["Threshold"].asInt();
+		}
 		if (jsonSetting.isMember("Measure_Time"))
 		{
 			MeasureTime = jsonSetting["Measure_Time"].asInt();
@@ -442,11 +445,18 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 		{
 			RefreshTime = jsonSetting["Refresh_Time"].asInt();
 		}
+
+		//设置下拉框默认选项
+		m_WaveMode.SetCurSel(0);
+		int waveMode = 0;
+		if (jsonSetting.isMember("WaveMode"))
+		{
+			waveMode = jsonSetting["WaveMode"].asInt();
+			if(waveMode<2){
+				m_WaveMode.SetCurSel(waveMode);
+			}
+		}
 	}
-	SetDlgItemText(IDC_IPADDRESS1, StrSerIp);
-	SetDlgItemText(IDC_IPADDRESS2, StrSerIp2);
-	SetDlgItemText(IDC_IPADDRESS3, StrSerIp3);
-	SetDlgItemText(IDC_IPADDRESS4, StrSerIp4);
 	
 	// ---------------设置部分按钮初始化使能状态-------------
 	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
@@ -520,12 +530,6 @@ void CXrays_64ChannelDlg::OnBnClickedUDPButton()
 		CloseUDP();
 		SetDlgItemText(IDC_UDP_BUTTON, _T("开启UDP网络"));
 	}
-}
-
-//选择能谱模式
-void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
-{
-	// TODO: 在此添加控件通知处理程序代码
 }
 
 // 获取刻度曲线数据文件的全路径
@@ -728,7 +732,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
 	server_addr.sin_port = htons(PortList[num]); //网关：5000
-	SetSocketSize(SocketList[num], 1048576*3); //1M=1024k=1048576字节，缓存区大小
+	SetSocketSize(SocketList[num], 1048576*4); //1M=1024k=1048576字节，缓存区大小
 	
 	// 4、检测网络是否连接,以及显示设备联网状况
 	if (connect(SocketList[num], (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
@@ -833,7 +837,7 @@ UINT Recv_Th1(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d.dat"),num);
+			strCH.Format(_T("CH%d.dat"),num+1);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
@@ -952,7 +956,7 @@ UINT Recv_Th2(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d.dat"),num);
+			strCH.Format(_T("CH%d.dat"),num+1);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
@@ -1070,7 +1074,7 @@ UINT Recv_Th3(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d.dat"),num);
+			strCH.Format(_T("CH%d.dat"),num+1);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
@@ -1188,7 +1192,7 @@ UINT Recv_Th4(LPVOID p)
 
 			// 普通数据
 			CString strCH;
-			strCH.Format(_T("CH%d.dat"),num);
+			strCH.Format(_T("CH%d.dat"),num+1);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			dlg->SaveFile(fileName, mk, nLength);
 			dlg->AddTCPData(num, mk, nLength);
@@ -1433,7 +1437,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 		//向TCP发送开始指令
 		for (int num = 0; num < 4; num++) {
-			if(connectStatusList[num]) BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
+			if(connectStatusList[num]) NoBackSend(num, Order::StartSoftTrigger, 12, 0, 1);
 			singleLock.Lock();
 			if (singleLock.IsLocked()){
 				TrigerMode[num] = 1;

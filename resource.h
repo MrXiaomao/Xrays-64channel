@@ -33,7 +33,7 @@
 #define IDC_WAVE_MODE                   1009
 #define IDC_COMBO3                      1010
 #define IDC_COMBO4                      1011
-#define IDC_CH1Threahold                1012
+#define IDC_CH1Threshold                1012
 #define IDC_CH2Threahold                1013
 #define IDC_MeasureTime                 1014
 #define IDC_CH1Gain                     1015

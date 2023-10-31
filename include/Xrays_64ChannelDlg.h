@@ -222,6 +222,8 @@ public:
 	afx_msg void OnEnKillfocusRefreshTime(); 
 	//限制能谱测量总时长输入范围
 	afx_msg void OnEnKillfocusMeasureTime(); 
+	//限制阈值输入范围
+	afx_msg void OnEnKillfocusThreshold();
 	//开始测量（手动测量）
 	afx_msg void OnBnClickedStart(); 
 	//自动测量
@@ -269,14 +271,14 @@ public:
 	//UDP接收到炮号数据,更新主界面相关动作
 	afx_msg LRESULT OnUpdateShot(WPARAM wParam, LPARAM lParam);
 
-	// 网址IP
-	CIPAddressCtrl ServerIP;
 	// 网络状态LED灯
 	LEDButton m_NetStatusLEDList[4];
+	// 四个探测器IP
+	CString StrIP_CH[4];
 	// TCP端口号
 	int PortList[4];
 	// 触发方式下拉框
-	CComboBox m_TriggerType;
+	// CComboBox m_TriggerType;
 	// 能谱模式选择下拉框
 	CComboBox m_WaveMode;
 	// 炮号，一种打靶序列号
@@ -289,4 +291,6 @@ public:
 	int MeasureTime;
 	// 界面输入的能谱刷新时间，ms
 	int RefreshTime;
+	//触发阈值
+	int m_Threshold;
 };
