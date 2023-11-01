@@ -16,11 +16,12 @@ void SaveFile_BYTE(CString fileName, BYTE* mk, int length)
 	if (length < 1)
 		return;
 	CFile mfile;
-	mfile.Open(fileName.GetBuffer(100), CFile::modeCreate | CFile::modeNoTruncate |CFile::modeWrite);
-	mfile.SeekToEnd();
-	mfile.Write(mk, length);
-	fileName.ReleaseBuffer();
-	mfile.Close();
+	CFileException fe;
+	if (mfile.Open(fileName, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite, &fe)) {
+		mfile.SeekToEnd();
+		mfile.Write(mk, length);
+		mfile.Close();
+	}
 }
 
 // 判断文件夹路径是否存在

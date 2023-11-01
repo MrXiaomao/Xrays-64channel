@@ -188,11 +188,11 @@ UINT RecvRealy_Thread(LPVOID p)
 			return 0;
 		}
 		else {
-			if (!compareBYTE(mk, Order::relay_StatusON, nLength)) {
+			if (compareBYTE(mk, Order::relay_StatusON, nLength)) {
 				dlg->m_RelayStatusLED.RefreshWindow(1, _T("ON"));
 				dlg->GetDlgItem(IDC_CHANGE_STATUS)->SetWindowText(_T("关闭"));
 			}
-			else if (!compareBYTE(mk, Order::relay_StatusOFF, nLength)) {
+			else if (compareBYTE(mk, Order::relay_StatusOFF, nLength)) {
 				dlg->m_RelayStatusLED.RefreshWindow(0, _T("OFF"));
 				dlg->GetDlgItem(IDC_CHANGE_STATUS)->SetWindowText(_T("打开"));
 			}
