@@ -179,20 +179,20 @@ UINT RecvRealy_Thread(LPVOID p)
 		// 断开网络后关闭本线程
 		if (!dlg->netStatus) return 0;
 		const int dataLen = 10; //接收的数据包长度
-		char mk[dataLen];
+		BYTE mk[dataLen];
 		int nLength;
-		nLength = recv(dlg->relaySocket, mk, dataLen, 0); //阻塞模式
+		nLength = recv(dlg->relaySocket, (char*)mk, dataLen, 0); //阻塞模式
 
 		if (nLength == -1)
 		{
 			return 0;
 		}
 		else {
-			if (!strncmp(mk, (char*)Order::relay_StatusON, nLength)) {
+			if (!compareBYTE(mk, Order::relay_StatusON, nLength)) {
 				dlg->m_RelayStatusLED.RefreshWindow(1, _T("ON"));
 				dlg->GetDlgItem(IDC_CHANGE_STATUS)->SetWindowText(_T("关闭"));
 			}
-			else if (!strncmp(mk, (char*)Order::relay_StatusOFF, nLength)) {
+			else if (!compareBYTE(mk, Order::relay_StatusOFF, nLength)) {
 				dlg->m_RelayStatusLED.RefreshWindow(0, _T("OFF"));
 				dlg->GetDlgItem(IDC_CHANGE_STATUS)->SetWindowText(_T("打开"));
 			}

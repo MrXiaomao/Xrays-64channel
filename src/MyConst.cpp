@@ -11,6 +11,18 @@
 //#include "json/json.h"
 using namespace std;
 
+void SaveFile_BYTE(CString fileName, BYTE* mk, int length)
+{
+	if (length < 1)
+		return;
+	CFile mfile;
+	mfile.Open(fileName.GetBuffer(100), CFile::modeCreate | CFile::modeNoTruncate |CFile::modeWrite);
+	mfile.SeekToEnd();
+	mfile.Write(mk, length);
+	fileName.ReleaseBuffer();
+	mfile.Close();
+}
+
 // 判断文件夹路径是否存在
 BOOL IsPathExit(CString strPath) {
 	CFileFind fFile;
@@ -234,20 +246,19 @@ int Str2Hex(CString cRcv, BYTE* data)
 }
 
 //十进制转十六进制,十进制的数转化为四字节长度的十六进制
-BOOL DecToHex(int decIn, char* pOut) {
+BOOL DecToHex(int decIn, BYTE* pOut) {
 	if (decIn <= 0xFFFFFF)
 	{
-		pOut[0] = (decIn & 0xFF000000) >> 24;
-		pOut[1] = (decIn & 0x00FF0000) >> 16;
-		pOut[2] = (decIn & 0x0000FF00) >> 8;
-		pOut[3] = (decIn & 0x000000FF);
-		pOut[4] = '\0';
+		pOut[0] = (BYTE)((decIn & 0xFF000000) >> 24);
+		pOut[1] = (BYTE)((decIn & 0x00FF0000) >> 16);
+		pOut[2] = (BYTE)((decIn & 0x0000FF00) >> 8);
+		pOut[3] = (BYTE)(decIn & 0x000000FF);
 	}
 	return TRUE;
 }
 
-//char*转16进制字符串
-CString Char2HexCString(char* cData, int len)
+//BYTE*转16进制字符串
+CString Char2HexCString(BYTE* cData, int len)
 {
 	CString sHex;
 	CString sTemp;
@@ -258,6 +269,18 @@ CString Char2HexCString(char* cData, int len)
 		sHex += " ";
 	}
 	return sHex;
+}
+
+BOOL compareBYTE(BYTE* a, BYTE* b, int len)
+{
+	for(int n=0; n<len; n++)
+	{
+		if(a[n] != b[n])
+		{
+			return FALSE;
+		}
+	}
+	return TRUE;
 }
 
 // 读取配置文件

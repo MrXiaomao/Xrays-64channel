@@ -98,7 +98,7 @@ public:
 	*/
 	void SaveFile(CString fileName, char* mk, int length); 
 	// 缓存网口数据
-	void AddTCPData(int num, char* tempChar, int len); 
+	void AddTCPData(int num, BYTE* tempChar, int len); 
 	// 重置缓存数据
 	void ResetTCPData(); 
 
@@ -137,16 +137,16 @@ public:
 	// ------------------TCP网络指令反馈的相关变量--------------------------------
 	BOOL ifFeedback[4]; //用于判断当前接收数据是否为指令反馈。
 	BOOL TCPfeedback[4]; // 发送数据后，网口指令反馈状态.无正确反馈则禁止发送下一条指令。
-	char* LastSendMsg[4]; // 上一次发送的指令
-	char* RecvMsg[4]; // 网口接收数据
+	BYTE* LastSendMsg[4]; // 上一次发送的指令
+	BYTE* RecvMsg[4]; // 网口接收数据
 	int recievedFBLength[4]; //已接收网口数据长度，取前N个字节
 	int FeedbackLen[4]; //指令反馈字节长度
 
 	// -------------------TCP网络接受数据相关变量----------------------------
-	char* DataCH1; // 网口接收的数据，缓存下来，接收完后再存储到文件中。
-	char* DataCH2;
-	char* DataCH3;
-	char* DataCH4;
+	BYTE* DataCH1; // 网口接收的数据，缓存下来，接收完后再存储到文件中。
+	BYTE* DataCH2;
+	BYTE* DataCH3;
+	BYTE* DataCH4;
 	int RECVLength[4];//网口已接收数据长度
 
 	//----------------ARM网络监测温度/电压/电流相关变量-------------

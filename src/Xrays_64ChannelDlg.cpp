@@ -59,7 +59,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_XRAYS64CHANNEL_DIALOG, pParent)
 	, m_UDPSocket(NULL)
 	, UDPStatus(FALSE)
-	, DataMaxlen(5000)
+	, DataMaxlen(10)
 	, MeasureMode(0)
 	, GetDataStatus(FALSE)
 	, m_getTargetChange(FALSE)
@@ -80,10 +80,10 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, m_Threshold(15)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_NUCLEAR); //设置主界面图标
-	DataCH1 = new char[DataMaxlen];
-	DataCH2 = new char[DataMaxlen];
-	DataCH3 = new char[DataMaxlen];
-	DataCH4 = new char[DataMaxlen];
+	DataCH1 = new BYTE[DataMaxlen];
+	DataCH2 = new BYTE[DataMaxlen];
+	DataCH3 = new BYTE[DataMaxlen];
+	DataCH4 = new BYTE[DataMaxlen];
 	for(int num=0; num<4; num++){
 		RECVLength[num]=0;
 		PortList[num] = 5000;
@@ -787,7 +787,7 @@ UINT Recv_Th1(LPVOID p)
 					receLen = dlg->FeedbackLen[num];
 				}
 
-				char* tempChar = (char*)malloc(receLen);
+				BYTE* tempChar = (BYTE*)malloc(receLen);
 				//先取旧数据
 				if (dlg->RecvMsg[num] != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
@@ -841,11 +841,11 @@ UINT Recv_Th1(LPVOID p)
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			//dlg->SaveFile(fileName, mk, nLength);
 			SaveFile_BYTE(fileName, mk, nLength);
-			dlg->AddTCPData(num, (char*)mk, nLength);
+			dlg->AddTCPData(num, mk, nLength);
 
 			// 触发信号甄别
 			if (dlg->TrigerMode[num] == 2) {
-				if (nLength == 12 && (strncmp((char*)mk, (char*)Order::HardTriggerBack, nLength) == 0)) {
+				if (nLength == 12 && compareBYTE(mk, Order::HardTriggerBack, nLength)) {
 					singleLock.Lock();
 					if (singleLock.IsLocked()) {
 						dlg->TrigerMode[num] = 0;
@@ -906,7 +906,7 @@ UINT Recv_Th2(LPVOID p)
 					receLen = dlg->FeedbackLen[num];
 				}
 
-				char* tempChar = (char*)malloc(receLen);
+				BYTE* tempChar = (BYTE*)malloc(receLen);
 				//先取旧数据
 				if (dlg->RecvMsg[num] != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
@@ -960,11 +960,11 @@ UINT Recv_Th2(LPVOID p)
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			//dlg->SaveFile(fileName, mk, nLength);
 			SaveFile_BYTE(fileName, mk, nLength);
-			dlg->AddTCPData(num, (char*)mk, nLength);
+			dlg->AddTCPData(num, mk, nLength);
 
 			// 触发信号甄别
 			if(dlg->TrigerMode[num] == 2){
-				if(nLength==12 && (strncmp((char*)mk, (char *)Order::HardTriggerBack, nLength) == 0)){
+				if(nLength==12 && compareBYTE(mk, Order::HardTriggerBack, nLength)){
 					singleLock.Lock();
 					if (singleLock.IsLocked()){
 						dlg->TrigerMode[num] = 0;
@@ -1025,7 +1025,7 @@ UINT Recv_Th3(LPVOID p)
 					receLen = dlg->FeedbackLen[num];
 				}
 
-				char* tempChar = (char*)malloc(receLen);
+				BYTE* tempChar = (BYTE*)malloc(receLen);
 				//先取旧数据
 				if (dlg->RecvMsg[num] != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
@@ -1079,11 +1079,11 @@ UINT Recv_Th3(LPVOID p)
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			//dlg->SaveFile(fileName, mk, nLength);
 			SaveFile_BYTE(fileName, mk, nLength);
-			dlg->AddTCPData(num, (char*)mk, nLength);
+			dlg->AddTCPData(num, mk, nLength);
 
 			// 触发信号甄别
 			if (dlg->TrigerMode[num] == 2) {
-				if (nLength == 12 && (strncmp((char*)mk, (char*)Order::HardTriggerBack, nLength) == 0)) {
+				if (nLength == 12 && compareBYTE(mk, Order::HardTriggerBack, nLength)) {
 					singleLock.Lock();
 					if (singleLock.IsLocked()) {
 						dlg->TrigerMode[num] = 0;
@@ -1144,7 +1144,7 @@ UINT Recv_Th4(LPVOID p)
 					receLen = dlg->FeedbackLen[num];
 				}
 
-				char* tempChar = (char*)malloc(receLen);
+				BYTE* tempChar = (BYTE*)malloc(receLen);
 				//先取旧数据
 				if (dlg->RecvMsg[num] != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
@@ -1198,11 +1198,11 @@ UINT Recv_Th4(LPVOID p)
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
 			//dlg->SaveFile(fileName, mk, nLength);
 			SaveFile_BYTE(fileName, mk, nLength);
-			dlg->AddTCPData(num, (char*)mk, nLength);
+			dlg->AddTCPData(num, mk, nLength);
 
 			// 触发信号甄别
 			if (dlg->TrigerMode[num] == 2) {
-				if (nLength == 12 && (strncmp((char*)mk, (char*)Order::HardTriggerBack, nLength) == 0)) {
+				if (nLength == 12 && compareBYTE(mk, Order::HardTriggerBack, nLength)) {
 					singleLock.Lock();
 					if (singleLock.IsLocked()) {
 						dlg->TrigerMode[num] = 0;

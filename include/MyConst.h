@@ -12,18 +12,8 @@ using namespace std;
 
 // By maoxiaoqing 1207402640@qq.com 
 // 该文件存放常用的一些简单函数，供其他模块调用。
-//保存TCP传输过来的测量数据
-inline void SaveFile_BYTE(CString fileName, BYTE* mk, int length)
-{
-	if (length < 1)
-		return;
-	CFile mfile;
-	mfile.Open(fileName.GetBuffer(100), CFile::modeCreate | CFile::modeNoTruncate |CFile::modeWrite);
-	mfile.SeekToEnd();
-	mfile.Write(mk, length);
-	fileName.ReleaseBuffer();
-	mfile.Close();
-}
+//保存十六进制BYTE数据，以二进制方式存储
+void SaveFile_BYTE(CString fileName, BYTE* mk, int length);
 
 // 判断文件夹路径是否存在
 BOOL IsPathExit(CString strPath);
@@ -58,10 +48,13 @@ BOOL GetOnePackage(CByteArray &TotalArray, CByteArray &OnePackArray, BYTE* head,
 int Str2Hex(CString cRcv, BYTE* data);
 
 //十进制转十六进制,十进制的数转化为四字节长度的十六进制
-BOOL DecToHex(int decIn, char* pOut);
+BOOL DecToHex(int decIn, BYTE* pOut);
 
-//char*转16进制字符串
-CString Char2HexCString(char* cData, int len);
+//BYTE*转16进制字符串
+CString Char2HexCString(BYTE* cData, int len);
+
+//比较两个十六进制BYTE数组
+BOOL compareBYTE(BYTE* a, BYTE* b, int len);
 
 // 读取配置文件
 Json::Value ReadSetting(CString fileName);

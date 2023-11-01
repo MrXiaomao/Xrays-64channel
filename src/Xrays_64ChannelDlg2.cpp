@@ -347,14 +347,14 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	UpdateData(TRUE);
 
 	//从界面获取刷新时间
-	char res[5];
+	BYTE res[4];
 	DecToHex(RefreshTime, res);
 	Order::WaveRefreshTime[6] = res[0];
 	Order::WaveRefreshTime[7] = res[1];
 	Order::WaveRefreshTime[8] = res[2];
 	Order::WaveRefreshTime[9] = res[3];
 	
-	char res2[5];
+	BYTE res2[4];
 	DecToHex(m_Threshold, res2);
 	Order::TriggerThreshold[6] = res2[0];
 	Order::TriggerThreshold[7] = res2[1];
@@ -437,7 +437,7 @@ void CXrays_64ChannelDlg::OnBnClickedClearLog()
 }
 
 //缓存网口数据
-void CXrays_64ChannelDlg::AddTCPData(int num, char *tempChar, int len)
+void CXrays_64ChannelDlg::AddTCPData(int num, BYTE *tempChar, int len)
 {
 	/*for (int i = 0; i < len; i++) {
 		if (RECVLength[num] + i < DataMaxlen)
@@ -562,7 +562,7 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 
 			send(SocketList[num], (char *)msg, msgLength, flags);
 			// Sleep(sleepTime);
-			LastSendMsg[num] = (char *)msg;
+			LastSendMsg[num] = msg;
 			FeedbackLen[num] = msgLength;
 			CString info;
 			info.Format(_T("CH%d SEND HEX(%d):"), num+1, i+1);
@@ -580,7 +580,7 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 				info.Format(_T("CH%d RECV HEX:"), num+1);
 				info += Char2HexCString(RecvMsg[num], recievedFBLength[num]);
 				m_page1.PrintLog(info, isShow);
-				if (strncmp(RecvMsg[num], LastSendMsg[num], msgLength) == 0){
+				if (compareBYTE(RecvMsg[num], LastSendMsg[num], msgLength)){
 					TCPfeedback[num] = TRUE;
 				}
 				if (!TCPfeedback[num]) {
@@ -651,7 +651,7 @@ void CXrays_64ChannelDlg::NoBackSend(int num, BYTE* msg, int msgLength, int flag
 	send(SocketList[num], (char*)msg, msgLength, flags);
 	CString info;
 	info.Format(_T("CH%d SEND HEX :"), num + 1);
-	info = info + Char2HexCString((char*)msg, msgLength);
+	info = info + Char2HexCString(msg, msgLength);
 	m_page1.PrintLog(info, FALSE);
 	Sleep(sleepTime);
 }

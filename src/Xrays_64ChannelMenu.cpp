@@ -89,9 +89,9 @@ UINT Recv_ARM(LPVOID p) // 多线程接收ARM网口数据
 		// 断开网络后关闭本线程
 		if (!dlg->ARMnetStatus) return 0;
 		const int dataLen = 20; //接收的数据包长度
-		char mk[dataLen];
+		BYTE mk[dataLen];
 		int nLength;
-		nLength = recv(dlg->armSocket, mk, dataLen, 0); //阻塞模式
+		nLength = recv(dlg->armSocket, (char*)mk, dataLen, 0); //阻塞模式
 
 		if (nLength == -1)
 		{
@@ -101,7 +101,7 @@ UINT Recv_ARM(LPVOID p) // 多线程接收ARM网口数据
 			// 转化为CByteArray
 			CByteArray buffer;
 			for (int i = 0; i < nLength; i++) {
-				buffer.Add((BYTE)mk[i]);
+				buffer.Add(mk[i]);
 			}
 			dlg->TotalARMArray.Append(buffer); //拼接
 			::PostMessage(dlg->m_hWnd, WM_UPDATE_ARM, 0, 0); //发送消息通知主界面处理，更新温度、电压、电流
