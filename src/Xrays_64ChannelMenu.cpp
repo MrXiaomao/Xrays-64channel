@@ -194,7 +194,8 @@ void CXrays_64ChannelDlg::refreshBar() {
 
 	CString strInfo = strInfo1 + strInfo2;
 	m_statusBar.SetPaneText(1, strInfo);
-	
+	m_page1.PrintLog(strInfo,FALSE);
+
 	// 保存数据到文件
 	double data[8] = { temperature[0], temperature[1], temperature[2], temperature[3], temperature[4], temperature[5], 
 						powerVolt, powerCurrent};

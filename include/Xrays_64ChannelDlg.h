@@ -23,6 +23,7 @@ UINT Recv_Th2(LPVOID p); // 多线程接收CH2网口数据
 UINT Recv_Th3(LPVOID p); // 多线程接收CH3网口数据
 UINT Recv_Th4(LPVOID p); // 多线程接收CH4网口数据
 UINT Recv_ARM(LPVOID p); // 多线程接收ARM网口数据
+UINT Recv_Thread(const int num, LPVOID p); //四个探测器接受数据线程公有部分
 
 //线程锁
 extern CMutex Mutex; 

@@ -753,10 +753,9 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	return TRUE;
 }
 
-//线程1，接收TCP网口数据
-UINT Recv_Th1(LPVOID p)
+//各个探测器接受数据线程的公有部分
+UINT Recv_Thread(const int num, LPVOID p)
 {
-	const int num = 0;
 	CSingleLock singleLock(&Mutex); //线程锁
 	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
 	while (1)
@@ -869,6 +868,14 @@ UINT Recv_Th1(LPVOID p)
 			}
 		}
 	}
+	return 0;
+}
+
+//线程1，接收TCP网口数据
+UINT Recv_Th1(LPVOID p)
+{
+	const int num = 0;
+	Recv_Thread(0,p);
 	return 0;
 }
 
@@ -876,118 +883,7 @@ UINT Recv_Th1(LPVOID p)
 UINT Recv_Th2(LPVOID p)
 {
 	const int num = 1;
-	CSingleLock singleLock(&Mutex); //线程锁
-	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
-	while (1)
-	{
-		// 断开网络后关闭本线程
-		if (!dlg->connectStatusList[num]) return 0;
-
-		const int dataLen = 10000; //接收的数据包长度
-		BYTE mk[dataLen];
-
-		int nLength;
-		nLength = recv(dlg->SocketList[num], (char*)mk, dataLen, 0);
-		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
-		{
-			return 0;
-		}
-		else {
-			// 提取指令反馈数据,只取前12字节
-			if(dlg->ifFeedback[num]){
-				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
-				
-				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
-					receLen = receivedLen + nLength;
-				}
-				else {
-					receLen = dlg->FeedbackLen[num];
-				}
-
-				BYTE* tempChar = (BYTE*)malloc(receLen);
-				//先取旧数据
-				if (dlg->RecvMsg[num] != NULL) {
-					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg[num] + i);
-					}
-				}
-
-				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
-					// 拼接反馈指令
-					for (int i = 0; i < nLength; i++) {
-						tempChar[receivedLen + i] = mk[i];
-					}
-					nLength = 0;
-				} 
-				else{
-					// 先拼反馈指令
-					int remainLen = 12 - receivedLen; //剩余拼接长度
-					for (int i = 0; i < remainLen; i++) {
-						tempChar[receivedLen + i] = mk[i];
-					}
-					
-					// 再处理剩余字符数组
-					nLength = nLength - remainLen;
-					for (int i = 0; i < nLength; i++) {
-						mk[i] = mk[remainLen+i];
-					}
-				}
-				
-				singleLock.Lock(); //线程锁
-				if (singleLock.IsLocked()){
-					dlg->RecvMsg[num] = tempChar;
-					dlg->recievedFBLength[num] = receLen;
-				}
-				singleLock.Unlock();
-
-				if (receLen == dlg->FeedbackLen[num]) {
-					singleLock.Lock(); //线程锁
-					if (singleLock.IsLocked()){
-						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
-					}
-					singleLock.Unlock();					
-				}
-			}
-
-			if (nLength < 1) continue; //提前结束本次循环
-
-			// 普通数据
-			CString strCH;
-			strCH.Format(_T("CH%d.dat"),num+1);
-			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
-			//dlg->SaveFile(fileName, mk, nLength);
-			SaveFile_BYTE(fileName, mk, nLength);
-			dlg->AddTCPData(num, mk, nLength);
-
-			// 触发信号甄别
-			if(dlg->TrigerMode[num] == 2){
-				if(nLength==12 && compareBYTE(mk, Order::HardTriggerBack, nLength)){
-					singleLock.Lock();
-					if (singleLock.IsLocked()){
-						dlg->TrigerMode[num] = 0;
-					}
-					singleLock.Unlock();
-					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
-				}
-				continue;
-			}
-
-			// 有效测量数据开始
-			singleLock.Lock();
-			if (singleLock.IsLocked()){
-				dlg->GetDataStatus = TRUE; //线程锁的变量
-			}
-			singleLock.Unlock();
-
-			//发送消息通知主界面,进入定时测量状态
-			if (dlg->m_nTimerId[0] == 0) {
-				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
-			}
-		}
-	}
+	Recv_Thread(1,p);
 	return 0;
 }
 
@@ -995,118 +891,7 @@ UINT Recv_Th2(LPVOID p)
 UINT Recv_Th3(LPVOID p)
 {
 	const int num = 2;
-	CSingleLock singleLock(&Mutex); //线程锁
-	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
-	while (1)
-	{
-		// 断开网络后关闭本线程
-		if (!dlg->connectStatusList[num]) return 0;
-
-		const int dataLen = 10000; //接收的数据包长度
-		BYTE mk[dataLen];
-
-		int nLength;
-		nLength = recv(dlg->SocketList[num], (char*)mk, dataLen, 0);
-		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
-		{
-			return 0;
-		}
-		else {
-			// 提取指令反馈数据,只取前12字节
-			if (dlg->ifFeedback[num]) {
-				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
-
-				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
-					receLen = receivedLen + nLength;
-				}
-				else {
-					receLen = dlg->FeedbackLen[num];
-				}
-
-				BYTE* tempChar = (BYTE*)malloc(receLen);
-				//先取旧数据
-				if (dlg->RecvMsg[num] != NULL) {
-					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg[num] + i);
-					}
-				}
-
-				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
-					// 拼接反馈指令
-					for (int i = 0; i < nLength; i++) {
-						tempChar[receivedLen + i] = mk[i];
-					}
-					nLength = 0;
-				}
-				else {
-					// 先拼反馈指令
-					int remainLen = 12 - receivedLen; //剩余拼接长度
-					for (int i = 0; i < remainLen; i++) {
-						tempChar[receivedLen + i] = mk[i];
-					}
-
-					// 再处理剩余字符数组
-					nLength = nLength - remainLen;
-					for (int i = 0; i < nLength; i++) {
-						mk[i] = mk[remainLen + i];
-					}
-				}
-
-				singleLock.Lock(); //线程锁
-				if (singleLock.IsLocked()) {
-					dlg->RecvMsg[num] = tempChar;
-					dlg->recievedFBLength[num] = receLen;
-				}
-				singleLock.Unlock();
-
-				if (receLen == dlg->FeedbackLen[num]) {
-					singleLock.Lock(); //线程锁
-					if (singleLock.IsLocked()) {
-						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
-					}
-					singleLock.Unlock();
-				}
-			}
-
-			if (nLength < 1) continue; //提前结束本次循环
-
-			// 普通数据
-			CString strCH;
-			strCH.Format(_T("CH%d.dat"), num + 1);
-			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
-			//dlg->SaveFile(fileName, mk, nLength);
-			SaveFile_BYTE(fileName, mk, nLength);
-			dlg->AddTCPData(num, mk, nLength);
-
-			// 触发信号甄别
-			if (dlg->TrigerMode[num] == 2) {
-				if (nLength == 12 && compareBYTE(mk, Order::HardTriggerBack, nLength)) {
-					singleLock.Lock();
-					if (singleLock.IsLocked()) {
-						dlg->TrigerMode[num] = 0;
-					}
-					singleLock.Unlock();
-					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
-				}
-				continue;
-			}
-
-			// 有效测量数据开始
-			singleLock.Lock();
-			if (singleLock.IsLocked()) {
-				dlg->GetDataStatus = TRUE; //线程锁的变量
-			}
-			singleLock.Unlock();
-
-			//发送消息通知主界面,进入定时测量状态
-			if (dlg->m_nTimerId[0] == 0) {
-				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
-			}
-		}
-	}
+	Recv_Thread(2,p);
 	return 0;
 }
 
@@ -1114,118 +899,7 @@ UINT Recv_Th3(LPVOID p)
 UINT Recv_Th4(LPVOID p)
 {
 	const int num = 3;
-	CSingleLock singleLock(&Mutex); //线程锁
-	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
-	while (1)
-	{
-		// 断开网络后关闭本线程
-		if (!dlg->connectStatusList[num]) return 0;
-
-		const int dataLen = 10000; //接收的数据包长度
-		BYTE mk[dataLen];
-
-		int nLength;
-		nLength = recv(dlg->SocketList[num], (char*)mk, dataLen, 0);
-		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
-		{
-			return 0;
-		}
-		else {
-			// 提取指令反馈数据,只取前12字节
-			if (dlg->ifFeedback[num]) {
-				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
-
-				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
-					receLen = receivedLen + nLength;
-				}
-				else {
-					receLen = dlg->FeedbackLen[num];
-				}
-
-				BYTE* tempChar = (BYTE*)malloc(receLen);
-				//先取旧数据
-				if (dlg->RecvMsg[num] != NULL) {
-					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg[num] + i);
-					}
-				}
-
-				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
-					// 拼接反馈指令
-					for (int i = 0; i < nLength; i++) {
-						tempChar[receivedLen + i] = mk[i];
-					}
-					nLength = 0;
-				}
-				else {
-					// 先拼反馈指令
-					int remainLen = 12 - receivedLen; //剩余拼接长度
-					for (int i = 0; i < remainLen; i++) {
-						tempChar[receivedLen + i] = mk[i];
-					}
-
-					// 再处理剩余字符数组
-					nLength = nLength - remainLen;
-					for (int i = 0; i < nLength; i++) {
-						mk[i] = mk[remainLen + i];
-					}
-				}
-
-				singleLock.Lock(); //线程锁
-				if (singleLock.IsLocked()) {
-					dlg->RecvMsg[num] = tempChar;
-					dlg->recievedFBLength[num] = receLen;
-				}
-				singleLock.Unlock();
-
-				if (receLen == dlg->FeedbackLen[num]) {
-					singleLock.Lock(); //线程锁
-					if (singleLock.IsLocked()) {
-						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
-					}
-					singleLock.Unlock();
-				}
-			}
-
-			if (nLength < 1) continue; //提前结束本次循环
-
-			// 普通数据
-			CString strCH;
-			strCH.Format(_T("CH%d.dat"), num + 1);
-			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
-			//dlg->SaveFile(fileName, mk, nLength);
-			SaveFile_BYTE(fileName, mk, nLength);
-			dlg->AddTCPData(num, mk, nLength);
-
-			// 触发信号甄别
-			if (dlg->TrigerMode[num] == 2) {
-				if (nLength == 12 && compareBYTE(mk, Order::HardTriggerBack, nLength)) {
-					singleLock.Lock();
-					if (singleLock.IsLocked()) {
-						dlg->TrigerMode[num] = 0;
-					}
-					singleLock.Unlock();
-					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
-				}
-				continue;
-			}
-
-			// 有效测量数据开始
-			singleLock.Lock();
-			if (singleLock.IsLocked()) {
-				dlg->GetDataStatus = TRUE; //线程锁的变量
-			}
-			singleLock.Unlock();
-
-			//发送消息通知主界面,进入定时测量状态
-			if (dlg->m_nTimerId[0] == 0) {
-				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
-			}
-		}
-	}
+	Recv_Thread(3,p);
 	return 0;
 }
 
