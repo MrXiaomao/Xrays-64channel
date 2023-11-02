@@ -1067,7 +1067,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			CString strInfo = t.Format(_T("%Y-%m-%d %H:%M:%S"));
 			m_statusBar.SetPaneText(2, strInfo);
 			
-			if (ARMnetStatus && (refreshTime_ARM == ArmTimer))
+			if (ARMnetStatus && (ArmTimer >refreshTime_ARM))
 			{
 				ArmTimer = 0;
 				send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
