@@ -119,7 +119,7 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 	jsonSetting["NetSwitchCH3"] = NetSwitchList[3];
 	jsonSetting["NetSwitchCH4"] = NetSwitchList[4];
 	jsonSetting["Measure_Time"] = MeasureTime;
-	jsonSetting["Refresh_Time"] = RefreshTime;
+	jsonSetting["Detector_Refresh_Time"] = RefreshTime;
 	jsonSetting["Threshold"] = m_Threshold;
 	jsonSetting["WaveMode"] = m_WaveMode.GetCurSel();
 	WriteSetting(_T("Setting.json"), jsonSetting);
@@ -441,9 +441,12 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 		{
 			MeasureTime = jsonSetting["Measure_Time"].asInt();
 		}
-		if (jsonSetting.isMember("Refresh_Time"))
+		if (jsonSetting.isMember("Detector_Refresh_Time"))
 		{
-			RefreshTime = jsonSetting["Refresh_Time"].asInt();
+			RefreshTime = jsonSetting["Detector_Refresh_Time"].asInt();
+		}
+		if (jsonSetting.isMember("refreshTime_ARM")) {
+			refreshTime_ARM = jsonSetting["refreshTime_ARM"].asInt();
 		}
 
 		//设置下拉框默认选项

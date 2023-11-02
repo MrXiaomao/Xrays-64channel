@@ -15,6 +15,7 @@ IMPLEMENT_DYNAMIC(CNetSetting, CDialogEx)
 
 CNetSetting::CNetSetting(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_NETSETTING_DLG, pParent)
+	, m_ARM_RefreshTime(30)
 {
 	isDataChange = FALSE;
 	m_PortUDP = 5000;
@@ -64,6 +65,14 @@ void CNetSetting::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_CH3_PORT, PortCHList[2]);
 	DDX_Text(pDX, IDC_CH4_PORT, PortCHList[3]);
 	DDX_Text(pDX, IDC_ARM_PORT, m_PortARM);
+	DDV_MinMaxInt(pDX, m_PortUDP, 0, 65535);
+	DDV_MinMaxInt(pDX, PortCHList[0], 0, 65535);
+	DDV_MinMaxInt(pDX, PortCHList[1], 0, 65535);
+	DDV_MinMaxInt(pDX, PortCHList[2], 0, 65535);
+	DDV_MinMaxInt(pDX, PortCHList[3], 0, 65535);
+	DDV_MinMaxInt(pDX, m_PortARM, 0, 65535);
+	DDX_Text(pDX, IDC_ARM_REFRESHTIME, m_ARM_RefreshTime);
+	DDV_MinMaxInt(pDX, m_ARM_RefreshTime, 5, 99999);
 }
 
 BEGIN_MESSAGE_MAP(CNetSetting, CDialogEx)
@@ -115,10 +124,12 @@ BOOL CNetSetting::OnInitDialog()
 		if (jsonSetting.isMember("Port_ARM")) {
 			m_PortARM = jsonSetting["Port_ARM"].asInt();
 		}
+		if (jsonSetting.isMember("refreshTime_ARM")) {
+			m_ARM_RefreshTime = jsonSetting["refreshTime_ARM"].asInt();
+		}
 	}
-
-	GetDlgItem(IDC_NETSETTING_APPLY)->EnableWindow(FALSE);
 	UpdateData(FALSE);
+	GetDlgItem(IDC_NETSETTING_APPLY)->EnableWindow(FALSE);
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
 }
@@ -199,6 +210,9 @@ BOOL CNetSetting::OnCommand(WPARAM wParam, LPARAM lParam)
 			isDataChange = TRUE;
 		}
 		if (wmID == IDC_ARM_PORT || wmID == IDC_UDP_PORT) {
+			isDataChange = TRUE;
+		}
+		if(wmID == IDC_ARM_REFRESHTIME){
 			isDataChange = TRUE;
 		}
 		// 若控件发生了编辑动作，则激活“应用”按钮
