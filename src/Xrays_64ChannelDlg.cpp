@@ -141,7 +141,10 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 			// CString info;
 			// info.Format(_T("CH%d网口数据线程退出成功！"),num+1);
 			// CLog::WriteMsg(info);
-
+			// 关闭打开的文件
+			if(fileDetector[num].is_open()){
+				fileDetector[num].close();
+			}
 			closesocket(SocketList[num]); //关闭套接字
 		}
 	}
@@ -837,12 +840,21 @@ UINT Recv_Thread(const int num, LPVOID p)
 
 			if (nLength < 1) continue; //提前结束本次循环
 
-			// 普通数据
+			// 普通数据，写入文件
 			CString strCH;
 			strCH.Format(_T("CH%d.dat"), num + 1);
 			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
-			//dlg->SaveFile(fileName, mk, nLength);
-			SaveFile_BYTE(fileName, mk, nLength);
+
+			BOOL writeFlag = FALSE;
+			writeFlag  = SaveFile_BYTE_Cache(dlg->fileDetector[num], mk, nLength);
+			if (!writeFlag) {
+				// 添加日志到文件
+				CLog::SetPrefix(_T("ERROR"));
+				CString info;
+				info.Format(_T("保存数据失败,丢失数据长度:%d,丢失内容："), nLength);
+				info += Char2HexCString(mk, nLength);
+				CLog::WriteMsg(info);
+			}
 			dlg->AddTCPData(num, mk, nLength);
 
 			// 触发信号甄别
@@ -988,6 +1000,12 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 							RECVLength[0], RECVLength[1], RECVLength[2], RECVLength[3]);
 						m_page1.PrintLog(info);
 					}
+					// 关闭文件指针
+					for(int num=0; num<4; num++){
+						if(connectStatusList[num] && fileDetector[num].is_open()){
+							fileDetector[num].close();
+						}
+					}
 					//重置定时器开关状态
 					m_nTimerId[0] = 0;
 					m_page1.PrintLog(_T("数据接收完毕，测量结束"));
@@ -1044,9 +1062,22 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				m_getTargetChange = FALSE;
 				sendStopFlag = FALSE;
 
+				// 打开文件指针
+				for (int num = 0; num < 4; num++) {
+					if(connectStatusList[num]) {
+						CString strCH;
+						strCH.Format(_T("CH%d.dat"), num + 1);
+						CString fileName = saveAsTargetPath + m_targetID + strCH;
+						// char* strfileName = CstringToWideCharArry(fileName);
+						fileDetector[num].open(fileName, ios::out | ios::app | ios::binary); // 追加  | ios::binary
+					}
+				}
+				
 				//发送开始测量指令，采用硬件触发
 				for (int num = 0; num < 4; num++) {
-					if(connectStatusList[num]) BackSend(num, Order::StartHardTrigger, 12, 0, 1);
+					if(connectStatusList[num]) {
+						BackSend(num, Order::StartHardTrigger, 12, 0, 1);
+					}
 					
 					singleLock.Lock(); //Mutex
 					if (singleLock.IsLocked()){
@@ -1115,9 +1146,38 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		//重置网口接收的数据
 		ResetTCPData();
 
+		// 生成文件夹名称
+		CTime t = CTime::GetCurrentTime();
+		// 打印日志
+		CString info;
+		info = _T("\r\n开始测量（手动测量），软件触发，开始时间：");
+		info += t.Format(_T("%Y-%m-%d %H:%M:%S"));
+		m_page1.PrintLog(info);
+		// 创建文件夹
+		CString strInfo = t.Format(_T("%Y-%m-%d_%H-%M-%S"));
+		saveAsTargetPath = saveAsPath + strInfo;
+		saveAsTargetPath += "\\";
+		Mkdir(saveAsTargetPath);
+
+		info = _T("测试数据存储路径:") + saveAsTargetPath;
+		m_page1.PrintLog(info);
+		
+		//打开文件，准备存储
+		for (int num = 0; num < 4; num++) {
+			if(connectStatusList[num]) {
+				CString strCH;
+				strCH.Format(_T("CH%d.dat"), num + 1);
+				CString fileName = saveAsTargetPath + m_targetID + strCH;
+				// char* strfileName = CstringToWideCharArry(fileName);
+				fileDetector[num].open(fileName, ios::out | ios::app | ios::binary); // 追加  | ios::binary
+			}
+		}
+
 		//向TCP发送开始指令
 		for (int num = 0; num < 4; num++) {
-			if(connectStatusList[num]) BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
+			if(connectStatusList[num]) {
+				BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
+			}
 			singleLock.Lock();
 			if (singleLock.IsLocked()){
 				TrigerMode[num] = 1;
@@ -1127,21 +1187,6 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 		SetDlgItemText(IDC_Start, _T("停止测量"));
 		
-		CTime t = CTime::GetCurrentTime();
-		// 打印日志
-		CString info;
-		info = _T("\r\n开始测量（手动测量），软件触发，开始时间：");
-		info += t.Format(_T("%Y-%m-%d %H:%M:%S"));
-		m_page1.PrintLog(info);
-
-		CString strInfo = t.Format(_T("%Y-%m-%d_%H-%M-%S"));
-		saveAsTargetPath = saveAsPath + strInfo;
-		saveAsTargetPath += "\\";
-		Mkdir(saveAsTargetPath);
-
-		info = _T("测试数据存储路径:") + saveAsTargetPath;
-		m_page1.PrintLog(info);
-
 		// 按键互斥锁
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE); //自动测量
@@ -1178,6 +1223,13 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		else{
 			//打印日志
 			m_page1.PrintLog(_T("\r\n已停止（手动）测量\r\n"));
+		}
+		
+		// 完成测量，关闭文件
+		for(int num=0; num<4; num++){
+			if(connectStatusList[num] && fileDetector[num].is_open()){
+				fileDetector[num].close();
+			}
 		}
 		//按键在定时器中自动在数据接收完毕后恢复使能
 	}

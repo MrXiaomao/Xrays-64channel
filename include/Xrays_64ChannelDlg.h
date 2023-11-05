@@ -149,6 +149,7 @@ public:
 	BYTE* DataCH3;
 	BYTE* DataCH4;
 	int RECVLength[4];//网口已接收数据长度
+	fstream fileDetector[4]; //探测器文件保持常开状态，以减小打频繁开关闭所浪费的时间
 
 	//----------------ARM网络监测温度/电压/电流相关变量-------------
 	SOCKET armSocket; // ARM网络的TCP端口

@@ -11,17 +11,34 @@
 //#include "json/json.h"
 using namespace std;
 
-void SaveFile_BYTE(CString fileName, BYTE* mk, int length)
+BOOL SaveFile_BYTE_IO(CString fileName, BYTE* mk, int length)
 {
 	if (length < 1)
-		return;
+		return FALSE;
 	CFile mfile;
 	CFileException fe;
 	if (mfile.Open(fileName, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite, &fe)) {
 		mfile.SeekToEnd();
 		mfile.Write(mk, length);
 		mfile.Close();
+		return TRUE;
 	}
+	else {
+		return FALSE;
+	}
+}
+
+BOOL SaveFile_BYTE_Cache(fstream &file, BYTE* mk, int length)
+{
+	if (length < 1)
+		return FALSE;
+	if (file.is_open())
+	{
+		file.write((char*)mk, length);
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 // 判断文件夹路径是否存在

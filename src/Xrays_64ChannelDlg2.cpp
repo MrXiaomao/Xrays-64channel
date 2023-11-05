@@ -119,7 +119,7 @@ void CXrays_64ChannelDlg::CloseUDP()
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 }
 
-//保存TCP传输过来的测量数据
+//保存字符串数组数据
 void CXrays_64ChannelDlg::SaveFile(CString fileName, char *mk, int length)
 {
 	if (length < 1)

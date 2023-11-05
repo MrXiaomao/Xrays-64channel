@@ -12,8 +12,14 @@ using namespace std;
 
 // By maoxiaoqing 1207402640@qq.com 
 // 该文件存放常用的一些简单函数，供其他模块调用。
-//保存十六进制BYTE数据，以二进制方式存储
-void SaveFile_BYTE(CString fileName, BYTE* mk, int length);
+
+// 保存十六进制BYTE数据，以二进制方式存储
+// 实时保存数据，直接操作I/O口，区别于缓存式输出文件
+BOOL SaveFile_BYTE_IO(CString fileName, BYTE* mk, int length);
+
+// 保存十六进制BYTE数据，以二进制方式存储
+// 实时保存数据，直接操作I/O口，区别于缓存式输出文件
+BOOL SaveFile_BYTE_Cache(fstream &file, BYTE* mk, int length);
 
 // 判断文件夹路径是否存在
 BOOL IsPathExit(CString strPath);
