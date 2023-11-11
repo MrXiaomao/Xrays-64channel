@@ -841,10 +841,6 @@ UINT Recv_Thread(const int num, LPVOID p)
 			if (nLength < 1) continue; //提前结束本次循环
 
 			// 普通数据，写入文件
-			CString strCH;
-			strCH.Format(_T("CH%d.dat"), num + 1);
-			CString fileName = dlg->saveAsTargetPath + dlg->m_targetID + strCH;
-
 			BOOL writeFlag = FALSE;
 			writeFlag  = SaveFile_BYTE_Cache(dlg->fileDetector[num], mk, nLength);
 			if (!writeFlag) {
@@ -1037,8 +1033,18 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				saveAsTargetPath = saveAsPath + m_targetID + pathPostfix;
 				saveAsTargetPath += "\\";
 				Mkdir(saveAsTargetPath);
+				
+				// 打开文件指针
+				for (int num = 0; num < 4; num++) {
+					if(connectStatusList[num]) {
+						CString strCH;
+						strCH.Format(_T("CH%d.dat"), num + 1);
+						CString fileName = saveAsTargetPath + m_targetID + strCH;
+						fileDetector[num].open(fileName, ios::out | ios::app | ios::binary); // 追加  | ios::binary
+					}
+				}
 
-				// 发送停止指令，复位。以保证把上一次测量重置。	
+				// 重置
 				singleLock.Lock(); //Mutex
 				if (singleLock.IsLocked()){
 					for(int num=0; num<4; num++){
@@ -1061,17 +1067,6 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				//重置测量状态
 				m_getTargetChange = FALSE;
 				sendStopFlag = FALSE;
-
-				// 打开文件指针
-				for (int num = 0; num < 4; num++) {
-					if(connectStatusList[num]) {
-						CString strCH;
-						strCH.Format(_T("CH%d.dat"), num + 1);
-						CString fileName = saveAsTargetPath + m_targetID + strCH;
-						// char* strfileName = CstringToWideCharArry(fileName);
-						fileDetector[num].open(fileName, ios::out | ios::app | ios::binary); // 追加  | ios::binary
-					}
-				}
 				
 				//发送开始测量指令，采用硬件触发
 				for (int num = 0; num < 4; num++) {

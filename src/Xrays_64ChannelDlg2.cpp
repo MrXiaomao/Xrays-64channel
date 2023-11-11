@@ -245,17 +245,32 @@ void CXrays_64ChannelDlg::ConfinePortRange(int &myPort)
 	}
 }
 
+//选择能谱模式：512道/16道 能谱
+//更新相关的能谱刷新时间检查
+void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
+{
+	UpdateData(true);
+	OnEnKillfocusRefreshTime();
+}
+
 //限制能谱刷新时间范围,单位ms，
 //能谱刷新时间指的是FPGA采集一个能谱数据所用时间
 void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(true);
+	int minTime = 1; //单位ms
+	int waveMode = 16; //能谱模式，512/16道两种
+	// 512道能谱，最小刷新时间10ms，16道能谱，最小刷新时间1ms
+	if (m_WaveMode.GetCurSel() == 0) {
+		minTime = 10;
+		waveMode = 512;
+	}
 	int MaxTime = 60 * 1000; //单位ms
-	if ((RefreshTime < 10) || (RefreshTime > MaxTime))
+	if ((RefreshTime < minTime) || (RefreshTime > MaxTime))
 	{
 		CString message;
-		message.Format(_T("能谱刷新时间范围为10~%dms\n"), MaxTime);
+		message.Format(_T("%d能谱模式下，能谱刷新时间范围为%d~%dms\n"), waveMode, minTime, MaxTime);
 		MessageBox(message);
 		if (RefreshTime > MaxTime)
 		{
@@ -263,7 +278,7 @@ void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 		}
 		else
 		{
-			RefreshTime = 10;
+			RefreshTime = minTime;
 		}
 		UpdateData(false);
 	}
@@ -278,7 +293,7 @@ void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 	if ((MeasureTime < 1) || (MeasureTime > MaxTime))
 	{
 		CString message;
-		message.Format(_T("能谱测量时间范围为0~%dms\n"), MaxTime);
+		message.Format(_T("能谱测量时间范围为1~%dms\n"), MaxTime);
 		MessageBox(message);
 		if (MeasureTime > MaxTime)
 		{
@@ -656,6 +671,7 @@ void CXrays_64ChannelDlg::NoBackSend(int num, BYTE* msg, int msgLength, int flag
 	Sleep(sleepTime);
 }
 
+//网络勾选，全选
 void CXrays_64ChannelDlg::OnBnClickedCheck0()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -674,6 +690,7 @@ void CXrays_64ChannelDlg::OnBnClickedCheck0()
 	UpdateData(FALSE);//刷新控件
 }
 
+//网络勾选，设备1
 void CXrays_64ChannelDlg::OnBnClickedCheck1()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -682,6 +699,7 @@ void CXrays_64ChannelDlg::OnBnClickedCheck1()
 	UpdateData(FALSE);//刷新控件
 }
 
+//网络勾选，设备2
 void CXrays_64ChannelDlg::OnBnClickedCheck2()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -690,6 +708,7 @@ void CXrays_64ChannelDlg::OnBnClickedCheck2()
 	UpdateData(FALSE);//刷新控件
 }
 
+//网络勾选，设备3
 void CXrays_64ChannelDlg::OnBnClickedCheck3()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -698,6 +717,7 @@ void CXrays_64ChannelDlg::OnBnClickedCheck3()
 	UpdateData(FALSE);//刷新控件
 }
 
+//网络勾选，设备4
 void CXrays_64ChannelDlg::OnBnClickedCheck4()
 {
 	UpdateData(TRUE);//控件的值—>变量
