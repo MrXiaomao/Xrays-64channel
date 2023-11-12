@@ -121,7 +121,6 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 	jsonSetting["Measure_Time"] = MeasureTime;
 	jsonSetting["Detector_Refresh_Time"] = RefreshTime;
 	jsonSetting["Threshold"] = m_Threshold;
-	jsonSetting["WaveMode"] = m_WaveMode.GetCurSel();
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
 	CLog::WriteMsg(_T("正在退出软件，释放相关资源！"));
@@ -239,6 +238,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_MESSAGE(WM_UPDATE_TRIGER_LOG, &CXrays_64ChannelDlg::OnUpdateTrigerLog) 
 	ON_MESSAGE(WM_UPDATE_CH_DATA, &CXrays_64ChannelDlg::OnUpdateTimer1)
 	ON_MESSAGE(WM_UPDATE_SHOT, &CXrays_64ChannelDlg::OnUpdateShot)
+	ON_CBN_SELCHANGE(IDC_WAVE_MODE, &CXrays_64ChannelDlg::OnCbnSelchangeWaveMode)
 	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
@@ -1034,6 +1034,13 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				saveAsTargetPath += "\\";
 				Mkdir(saveAsTargetPath);
 				
+				// 先确保上一次炮号的文件指针关闭成功
+				for(int num=0; num<4; num++){
+					if(connectStatusList[num] && fileDetector[num].is_open()){
+						fileDetector[num].close();
+					}
+				}
+
 				// 打开文件指针
 				for (int num = 0; num < 4; num++) {
 					if(connectStatusList[num]) {

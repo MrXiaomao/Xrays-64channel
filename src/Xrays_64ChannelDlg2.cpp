@@ -250,6 +250,13 @@ void CXrays_64ChannelDlg::ConfinePortRange(int &myPort)
 void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
 {
 	UpdateData(true);
+	// 保存参数设置
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	int mode = m_WaveMode.GetCurSel();
+	jsonSetting["WaveMode"] = m_WaveMode.GetCurSel();
+	WriteSetting(_T("Setting.json"), jsonSetting);
+
+	//检查相应的刷新时间，限定范围
 	OnEnKillfocusRefreshTime();
 }
 
