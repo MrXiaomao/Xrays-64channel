@@ -80,14 +80,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\DELL\Desktop\工作事项\16-伽马中子探测\MFC界面\Xrays_64channel-old\Xrays-64channel\include;C:\Users\DELL\Desktop\工作事项\16-伽马中子探测\MFC界面\Xrays_64channel-old\Xrays-64Channel;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\DELL\Desktop\工作事项\16-伽马中子探测\MFC界面\Xrays-64channel\include;C:\Users\DELL\Desktop\工作事项\16-伽马中子探测\MFC界面\Xrays-64Channel;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\DELL\Desktop\工作事项\16-伽马中子探测\MFC界面\Xrays_64channel-old\Xrays-64channel\include;C:\Users\DELL\Desktop\工作事项\16-伽马中子探测\MFC界面\Xrays_64channel-old\Xrays-64channel;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\DELL\Desktop\工作事项\16-伽马中子探测\MFC界面\Xrays-64channel\include;C:\Users\DELL\Desktop\工作事项\16-伽马中子探测\MFC界面\Xrays-64channel;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

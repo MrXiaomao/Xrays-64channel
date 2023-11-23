@@ -602,8 +602,7 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 // 连接网络
 void CXrays_64ChannelDlg::OnConnect()
 {
-	UpdateData(TRUE); //是控件变量的值与界面编辑值同步
-	// TODO: 在此添加控件通知处理程序代码
+	UpdateData(TRUE); //界面——>控件变量
 	// 停用连接按钮，防止用户连续点击多次
 	GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE);
 	SetTCPInputStatus(FALSE);

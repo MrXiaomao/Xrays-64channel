@@ -270,10 +270,10 @@ void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 	int waveMode = 16; //能谱模式，512/16道两种
 	// 512道能谱，最小刷新时间10ms，16道能谱，最小刷新时间1ms
 	if (m_WaveMode.GetCurSel() == 0) {
-		minTime = 10;
+		minTime = 10; 
 		waveMode = 512;
 	}
-	int MaxTime = 60 * 1000; //单位ms
+	int MaxTime = 60000 * 1000; //单位ms
 	if ((RefreshTime < minTime) || (RefreshTime > MaxTime))
 	{
 		CString message;
@@ -296,7 +296,7 @@ void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(true);
-	int MaxTime = 60 * 1000; //单位ms
+	int MaxTime = 60000 * 1000; //单位ms
 	if ((MeasureTime < 1) || (MeasureTime > MaxTime))
 	{
 		CString message;
