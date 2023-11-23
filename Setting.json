@@ -8,7 +8,7 @@
 	"IP_Relay" : "192.168.10.22",
 	"IP_UDP" : "192.168.1.120",
 	"Measure_Time" : 3000,
-	"NetSwitchCH1" : 1,
+	"NetSwitchCH1" : 0,
 	"NetSwitchCH2" : 0,
 	"NetSwitchCH3" : 1,
 	"NetSwitchCH4" : 1,

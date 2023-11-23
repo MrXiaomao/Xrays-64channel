@@ -17,9 +17,7 @@
 #define IDC_PORT1                       1001
 #define IDC_IPADDRESS_CH2               1001
 #define IDC_CONNECT1                    1002
-#define IDC_IPADDRESS_CH3               1002
 #define IDC_LED                         1003
-#define IDC_IPADDRESS_CH4               1003
 #define IDC_TargetNum                   1004
 #define IDC_IPADDRESS_ARM               1004
 #define IDC_UDPIP                       1005
@@ -60,10 +58,8 @@
 #define IDC_BUTTON1                     1045
 #define IDC_RELAY_CONNECT               1045
 #define IDC_NETSETTING_APPLY            1045
-#define IDC_CHECK4                      1046
 #define IDC_BUTTON2                     1046
 #define IDC_CHANGE_STATUS               1046
-#define IDC_CHECK5                      1047
 #define IDC_IPADDRESS_RELAY             1047
 #define IDC_LED_Relay                   1048
 #define IDC_POWER_BUTTON                1049
@@ -71,8 +67,6 @@
 #define IDC_TEMP_VOLT                   1050
 #define IDC_RELAY_PORT                  1051
 #define IDC_CH2_PORT                    1052
-#define IDC_CH3_PORT                    1053
-#define IDC_CH4_PORT                    1054
 #define IDC_ARM_PORT                    1055
 #define IDC_IPADDRESS_CH1               1056
 #define IDC_CH1_PORT                    1057

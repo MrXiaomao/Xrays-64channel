@@ -20,8 +20,6 @@ using namespace std;
 
 UINT Recv_Th1(LPVOID p); // 多线程接收CH1网口数据
 UINT Recv_Th2(LPVOID p); // 多线程接收CH2网口数据
-UINT Recv_Th3(LPVOID p); // 多线程接收CH3网口数据
-UINT Recv_Th4(LPVOID p); // 多线程接收CH4网口数据
 UINT Recv_ARM(LPVOID p); // 多线程接收ARM网口数据
 UINT Recv_Thread(const int num, LPVOID p); //四个探测器接受数据线程公有部分
 
@@ -121,35 +119,35 @@ public:
 public: 
 	CUDP_Socket* m_UDPSocket; //本地UDP服务
 	BOOL UDPStatus; // UDP工作状态
-	SOCKET SocketList[4]; // FPGA的TCP端口，也就是CH1~CH4
-	BOOL NetSwitchList[5]; // 网络开关,其中0位置对应总开关
+	SOCKET SocketList[2]; // FPGA的TCP端口，也就是CH1~CH4
+	BOOL NetSwitchList[3]; // 网络开关,其中0位置对应总开关
 
 	/* 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
 		16通道=20*4字节（1ms刷新，10秒测量时长对应总包长=1000*10*20*4）
 	*/
 	const int DataMaxlen;
-	BOOL connectStatusList[4]; // 各网络联网状态
+	BOOL connectStatusList[2]; // 各网络联网状态
 	int MeasureMode; // 测量状态。0：非测量状态，1：手动测量状态，2：自动测量状态。
-	int TrigerMode[4]; // 触发模式。0:非测量状态，1:软件触发模式，2：硬件触发模式（带硬件触发反馈）。用于处理数据内容判别（指令反馈/测量数据）。
+	int TrigerMode[2]; // 触发模式。0:非测量状态，1:软件触发模式，2：硬件触发模式（带硬件触发反馈）。用于处理数据内容判别（指令反馈/测量数据）。
 	BOOL GetDataStatus; // 是否接受到TCP网口的数据
 	BOOL m_getTargetChange; // 检测炮号是否变化
 	BOOL sendStopFlag; // 用来告知是否发送停止指令的标志，防止重复发送停止指令
 	
 	// ------------------TCP网络指令反馈的相关变量--------------------------------
-	BOOL ifFeedback[4]; //用于判断当前接收数据是否为指令反馈。
-	BOOL TCPfeedback[4]; // 发送数据后，网口指令反馈状态.无正确反馈则禁止发送下一条指令。
-	BYTE* LastSendMsg[4]; // 上一次发送的指令
-	BYTE* RecvMsg[4]; // 网口接收数据
-	int recievedFBLength[4]; //已接收网口数据长度，取前N个字节
-	int FeedbackLen[4]; //指令反馈字节长度
+	BOOL ifFeedback[2]; //用于判断当前接收数据是否为指令反馈。
+	BOOL TCPfeedback[2]; // 发送数据后，网口指令反馈状态.无正确反馈则禁止发送下一条指令。
+	BYTE* LastSendMsg[2]; // 上一次发送的指令
+	BYTE* RecvMsg[2]; // 网口接收数据
+	int recievedFBLength[2]; //已接收网口数据长度，取前N个字节
+	int FeedbackLen[2]; //指令反馈字节长度
 
 	// -------------------TCP网络接受数据相关变量----------------------------
 	BYTE* DataCH1; // 网口接收的数据，缓存下来，接收完后再存储到文件中。
 	BYTE* DataCH2;
 	BYTE* DataCH3;
 	BYTE* DataCH4;
-	int RECVLength[4];//网口已接收数据长度
-	fstream fileDetector[4]; //探测器文件保持常开状态，以减小打频繁开关闭所浪费的时间
+	int RECVLength[2];//网口已接收数据长度
+	fstream fileDetector[2]; //探测器文件保持常开状态，以减小打频繁开关闭所浪费的时间
 
 	//----------------ARM网络监测温度/电压/电流相关变量-------------
 	SOCKET armSocket; // ARM网络的TCP端口
@@ -177,7 +175,7 @@ public:
 	int m_currentTab; //Tab子窗口序号
 
 	CWinThread *m_pThread_ARM; //线程函数返回指针，
-	CWinThread* m_pThread_CH[4]; //线程函数返回指针
+	CWinThread* m_pThread_CH[2]; //线程函数返回指针
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -264,7 +262,7 @@ public:
 	afx_msg LRESULT OnUpdateShot(WPARAM wParam, LPARAM lParam);
 
 	// 网络状态LED灯
-	LEDButton m_NetStatusLEDList[4];
+	LEDButton m_NetStatusLEDList[2];
 
 	// 触发方式下拉框
 	// CComboBox m_TriggerType;
