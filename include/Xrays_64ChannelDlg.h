@@ -210,16 +210,6 @@ public:
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect); 
 	//连接探测器网络
 	afx_msg void OnConnect(); 
-	//限制TCP端口输入范围
-	afx_msg void OnEnKillfocusPort1();
-	//限制TCP端口输入范围
-	afx_msg void OnEnKillfocusPort2();
-	//限制TCP端口输入范围
-	afx_msg void OnEnKillfocusPort3();
-	//限制TCP端口输入范围
-	afx_msg void OnEnKillfocusPort4();
-	//限制UDP端口输入范围
-	afx_msg void OnEnKillfocusUDPPort();
 	//限制刷新时间输入范围
 	afx_msg void OnEnKillfocusRefreshTime(); 
 	//限制能谱测量总时长输入范围
@@ -275,18 +265,13 @@ public:
 
 	// 网络状态LED灯
 	LEDButton m_NetStatusLEDList[4];
-	// 四个探测器IP
-	CString StrIP_CH[4];
-	// TCP端口号
-	int PortList[4];
+
 	// 触发方式下拉框
 	// CComboBox m_TriggerType;
 	// 能谱模式选择下拉框
 	CComboBox m_WaveMode;
 	// 炮号，一种打靶序列号
 	CString m_targetID;
-	// UDP端口号
-	int m_UDPPort;
 	// 主界面Tab对话框
 	CTabCtrl m_Tab;
 	// 界面输入的能谱总测量时间,ms

@@ -29,16 +29,6 @@ void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag)
 	GetDlgItem(IDC_CHECK3)->EnableWindow(flag);
 	GetDlgItem(IDC_CHECK4)->EnableWindow(flag);
 	GetDlgItem(IDC_CHECK5)->EnableWindow(flag);
-	// IP
-	GetDlgItem(IDC_IPADDRESS1)->EnableWindow(flag);
-	GetDlgItem(IDC_IPADDRESS2)->EnableWindow(flag);
-	GetDlgItem(IDC_IPADDRESS3)->EnableWindow(flag);
-	GetDlgItem(IDC_IPADDRESS4)->EnableWindow(flag);
-	// Port
-	GetDlgItem(IDC_PORT1)->EnableWindow(flag);
-	GetDlgItem(IDC_PORT2)->EnableWindow(flag);
-	GetDlgItem(IDC_PORT3)->EnableWindow(flag);
-	GetDlgItem(IDC_PORT4)->EnableWindow(flag);
 
 	//发送刻度数据,只有联网后才能使用
 	GetDlgItem(IDC_CALIBRATION)->EnableWindow(!flag);
@@ -65,7 +55,19 @@ void CXrays_64ChannelDlg::OpenUDP()
 	// 读取配置参数并设置到相应控件上
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	//配置文件不存在，则生成配置文件
-	jsonSetting["Port_UDP"] = m_UDPPort;
+	int m_UDPPort;
+	if(jsonSetting.isNull())
+	{
+		if(jsonSetting.isMember("Port_UDP"))
+		{
+			m_UDPPort = jsonSetting["Port_UDP"].asInt();
+		}
+		else{
+			MessageBox(_T("无法再配置文件中找到‘Port_UDP’,系统默认将Port_UDP设置为12100"));
+			m_UDPPort = 12100;
+			jsonSetting["Port_UDP"] = m_UDPPort;
+		}
+	}
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
 	//--------------1.创建UDPSocket------------
@@ -83,15 +85,12 @@ void CXrays_64ChannelDlg::OpenUDP()
 	m_UDPSocket->GetSockName(strIp, uiPort);
 
 	//显示本地的端口号和IP号
-	// SetDlgItemText(IDC_UDPIP, strIp);
-	SetDlgItemInt(IDC_UDPPORT, uiPort);
 	CString info;
 	info.Format(_T("UDP已打开，端口号为:%d"), uiPort);
 	m_page1.PrintLog(info);
 	m_page2.PrintLog(info);
 
 	UDPStatus = TRUE;
-	GetDlgItem(IDC_UDPPORT)->EnableWindow(FALSE);
 
 	// 2、判断TCP连接状态
 	BOOL AllconnectStatus = TRUE;
@@ -115,7 +114,6 @@ void CXrays_64ChannelDlg::CloseUDP()
 	m_page1.PrintLog(info);
 	m_page2.PrintLog(info);
 	UDPStatus = FALSE;
-	GetDlgItem(IDC_UDPPORT)->EnableWindow(TRUE);
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 }
 
@@ -180,37 +178,6 @@ void CXrays_64ChannelDlg::SaveEnviromentFile(double data[])
 		datafile << endl;
 		datafile.close();
 	}
-}
-
-//限制TCP端口输入范围
-void CXrays_64ChannelDlg::OnEnKillfocusPort1()
-{
-	ConfinePortRange(PortList[0]);
-}
-
-//限制TCP端口输入范围
-void CXrays_64ChannelDlg::OnEnKillfocusPort2()
-{
-	ConfinePortRange(PortList[1]);
-}
-
-//限制TCP端口输入范围
-void CXrays_64ChannelDlg::OnEnKillfocusPort3()
-{
-	ConfinePortRange(PortList[2]);
-}
-
-//限制TCP端口输入范围
-void CXrays_64ChannelDlg::OnEnKillfocusPort4()
-{
-	ConfinePortRange(PortList[3]);
-}
-
-//限制UDP端口输入范围
-void CXrays_64ChannelDlg::OnEnKillfocusUDPPort()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	ConfinePortRange(m_UDPPort);
 }
 
 // 重置TCP网口接收的缓存数据

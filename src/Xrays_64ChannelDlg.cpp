@@ -74,7 +74,6 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, saveAsTargetPath("")
 	, m_currentTab(0)
 	, m_targetID(_T("00000"))
-	, m_UDPPort(12100)
 	, MeasureTime(3000)
 	, RefreshTime(10)
 	, m_Threshold(15)
@@ -86,7 +85,6 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	DataCH4 = new BYTE[DataMaxlen];
 	for(int num=0; num<4; num++){
 		RECVLength[num]=0;
-		PortList[num] = 5000;
 		connectStatusList[num] = FALSE;
 		SocketList[num] = NULL;
 		NetSwitchList[num] = TRUE; // 默认打开所有网络
@@ -97,7 +95,6 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 		recievedFBLength[num] = 0;
 		FeedbackLen[num] = 12;
 		TrigerMode[num] = 0;
-		StrIP_CH[num] = _T("192.168.10.22");
 	}
 
 	for(int i=0; i<3; i++){
@@ -179,18 +176,8 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LED3, m_NetStatusLEDList[2]);		// “建立链接”LED
 	DDX_Control(pDX, IDC_LED4, m_NetStatusLEDList[3]);		// “建立链接”LED
 	DDX_Control(pDX, IDC_ARM_LED, m_AMR_LED);		// “建立链接”LED
-	DDX_Text(pDX, IDC_IPADDRESS1, StrIP_CH[0]);
-	DDX_Text(pDX, IDC_IPADDRESS2, StrIP_CH[1]);
-	DDX_Text(pDX, IDC_IPADDRESS3, StrIP_CH[2]);
-	DDX_Text(pDX, IDC_IPADDRESS4, StrIP_CH[3]);
-	DDX_Text(pDX, IDC_PORT1, PortList[0]);
-	DDX_Text(pDX, IDC_PORT2, PortList[1]);
-	DDX_Text(pDX, IDC_PORT3, PortList[2]);
-	DDX_Text(pDX, IDC_PORT4, PortList[3]);
-	// DDX_Control(pDX, IDC_COMBO1, m_TriggerType);
 	DDX_Control(pDX, IDC_WAVE_MODE, m_WaveMode);
 	DDX_Text(pDX, IDC_TargetNum, m_targetID);
-	DDX_Text(pDX, IDC_UDPPORT, m_UDPPort);
 	DDX_Control(pDX, IDC_TAB1, m_Tab);
 	DDX_Text(pDX, IDC_MeasureTime, MeasureTime);
 	DDX_Text(pDX, IDC_CH1Threshold, m_Threshold);
@@ -210,11 +197,6 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_WM_SIZE()
 	ON_WM_SIZING()
 	ON_BN_CLICKED(IDC_CONNECT1, &CXrays_64ChannelDlg::OnConnect)
-	ON_EN_KILLFOCUS(IDC_PORT1, &CXrays_64ChannelDlg::OnEnKillfocusPort1)
-	ON_EN_KILLFOCUS(IDC_PORT2, &CXrays_64ChannelDlg::OnEnKillfocusPort2)
-	ON_EN_KILLFOCUS(IDC_PORT3, &CXrays_64ChannelDlg::OnEnKillfocusPort3)
-	ON_EN_KILLFOCUS(IDC_PORT4, &CXrays_64ChannelDlg::OnEnKillfocusPort4)
-	ON_EN_KILLFOCUS(IDC_UDPPORT, &CXrays_64ChannelDlg::OnEnKillfocusUDPPort)
 	ON_EN_KILLFOCUS(IDC_CH1Threshold, &CXrays_64ChannelDlg::OnEnKillfocusThreshold)
 	ON_EN_KILLFOCUS(IDC_RefreshTimeEdit, &CXrays_64ChannelDlg::OnEnKillfocusRefreshTime)
 	ON_EN_KILLFOCUS(IDC_MeasureTime, &CXrays_64ChannelDlg::OnEnKillfocusMeasureTime)
@@ -371,45 +353,8 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	}
 	
 	// ------------------读取配置参数并设置到相应控件上---------------------
-	CString StrSerIp2 = _T("192.168.10.22");
-	CString StrSerIp3 = _T("192.168.10.22");
-	CString StrSerIp4 = _T("192.168.10.22");
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	if (!jsonSetting.isNull()) {
-		if(jsonSetting.isMember("IP_Detector1"))
-		{
-			StrIP_CH[0] = jsonSetting["IP_Detector1"].asCString();
-		}
-		if(jsonSetting.isMember("IP_Detector2"))
-		{
-			StrIP_CH[1] = jsonSetting["IP_Detector2"].asCString();
-		}
-		if(jsonSetting.isMember("IP_Detector3"))
-		{
-			StrIP_CH[2] = jsonSetting["IP_Detector3"].asCString();
-		}
-		if(jsonSetting.isMember("IP_Detector4"))
-		{
-			StrIP_CH[3] = jsonSetting["IP_Detector4"].asCString();
-		}
-
-		if(jsonSetting.isMember("Port_Detector1"))
-		{
-			PortList[0] = jsonSetting["Port_Detector1"].asInt();
-		}
-		if(jsonSetting.isMember("Port_Detector2"))
-		{
-			PortList[1] = jsonSetting["Port_Detector2"].asInt();
-		}
-		if(jsonSetting.isMember("Port_Detector3"))
-		{
-			PortList[2] = jsonSetting["Port_Detector3"].asInt();
-		}
-		if(jsonSetting.isMember("Port_Detector4"))
-		{
-			PortList[3] = jsonSetting["Port_Detector4"].asInt();
-		}
-
 		if(jsonSetting.isMember("NetSwitchTotal"))
 		{
 			NetSwitchList[0] = jsonSetting["NetSwitchTotal"].asBool();
@@ -430,12 +375,6 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 		{
 			NetSwitchList[4] = jsonSetting["NetSwitchCH4"].asBool();
 		}
-		
-		if(jsonSetting.isMember("Port_UDP"))
-		{
-			m_UDPPort = jsonSetting["Port_UDP"].asInt();
-		}
-
 		if (jsonSetting.isMember("Threshold"))
 		{
 			m_Threshold = jsonSetting["Threshold"].asInt();
@@ -699,6 +638,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 
 	// 2、连接服务器
 	CString StrSerIp;
+	int myPort;
 	char keyIP[] = "IP_Detector1";
 	char keyPort[] = "Port_Detector1";
 	char keyRecvLen[] = "RECVLength_CH1";
@@ -706,29 +646,22 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	keyIP[strlen(keyIP)-1] = '1' + num;
 	keyPort[strlen(keyPort)-1] = '1' + num;
 	keyRecvLen[strlen(keyRecvLen)-1] = '1' + num;
-	switch(num)
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	if (!jsonSetting.isNull()) 
 	{
-	case 0:
-		GetDlgItemText(IDC_IPADDRESS1, StrSerIp);
-		break;
-	case 1:
-		GetDlgItemText(IDC_IPADDRESS2, StrSerIp);
-		break;
-	case 2:
-		GetDlgItemText(IDC_IPADDRESS3, StrSerIp);
-		break;
-	case 3:
-		GetDlgItemText(IDC_IPADDRESS4, StrSerIp);
-		break;		
-	default:
-		break;
+		if(jsonSetting.isMember(keyIP))
+		{
+			StrSerIp = jsonSetting[keyIP].asCString();
+		}
+		if(jsonSetting.isMember(keyPort))
+		{
+			myPort = jsonSetting[keyPort].asInt();
+		}
 	}
+
 	char* pStrIP = CstringToWideCharArry(StrSerIp);
 
 	// 写入配置文件
-	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-	jsonSetting[keyIP] = pStrIP;
-	jsonSetting[keyPort] = PortList[num];
 	jsonSetting[keyRecvLen] = 0;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 	
@@ -736,7 +669,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	sockaddr_in server_addr;
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
-	server_addr.sin_port = htons(PortList[num]); //网关：5000
+	server_addr.sin_port = htons(myPort); //网关：5000
 	SetSocketSize(SocketList[num], 1048576*4); //1M=1024k=1048576字节，缓存区大小
 	
 	// 4、检测网络是否连接,以及显示设备联网状况
