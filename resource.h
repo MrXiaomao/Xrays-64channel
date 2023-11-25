@@ -52,7 +52,7 @@
 #define IDC_EDIT1                       1035
 #define IDC_RUNNING_LOG                 1035
 #define IDC_CALIBRATION                 1042
-#define IDC_ALL_CHECK                      1043
+#define IDC_ALL_CHECK                   1043
 #define IDC_CHECK1                      1044
 #define IDC_CHECK2                      1045
 #define IDC_BUTTON1                     1045
@@ -76,6 +76,7 @@
 #define IDC_TEMP_LED                    1061
 #define IDC_ARM_LED                     1061
 #define IDC_ARM_REFRESHTIME             1061
+#define IDC_IPADDRESS_CH3               1063
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
