@@ -1,5 +1,5 @@
 {
-	"Detector_Refresh_Time" : 1,
+	"Detector_Refresh_Time" : 10,
 	"IP_ARM" : "192.168.10.89",
 	"IP_Detector1" : "192.168.10.5",
 	"IP_Detector2" : "192.168.10.6",
@@ -9,10 +9,10 @@
 	"IP_UDP" : "192.168.1.120",
 	"Measure_Time" : 3000,
 	"NetSwitchCH1" : 1,
-	"NetSwitchCH2" : 0,
+	"NetSwitchCH2" : 1,
 	"NetSwitchCH3" : 1,
 	"NetSwitchCH4" : 1,
-	"NetSwitchTotal" : 0,
+	"NetSwitchTotal" : 1,
 	"Port_ARM" : 6000,
 	"Port_Detector1" : 5000,
 	"Port_Detector2" : 6000,
@@ -26,7 +26,7 @@
 	"RECVLength_CH4" : 0,
 	"SaveDir" : "C:\\Users\\DELL\\Desktop\\工作事项\\16-伽马中子探测\\MFC界面\\N_GammaReceiveData\\",
 	"SavePictureDir" : "C:\\Users\\DELL\\Desktop\\工作事项\\16-伽马中子探测\\MFC界面\\N_GammaReceiveData\\",
-	"Threshold" : 15,
+	"Threshold" : 2048,
 	"ThresholdA" : "12",
 	"ThresholdB" : "12",
 	"WaveMode" : 0
