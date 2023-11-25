@@ -178,9 +178,9 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_MeasureTime, MeasureTime);
 	DDX_Text(pDX, IDC_CH1Threshold, m_Threshold);
 	DDX_Text(pDX, IDC_RefreshTimeEdit, RefreshTime);
-	DDX_Check(pDX, IDC_CHECK1, NetSwitchList[0]);
-	DDX_Check(pDX, IDC_CHECK2, NetSwitchList[1]);
-	DDX_Check(pDX, IDC_CHECK3, NetSwitchList[2]);
+	DDX_Check(pDX, IDC_ALL_CHECK, NetSwitchList[0]);
+	DDX_Check(pDX, IDC_CHECK1, NetSwitchList[1]);
+	DDX_Check(pDX, IDC_CHECK2, NetSwitchList[2]);
 }
 
 BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
@@ -201,9 +201,9 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_UDP_BUTTON, &CXrays_64ChannelDlg::OnBnClickedUDPButton)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
 	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
-	ON_BN_CLICKED(IDC_CHECK1, &CXrays_64ChannelDlg::OnBnClickedCheck0)
-	ON_BN_CLICKED(IDC_CHECK2, &CXrays_64ChannelDlg::OnBnClickedCheck1)
-	ON_BN_CLICKED(IDC_CHECK3, &CXrays_64ChannelDlg::OnBnClickedCheck2)
+	ON_BN_CLICKED(IDC_ALL_CHECK, &CXrays_64ChannelDlg::OnBnClickedCheck0)
+	ON_BN_CLICKED(IDC_CHECK1, &CXrays_64ChannelDlg::OnBnClickedCheck1)
+	ON_BN_CLICKED(IDC_CHECK2, &CXrays_64ChannelDlg::OnBnClickedCheck2)
 	ON_COMMAND(ID_POWER_MENU, &CXrays_64ChannelDlg::OnPowerMenu)
 	ON_COMMAND(ID_NETSETTING_MENU, &CXrays_64ChannelDlg::OnNetSettingMenu)
 	ON_BN_CLICKED(IDC_POWER_BUTTON, &CXrays_64ChannelDlg::OnBnClickedPowerButton)

@@ -24,9 +24,9 @@ extern const int TIMER_INTERVAL;
 void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag)
 {
 	//网络复选框
+	GetDlgItem(IDC_ALL_CHECK)->EnableWindow(flag);
 	GetDlgItem(IDC_CHECK1)->EnableWindow(flag);
 	GetDlgItem(IDC_CHECK2)->EnableWindow(flag);
-	GetDlgItem(IDC_CHECK3)->EnableWindow(flag);
 
 	//发送刻度数据,只有联网后才能使用
 	GetDlgItem(IDC_CALIBRATION)->EnableWindow(!flag);
@@ -648,7 +648,7 @@ void CXrays_64ChannelDlg::OnBnClickedCheck0()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
-	if (BST_CHECKED == IsDlgButtonChecked(IDC_CHECK1)) //BST_CHECKED：表示按钮被选中。BST_UNCHECKED：表示该按钮未选中（unckecked）。
+	if (BST_CHECKED == IsDlgButtonChecked(IDC_ALL_CHECK)) //BST_CHECKED：表示按钮被选中。BST_UNCHECKED：表示该按钮未选中（unckecked）。
 	{
 		for (int i = 0; i < 3; i++) {
 			NetSwitchList[i] = TRUE;

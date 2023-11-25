@@ -52,9 +52,9 @@
 #define IDC_EDIT1                       1035
 #define IDC_RUNNING_LOG                 1035
 #define IDC_CALIBRATION                 1042
-#define IDC_CHECK1                      1043
-#define IDC_CHECK2                      1044
-#define IDC_CHECK3                      1045
+#define IDC_ALL_CHECK                      1043
+#define IDC_CHECK1                      1044
+#define IDC_CHECK2                      1045
 #define IDC_BUTTON1                     1045
 #define IDC_RELAY_CONNECT               1045
 #define IDC_NETSETTING_APPLY            1045
