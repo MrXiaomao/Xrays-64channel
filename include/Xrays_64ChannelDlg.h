@@ -247,7 +247,8 @@ public:
 	// 继电器开关
 	afx_msg void OnBnClickedPowerButton();
 	//温度、电压电流监测开关
-	afx_msg void TempVoltMonitorON_OFF();
+	BOOL TempVoltMonitorON();
+	void TempVoltMonitorOFF();
 
 	//-------------------------自定义消息---------------------
 	//从ARM来的网口接受到数据，进行相关数据处理

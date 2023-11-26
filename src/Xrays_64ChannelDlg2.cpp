@@ -23,12 +23,6 @@ extern const int TIMER_INTERVAL;
 // 设置TCP的IP、PORT、复选框的输入使能状态
 void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag)
 {
-	//网络复选框
-	GetDlgItem(IDC_ALL_CHECK)->EnableWindow(flag);
-	GetDlgItem(IDC_CHECK1)->EnableWindow(flag);
-	GetDlgItem(IDC_CHECK2)->EnableWindow(flag);
-	GetDlgItem(IDC_CHECK3)->EnableWindow(flag);
-
 	//发送刻度数据,只有联网后才能使用
 	GetDlgItem(IDC_CALIBRATION)->EnableWindow(!flag);
 }
@@ -641,52 +635,6 @@ void CXrays_64ChannelDlg::NoBackSend(int num, BYTE* msg, int msgLength, int flag
 	info = info + Char2HexCString(msg, msgLength);
 	m_page1.PrintLog(info, FALSE);
 	Sleep(sleepTime);
-}
-
-//网络勾选，全选
-void CXrays_64ChannelDlg::OnBnClickedCheck0()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
-	if (BST_CHECKED == IsDlgButtonChecked(IDC_ALL_CHECK)) //BST_CHECKED：表示按钮被选中。BST_UNCHECKED：表示该按钮未选中（unckecked）。
-	{
-		for (int i = 0; i < 4; i++) {
-			NetSwitchList[i] = TRUE;
-		}
-	}
-	else{
-		for (int i = 0; i < 4; i++) {
-			NetSwitchList[i] = FALSE;
-		}
-	}
-	UpdateData(FALSE);//刷新控件
-}
-
-//网络勾选，设备1
-void CXrays_64ChannelDlg::OnBnClickedCheck1()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
-	NetSwitchList[0] = NetSwitchList[1] & NetSwitchList[2] & NetSwitchList[3];
-	UpdateData(FALSE);//刷新控件
-}
-
-//网络勾选，设备2
-void CXrays_64ChannelDlg::OnBnClickedCheck2()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
-	NetSwitchList[0] = NetSwitchList[1] & NetSwitchList[2] & NetSwitchList[3];
-	UpdateData(FALSE);//刷新控件
-}
-
-//网络勾选，设备3
-void CXrays_64ChannelDlg::OnBnClickedCheck3()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(TRUE);//从控件获得数据   获得输入数据后可以进行相应操作
-	NetSwitchList[0] = NetSwitchList[1] & NetSwitchList[2] & NetSwitchList[3];
-	UpdateData(FALSE);//刷新控件
 }
 
 LRESULT CXrays_64ChannelDlg::OnUpdateTrigerLog(WPARAM wParam, LPARAM lParam){
