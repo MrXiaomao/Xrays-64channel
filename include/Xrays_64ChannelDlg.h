@@ -49,7 +49,10 @@ public:
 	void OpenUDP(); 
 	//关闭UDP通信，以及相应资源
 	void CloseUDP();
-	
+	//温度、电压电流监测开启
+	BOOL TempVoltMonitorON();
+	//温度、电压电流监测关闭
+	void TempVoltMonitorOFF();
 	//----------------其他----------------
 	//连接一般TCP网络
 	BOOL ConnectGeneralTCP(SOCKET& my_socket, CString strIP, int port); 
@@ -158,7 +161,6 @@ public:
 	double powerCurrent; //电流
 	int refreshTime_ARM; //温度检测模块刷新数据时间,units: s
 	int ArmTimer; //计数器，计算流逝的时间,units:s
-	LEDButton m_AMR_LED; // 网络状态LED灯
 	CByteArray TotalARMArray; //ARM网口接收的数据
 	
 	UINT_PTR m_nTimerId[3]; //3个定时器的状态，0为非工作状态，>0为工作状态
@@ -224,31 +226,18 @@ public:
 	afx_msg void OnBnClickedSaveas();
 	//清空日志按钮
 	afx_msg void OnBnClickedClearLog();
-	//UDP开关按钮
-	afx_msg void OnBnClickedUDPButton();
 	//多页对话框选择
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
 	//选择刻度曲线数据文件，并发送指令到FPGA
 	afx_msg void OnBnClickedCalibration();
 	//选择能谱模式
 	afx_msg void OnCbnSelchangeWaveMode(); 
-	//网络选择复选框，总开关
-	afx_msg void OnBnClickedCheck0(); 
-	//网络选择复选框，CH1
-	afx_msg void OnBnClickedCheck1(); 
-	//网络选择复选框，CH2
-	afx_msg void OnBnClickedCheck2(); 
-	//网络选择复选框，CH3
-	afx_msg void OnBnClickedCheck3();  
 	//菜单栏的电源设置选项
 	afx_msg void OnPowerMenu(); 
 	//菜单栏“设置”按钮
 	afx_msg void OnNetSettingMenu();
 	// 继电器开关
 	afx_msg void OnBnClickedPowerButton();
-	//温度、电压电流监测开关
-	BOOL TempVoltMonitorON();
-	void TempVoltMonitorOFF();
 
 	//-------------------------自定义消息---------------------
 	//从ARM来的网口接受到数据，进行相关数据处理
