@@ -50,7 +50,11 @@ public:
 	void OpenUDP(); 
 	//关闭UDP通信，以及相应资源
 	void CloseUDP();
-	
+	//温度、电压电流监测打开
+	BOOL TempVoltMonitorON();
+	//温度、电压电流监测关闭
+	void TempVoltMonitorOFF();
+
 	//----------------其他----------------
 	//连接一般TCP网络
 	BOOL ConnectGeneralTCP(SOCKET& my_socket, CString strIP, int port); 
@@ -160,7 +164,6 @@ public:
 	double powerCurrent; //电流
 	int refreshTime_ARM; //温度检测模块刷新数据时间,units: s
 	int ArmTimer; //计数器，计算流逝的时间,units:s
-	LEDButton m_AMR_LED; // 网络状态LED灯
 	CByteArray TotalARMArray; //ARM网口接收的数据
 	
 	UINT_PTR m_nTimerId[3]; //3个定时器的状态，0为非工作状态，>0为工作状态
@@ -250,8 +253,6 @@ public:
 	afx_msg void OnNetSettingMenu();
 	// 继电器开关
 	afx_msg void OnBnClickedPowerButton();
-	//温度、电压电流监测开关
-	afx_msg void TempVoltMonitorON_OFF();
 
 	//-------------------------自定义消息---------------------
 	//从ARM来的网口接受到数据，进行相关数据处理

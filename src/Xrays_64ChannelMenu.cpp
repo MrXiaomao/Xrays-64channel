@@ -26,60 +26,65 @@ void CXrays_64ChannelDlg::OnNetSettingMenu()
 	netsetdlg.DoModal(); // 显示模态对话框 其中参数用swp_SHOWNOMAL,  SW_SHOW, SW_VISION 好像效果是一样的
 }
 
-void CXrays_64ChannelDlg::TempVoltMonitorON_OFF() 
+BOOL CXrays_64ChannelDlg::TempVoltMonitorON() 
 {
-	GetDlgItem(IDC_TEMP_VOLT)->EnableWindow(FALSE); //禁用
-	CString strTemp;
-	GetDlgItemText(IDC_TEMP_VOLT, strTemp);
-	if (strTemp == _T("开启")) {
-
-		//从配置文件获取IP、Port
-		Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-		CString StrIP_ARM = _T("192.168.10.22");
-		int portARM = 1000;
+	//从配置文件获取IP、Port
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	CString StrIP_ARM = _T("192.168.10.22");
+	int portARM = 1000;
+	
+	CString info;
+	if(!jsonSetting.isNull())
+	{
 		if (jsonSetting.isMember("IP_ARM"))
 		{
 			StrIP_ARM = jsonSetting["IP_ARM"].asCString();
+		}
+		else
+		{
+			info = _T("配置文件中无法查找到\"IP_ARM\",ARM设备IP采用默认值：") + StrIP_ARM;
+			m_page1.PrintLog(info);
 		}
 		if (jsonSetting.isMember("Port_ARM"))
 		{
 			portARM = jsonSetting["Port_ARM"].asInt();
 		}
-
-		CString info;
-		if (ConnectGeneralTCP(armSocket, StrIP_ARM, portARM)) {
-			// 连接成功
-			// 开启线程接收数据
-			m_pThread_ARM = AfxBeginThread(&Recv_ARM, this);
-
-			//更新相关按钮以及状态
-			ARMnetStatus = TRUE;
-			SetDlgItemText(IDC_TEMP_VOLT, _T("关闭")); 
-			m_AMR_LED.RefreshWindow(TRUE, _T("ON"));
-			
-			info = _T("温度/电压/电流监测已开启");
-			m_page1.PrintLog(info);
-			
-			//首次连接上时直接查询一次温度/电压/电流
-			send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
-		}
-		else {
-			info = _T("无法连接温度/电压/电流监测网络");
+		{
+			info.Format(_T("配置文件中无法查找到\"Port_ARM\",ARM设备Port采用默认值：%d"), portARM);
 			m_page1.PrintLog(info);
 		}
+	}
+
+	if (ConnectGeneralTCP(armSocket, StrIP_ARM, portARM)) {
+		// 连接成功
+		// 开启线程接收数据
+		m_pThread_ARM = AfxBeginThread(&Recv_ARM, this);
+
+		//更新相关按钮以及状态
+		ARMnetStatus = TRUE;
+		
+		info = _T("温度/电压/电流监测已开启");
+		m_page1.PrintLog(info);
+		
+		//首次连接上时直接查询一次温度/电压/电流
+		send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
+		return TRUE;
 	}
 	else {
-		ARMnetStatus = FALSE; //关联着线程，先关闭线程，再关闭套接字
-		closesocket(armSocket); // 关闭套接字
-		SetDlgItemText(IDC_TEMP_VOLT, _T("开启"));
-		m_AMR_LED.RefreshWindow(FALSE, _T("OFF"));
-		CString info;
-		info = _T("温度/电压/电流监测已关闭");
+		info = _T("无法连接温度/电压/电流监测网络");
 		m_page1.PrintLog(info);
+		return FALSE;
 	}
-	GetDlgItem(IDC_TEMP_VOLT)->EnableWindow(TRUE); //恢复使用
 }
 
+void CXrays_64ChannelDlg::TempVoltMonitorOFF() 
+{
+	ARMnetStatus = FALSE; //关联着线程，先关闭线程，再关闭套接字
+	closesocket(armSocket); // 关闭套接字
+	CString info;
+	info = _T("温度/电压/电流监测已关闭");
+	m_page1.PrintLog(info);
+}
 
 UINT Recv_ARM(LPVOID p) // 多线程接收ARM网口数据
 {
@@ -193,7 +198,7 @@ void CXrays_64ChannelDlg::refreshBar() {
 	}
 
 	CString strInfo = strInfo1 + strInfo2;
-	m_statusBar.SetPaneText(1, strInfo);
+	m_statusBar.SetPaneText(1, strInfo2);
 	m_page1.PrintLog(_T("温度、电压、电流采集数据：") + strInfo,FALSE);
 
 	// 保存数据到文件

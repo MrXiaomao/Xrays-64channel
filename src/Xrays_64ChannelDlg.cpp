@@ -172,21 +172,12 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_LED, m_NetStatusLEDList[0]);		// “建立链接”LED
-	DDX_Control(pDX, IDC_LED2, m_NetStatusLEDList[1]);		// “建立链接”LED
-	DDX_Control(pDX, IDC_LED3, m_NetStatusLEDList[2]);		// “建立链接”LED
-	DDX_Control(pDX, IDC_LED4, m_NetStatusLEDList[3]);		// “建立链接”LED
-	DDX_Control(pDX, IDC_ARM_LED, m_AMR_LED);		// “建立链接”LED
 	DDX_Control(pDX, IDC_WAVE_MODE, m_WaveMode);
 	DDX_Text(pDX, IDC_TargetNum, m_targetID);
 	DDX_Control(pDX, IDC_TAB1, m_Tab);
 	DDX_Text(pDX, IDC_MeasureTime, MeasureTime);
 	DDX_Text(pDX, IDC_CH1Threshold, m_Threshold);
 	DDX_Text(pDX, IDC_RefreshTimeEdit, RefreshTime);
-	DDX_Check(pDX, IDC_CHECK1, NetSwitchList[0]);
-	DDX_Check(pDX, IDC_CHECK2, NetSwitchList[1]);
-	DDX_Check(pDX, IDC_CHECK3, NetSwitchList[2]);
-	DDX_Check(pDX, IDC_CHECK4, NetSwitchList[3]);
-	DDX_Check(pDX, IDC_CHECK5, NetSwitchList[4]);
 }
 
 BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
@@ -204,18 +195,11 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_AutoMeasure, &CXrays_64ChannelDlg::OnBnClickedAutomeasure)
 	ON_BN_CLICKED(IDC_SaveAs, &CXrays_64ChannelDlg::OnBnClickedSaveas)
 	ON_BN_CLICKED(IDC_CLEAR_LOG, &CXrays_64ChannelDlg::OnBnClickedClearLog)
-	ON_BN_CLICKED(IDC_UDP_BUTTON, &CXrays_64ChannelDlg::OnBnClickedUDPButton)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
 	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
-	ON_BN_CLICKED(IDC_CHECK1, &CXrays_64ChannelDlg::OnBnClickedCheck0)
-	ON_BN_CLICKED(IDC_CHECK2, &CXrays_64ChannelDlg::OnBnClickedCheck1)
-	ON_BN_CLICKED(IDC_CHECK3, &CXrays_64ChannelDlg::OnBnClickedCheck2)
-	ON_BN_CLICKED(IDC_CHECK4, &CXrays_64ChannelDlg::OnBnClickedCheck3)
-	ON_BN_CLICKED(IDC_CHECK5, &CXrays_64ChannelDlg::OnBnClickedCheck4)
 	ON_COMMAND(ID_POWER_MENU, &CXrays_64ChannelDlg::OnPowerMenu)
 	ON_COMMAND(ID_NETSETTING_MENU, &CXrays_64ChannelDlg::OnNetSettingMenu)
 	ON_BN_CLICKED(IDC_POWER_BUTTON, &CXrays_64ChannelDlg::OnBnClickedPowerButton)
-	ON_BN_CLICKED(IDC_TEMP_VOLT, &CXrays_64ChannelDlg::TempVoltMonitorON_OFF)
 	ON_MESSAGE(WM_UPDATE_ARM, &CXrays_64ChannelDlg::OnUpdateARMStatic) //子线程发送消息通知主线程处理  
 	ON_MESSAGE(WM_UPDATE_TRIGER_LOG, &CXrays_64ChannelDlg::OnUpdateTrigerLog) 
 	ON_MESSAGE(WM_UPDATE_CH_DATA, &CXrays_64ChannelDlg::OnUpdateTimer1)
@@ -294,7 +278,7 @@ void CXrays_64ChannelDlg::InitBarSettings(){
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	//设置状态栏面板文本，参数为面板序号和对应文本
 	m_statusBar.SetPaneText(0, _T("探测器数据"));
-	m_statusBar.SetPaneText(1, _T("T1:℃,T2:℃,T3:℃,T4:℃,T5:℃,T6:℃,Volt:V,I:A"));
+	m_statusBar.SetPaneText(1, _T("Volt:V,I:A"));
 	m_statusBar.SetPaneText(2, _T("日期"));
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	//开启定时器，刷新状态栏参数
@@ -335,10 +319,7 @@ void CXrays_64ChannelDlg::InitTabSettings(){
 
 
 void CXrays_64ChannelDlg::InitOtherSettings(){
-	for(int num=0; num<4; num++){
-		m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
-	}
-	m_AMR_LED.RefreshWindow(FALSE, _T("OFF"));
+	m_NetStatusLEDList[0].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 
 	CString strPath = GetExeDir();
 	if (IsPathExit(strPath)) {
@@ -387,8 +368,8 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 		{
 			RefreshTime = jsonSetting["Detector_Refresh_Time"].asInt();
 		}
-		if (jsonSetting.isMember("refreshTime_ARM")) {
-			refreshTime_ARM = jsonSetting["refreshTime_ARM"].asInt();
+		if (jsonSetting.isMember("refreshTimeARM")) {
+			refreshTime_ARM = jsonSetting["refreshTimeARM"].asInt();
 		}
 
 		//设置下拉框默认选项
@@ -457,24 +438,6 @@ void CXrays_64ChannelDlg::OnPaint()
 HCURSOR CXrays_64ChannelDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
-}
-
-// UDP网络连接与断开
-void CXrays_64ChannelDlg::OnBnClickedUDPButton()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	CString strTemp;
-	GetDlgItemText(IDC_UDP_BUTTON, strTemp);
-	if (strTemp == _T("开启UDP网络")) {
-		//打开定时器2，用来刷新炮号
-		// SetTimer(2, TIMER_INTERVAL, NULL);
-		OpenUDP();
-		SetDlgItemText(IDC_UDP_BUTTON, _T("断开UDP网络"));
-	}
-	else {
-		CloseUDP();
-		SetDlgItemText(IDC_UDP_BUTTON, _T("开启UDP网络"));
-	}
 }
 
 // 获取刻度曲线数据文件的全路径
@@ -553,6 +516,10 @@ void CXrays_64ChannelDlg::OnConnect()
 	if (strTemp == _T("连接网络")) {
 		CLog::WriteMsg(_T("点击“连接网络按钮”，尝试连接TCP网络！"));
 		
+		// 打开UDP网络
+		OpenUDP();
+		// 打开温度/电压/电流监测
+		BOOL ARMConnectFlag = TempVoltMonitorON();
 		// 1、尝试建立网络
 		for (int num = 0; num < 4; num++) {
 			if(NetSwitchList[num+1]) {
@@ -588,10 +555,13 @@ void CXrays_64ChannelDlg::OnConnect()
 				if(connectStatusList[num]) {
 					connectStatusList[num] = FALSE; // 用来控制关闭线程
 					closesocket(SocketList[num]); // 关闭套接字
-					m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
+					m_NetStatusLEDList[0].RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
 				}
 			}
-
+			
+			CloseUDP();
+			// 关闭温度/电压/电流监测
+			TempVoltMonitorOFF();
 			// 恢复各个输入框使能状态
 			SetTCPInputStatus(TRUE);
 			GetDlgItem(IDC_Start)->EnableWindow(FALSE);
@@ -610,10 +580,14 @@ void CXrays_64ChannelDlg::OnConnect()
 				// CLog::WriteMsg(info);
 
 				closesocket(SocketList[num]); // 关闭套接字
-				m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
+				m_NetStatusLEDList[0].RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
 			}
 		} 
-
+		
+		CloseUDP();
+		// 关闭温度/电压/电流监测
+		TempVoltMonitorOFF();
+		
 		SetDlgItemText(IDC_CONNECT1, _T("连接网络"));
 
 		// 恢复各个输入框使能状态
@@ -674,7 +648,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	
 	// 4、检测网络是否连接,以及显示设备联网状况
 	if (connect(SocketList[num], (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-		m_NetStatusLEDList[num].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
+		m_NetStatusLEDList[0].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 		// 打印日志
 		CString info;
 		info.Format(_T("CH%d网络连接失败。请重新尝试，若再次连接失败,请做以下尝试:\
@@ -687,7 +661,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	info.Format(_T("CH%d网络已连接"), num+1);
 	m_page1.PrintLog(info);
 
-	m_NetStatusLEDList[num].RefreshWindow(TRUE, _T("ON"));//打开指示灯
+	m_NetStatusLEDList[0].RefreshWindow(TRUE, _T("ON"));//打开指示灯
 	return TRUE;
 }
 
@@ -916,7 +890,6 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 						//打开其他相关按键使能
 						GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 						GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
-						GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
 						GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 					}
 
@@ -1125,7 +1098,6 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE); //自动测量
 		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
-		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(FALSE); //连接UDP网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
 		
@@ -1216,7 +1188,6 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		// 锁死其他相关按键
 		GetDlgItem(IDC_Start)->EnableWindow(FALSE); //手动测量
 		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
-		GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(FALSE); //连接UDP网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
 
@@ -1261,7 +1232,6 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 			//打开其他相关按键使能
 			GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
-			GetDlgItem(IDC_UDP_BUTTON)->EnableWindow(TRUE); //连接UDP网络
 			GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 			GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
