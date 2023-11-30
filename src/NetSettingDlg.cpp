@@ -170,6 +170,7 @@ void CNetSetting::SaveNetSetting()
 		jsonSetting["Port_UDP"] = m_PortUDP;
 		jsonSetting["Port_ARM"] = m_PortARM;
 
+		jsonSetting["refreshTime_ARM"] = m_ARM_RefreshTime;
 		if (WriteSetting(_T("Setting.json"), jsonSetting) == 0) {
 			GetDlgItem(IDC_NETSETTING_APPLY)->EnableWindow(FALSE);
 		}

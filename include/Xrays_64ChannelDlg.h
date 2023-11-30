@@ -81,7 +81,7 @@ public:
 
 	//-------------------四个探测器网络相关设置函数--------------
 	//发送配置参数
-	void SendParameterToTCP(); 
+	BOOL SendParameterToTCP(); 
 	//发送刻度曲线
 	void SendCalibration(CString fileName); 
 	//连接探测器设备网络
@@ -209,13 +209,9 @@ public:
 	//鼠标拖动时的尺寸变化
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect); 
 	//连接探测器网络
-	afx_msg void OnConnect(); 
-	//限制刷新时间输入范围
-	afx_msg void OnEnKillfocusRefreshTime(); 
+	afx_msg void OnConnect();
 	//限制能谱测量总时长输入范围
-	afx_msg void OnEnKillfocusMeasureTime(); 
-	//限制阈值输入范围
-	afx_msg void OnEnKillfocusThreshold();
+	afx_msg void OnEnKillfocusMeasureTime();
 	//开始测量（手动测量）
 	afx_msg void OnBnClickedStart(); 
 	//自动测量
@@ -266,8 +262,6 @@ public:
 	// 网络状态LED灯
 	LEDButton m_NetStatusLEDList[4];
 
-	// 触发方式下拉框
-	// CComboBox m_TriggerType;
 	// 能谱模式选择下拉框
 	CComboBox m_WaveMode;
 	// 炮号，一种打靶序列号
@@ -276,8 +270,4 @@ public:
 	CTabCtrl m_Tab;
 	// 界面输入的能谱总测量时间,ms
 	int MeasureTime;
-	// 界面输入的能谱刷新时间，ms
-	int RefreshTime;
-	//触发阈值
-	int m_Threshold;
 };

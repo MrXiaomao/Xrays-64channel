@@ -37,14 +37,10 @@ void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag)
 //设置配置参数框的使能状态
 void CXrays_64ChannelDlg::SetParameterInputStatus(BOOL flag)
 {
-	//能谱刷新时间
-	GetDlgItem(IDC_RefreshTimeEdit)->EnableWindow(flag);
 	//能谱测量时间
 	GetDlgItem(IDC_MeasureTime)->EnableWindow(flag);
 	//能谱模式选择
 	GetDlgItem(IDC_WAVE_MODE)->EnableWindow(flag);
-	//阈值设置
-	GetDlgItem(IDC_CH1Threshold)->EnableWindow(flag);
 }
 
 // 打开UDP通信
@@ -212,50 +208,14 @@ void CXrays_64ChannelDlg::ConfinePortRange(int &myPort)
 	}
 }
 
-//选择能谱模式：512道/16道 能谱
-//更新相关的能谱刷新时间检查
+//选择测量模式：波形，512道能谱 16道能谱
 void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
 {
 	UpdateData(true);
 	// 保存参数设置
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-	int mode = m_WaveMode.GetCurSel();
 	jsonSetting["WaveMode"] = m_WaveMode.GetCurSel();
 	WriteSetting(_T("Setting.json"), jsonSetting);
-
-	//检查相应的刷新时间，限定范围
-	OnEnKillfocusRefreshTime();
-}
-
-//限制能谱刷新时间范围,单位ms，
-//能谱刷新时间指的是FPGA采集一个能谱数据所用时间
-void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(true);
-	int minTime = 1; //单位ms
-	int waveMode = 16; //能谱模式，512/16道两种
-	// 512道能谱，最小刷新时间10ms，16道能谱，最小刷新时间1ms
-	if (m_WaveMode.GetCurSel() == 0) {
-		minTime = 10; 
-		waveMode = 512;
-	}
-	int MaxTime = 60000 * 1000; //单位ms
-	if ((RefreshTime < minTime) || (RefreshTime > MaxTime))
-	{
-		CString message;
-		message.Format(_T("%d能谱模式下，能谱刷新时间范围为%d~%dms\n"), waveMode, minTime, MaxTime);
-		MessageBox(message);
-		if (RefreshTime > MaxTime)
-		{
-			RefreshTime = MaxTime;
-		}
-		else
-		{
-			RefreshTime = minTime;
-		}
-		UpdateData(false);
-	}
 }
 
 //限制能谱测量时间范围，单位ms
@@ -276,27 +236,6 @@ void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 		else
 		{
 			MeasureTime = 1;
-		}
-		UpdateData(false);
-	}
-}
-
-//限制触发阈值
-void CXrays_64ChannelDlg::OnEnKillfocusThreshold()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(true);
-	if ((m_Threshold < 1) || (m_Threshold > 2048))
-	{
-		CString message = _T("触发阈值范围为1~2048\n");
-		MessageBox(message);
-		if (m_Threshold > 2048)
-		{
-			m_Threshold = 2048;
-		}
-		else
-		{
-			m_Threshold = 1;
 		}
 		UpdateData(false);
 	}
@@ -329,56 +268,66 @@ void CXrays_64ChannelDlg::OnBnClickedSaveas()
 }
 
 //配置参数,通过网口向控制板发送参数
-void CXrays_64ChannelDlg::SendParameterToTCP()
+BOOL CXrays_64ChannelDlg::SendParameterToTCP()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	// 读取界面参数并修改指令
+	// 读取界面参数和配置参数并修改指令
 	UpdateData(TRUE);
 
-	//从界面获取刷新时间
-	BYTE res[4];
-	DecToHex(RefreshTime, res);
-	Order::WaveRefreshTime[6] = res[0];
-	Order::WaveRefreshTime[7] = res[1];
-	Order::WaveRefreshTime[8] = res[2];
-	Order::WaveRefreshTime[9] = res[3];
-	
-	BYTE res2[4];
-	DecToHex(m_Threshold, res2);
-	Order::TriggerThreshold[6] = res2[0];
-	Order::TriggerThreshold[7] = res2[1];
-	Order::TriggerThreshold[8] = res2[2];
-	Order::TriggerThreshold[9] = res2[3];
+	//从配置文件中获取各通道波形触发阈值
+	Json::Value myJson = ReadSetting(_T("Setting.json"));
+	int Threshold[64] = {0};
+	if(!myJson.isNull()){
+		char keyThreshold[] = "TriggerThresHold_CH1";
+		for (int num = 0; num < 4; num++) {
+			keyThreshold[strlen(keyThreshold)-1] = '1' + num;
+			if(connectStatusList[num] && myJson[keyThreshold].isArray()) {
+				//判断数据长度是否为16通道
+				int length = myJson[keyThreshold].size();
+				if(length == 16) {
+					for(int channelID=0; channelID<16; channelID++){
+						Threshold[num*16 + channelID] = myJson[keyThreshold][channelID].asInt();
+					}
+				}
+				else{
+					// 打印日志信息
+					CString info;
+					info.Format(_T("配置文件中，关键字\"%s\"参数个数不等于16通道个数,无法下发配置指令，请修改配置文件后重新尝试"),keyThreshold);
+					MessageBox(info);
+					m_page1.PrintLog(info);
+					return FALSE;
+				}
+			}
+		}
+	}
 
-	//能谱刷新时间，波形触发间隔，波形触发阈值
+
+	// 波形触发阈值，每个通道分别设置
 	for (int num = 0; num < 4; num++) {
 		if(connectStatusList[num]) {
-			BackSend(num, Order::WaveRefreshTime, 12, 0, 1);
-			BackSend(num, Order::TriggerThreshold, 12, 0, 1);
-			BackSend(num, Order::TriggerIntervalTime, 12, 0, 1);
-		}
-	}
-	
-	CString info;
-	if (m_WaveMode.GetCurSel() == 0)
-	{ //512道能谱
-		for (int num = 0; num < 4; num++) {
-			if(connectStatusList[num]) {
-				BackSend(num, Order::WorkMode0, 12, 0, 1);
+			for(int oderIndex=0; oderIndex<8; oderIndex++){
+				//-----------指令编号----------
+				// 两个通道阈值放在一条指令中
+				int myoderIndex = 17 + oderIndex; //指令序列编号在0x11~0x18之间,对应十进制17~24
+				BYTE res[4];
+				DecToHex(myoderIndex, res);
+				Order::TriggerThresholdWave[5] = res[3]; //只取最后一位
+				
+				//--------------阈值设置------------
+				// 通道2n
+				DecToHex(Threshold[num*16 + oderIndex*2], res);
+				Order::TriggerThresholdWave[6] = res[2];
+				Order::TriggerThresholdWave[7] = res[3];
+				// 通道2n+1
+				DecToHex(Threshold[num*16 + oderIndex*2+1], res);
+				Order::TriggerThresholdWave[8] = res[2];
+				Order::TriggerThresholdWave[9] = res[3];
+				BOOL flag = BackSend(num, Order::TriggerThresholdWave, 12, 0, 1);
+				if(!flag) return FALSE;
 			}
 		}
-		info.Format(_T("能谱刷新时间:%dms,512道能谱工作模式"), RefreshTime);
 	}
-	else if (m_WaveMode.GetCurSel() == 1)
-	{ // 16道能谱
-		for (int num = 0; num < 4; num++) {
-			if(connectStatusList[num]) {
-				BackSend(num, Order::WorkMode3, 12, 0, 1);
-			}
-		}
-		info.Format(_T("能谱刷新时间:%dms,16道能谱工作模式"), RefreshTime);
-	}
-	m_page1.PrintLog(info);
+	return TRUE;
 }
 
 //多页对话框选择
