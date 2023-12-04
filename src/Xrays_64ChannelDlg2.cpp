@@ -687,6 +687,21 @@ LRESULT CXrays_64ChannelDlg::OnUpdateShot(WPARAM wParam, LPARAM lParam){
 	return 0;
 }
 
+LRESULT CXrays_64ChannelDlg::OnUpdateRelay(WPARAM wParam, LPARAM lParam)
+{
+	int nLength = (int)wParam;
+	BYTE* recBuf = (BYTE*)lParam;
+	if (compareBYTE(recBuf, Order::relay_StatusON, nLength)) {
+	m_RelayStatusLED.RefreshWindow(1, _T("ON"));
+	GetDlgItem(IDC_POWER_ONOFF)->SetWindowText(_T("电源关闭"));
+	}
+	else if (compareBYTE(recBuf, Order::relay_StatusOFF, nLength)) {
+	m_RelayStatusLED.RefreshWindow(0, _T("OFF"));
+	GetDlgItem(IDC_POWER_ONOFF)->SetWindowText(_T("电源开启"));
+	}
+	return 0;
+}
+
 BOOL CXrays_64ChannelDlg::DestroyWindow()
 {
 	// TODO: 在此添加专用代码和/或调用基类

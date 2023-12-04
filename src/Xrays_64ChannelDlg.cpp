@@ -144,7 +144,10 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 		//CLog::WriteMsg(_T("ARM线程退出成功！"));
 		closesocket(armSocket);
 	}
-
+	if(netRelayStatus) {
+		netRelayStatus = FALSE; //停止线程执行
+		closesocket(relaySocket);
+	}
 	//if (UDPStatus) CloseUDP();
 	if (m_UDPSocket != NULL) delete m_UDPSocket;
 	delete DataCH1;
@@ -165,6 +168,8 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_LED, m_NetStatusLEDList[0]);
+	DDX_Control(pDX, IDC_LED_RELAYNET, m_RelayNetStatusLED);
+	DDX_Control(pDX, IDC_LED_POWER, m_RelayStatusLED);
 	DDX_Control(pDX, IDC_WAVE_MODE, m_WaveMode);
 	DDX_Text(pDX, IDC_TargetNum, m_targetID);
 	DDX_Control(pDX, IDC_TAB1, m_Tab);
@@ -192,11 +197,13 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
 	ON_COMMAND(ID_POWER_MENU, &CXrays_64ChannelDlg::OnPowerMenu)
 	ON_COMMAND(ID_NETSETTING_MENU, &CXrays_64ChannelDlg::OnNetSettingMenu)
-	ON_BN_CLICKED(IDC_POWER_BUTTON, &CXrays_64ChannelDlg::OnBnClickedPowerButton)
+	ON_BN_CLICKED(IDC_POWER_NET, &CXrays_64ChannelDlg::OnBnClickedRelayConnect)
+	ON_BN_CLICKED(IDC_POWER_ONOFF, &CXrays_64ChannelDlg::OnRelayChange)
 	ON_MESSAGE(WM_UPDATE_ARM, &CXrays_64ChannelDlg::OnUpdateARMStatic) //子线程发送消息通知主线程处理  
 	ON_MESSAGE(WM_UPDATE_TRIGER_LOG, &CXrays_64ChannelDlg::OnUpdateTrigerLog) 
 	ON_MESSAGE(WM_UPDATE_CH_DATA, &CXrays_64ChannelDlg::OnUpdateTimer1)
 	ON_MESSAGE(WM_UPDATE_SHOT, &CXrays_64ChannelDlg::OnUpdateShot)
+	ON_MESSAGE(WM_UPDATE_RELAY, &CXrays_64ChannelDlg::OnUpdateRelay)
 	ON_CBN_SELCHANGE(IDC_WAVE_MODE, &CXrays_64ChannelDlg::OnCbnSelchangeWaveMode)
 	ON_WM_CLOSE()
 END_MESSAGE_MAP()
@@ -361,6 +368,7 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 	GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE);
+	GetDlgItem(IDC_POWER_ONOFF)->EnableWindow(FALSE);
 }
 
 
@@ -965,6 +973,14 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			{
 				ArmTimer = 0;
 				send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
+			}
+			// 继电器状态查询
+			if(netRelayStatus)
+			{
+				send(relaySocket, (char*)Order::relay_GetStatus, 10, 0);
+			}
+			else{
+				m_RelayStatusLED.RefreshWindow(2, _T("Unknow"));
 			}
 		}
 		break;

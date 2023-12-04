@@ -16,12 +16,14 @@
 #define WM_UPDATE_TRIGER_LOG (WM_USER + 120)
 #define WM_UPDATE_CH_DATA (WM_USER + 130)
 #define WM_UPDATE_SHOT (WM_USER + 140)  //炮号刷新
+#define WM_UPDATE_RELAY (WM_USER + 150)  //继电器状态查询刷新
 using namespace std;
 
 UINT Recv_Th1(LPVOID p); // 多线程接收CH1网口数据
 UINT Recv_Th2(LPVOID p); // 多线程接收CH2网口数据
 UINT Recv_Th3(LPVOID p); // 多线程接收CH3网口数据
 UINT Recv_ARM(LPVOID p); // 多线程接收ARM网口数据
+UINT Recv_Relay(LPVOID p); // 多线程接收网口数据(继电器)
 UINT Recv_Thread(const int num, LPVOID p); //四个探测器接受数据线程公有部分
 
 //线程锁
@@ -88,6 +90,8 @@ public:
 	void SendCalibration(CString fileName); 
 	//连接探测器设备网络
 	BOOL ConnectTCP(int num); 
+	//继电器连接
+	BOOL ConnectRelayTCP();
 	//限制端口号输入范围
 	void ConfinePortRange(int &myPort); 
 	//设置TCP的IP、PORT、复选框的输入使能状态
@@ -124,6 +128,7 @@ public:
 	CUDP_Socket* m_UDPSocket; //本地UDP服务
 	BOOL UDPStatus; // UDP工作状态
 	SOCKET SocketList[3]; // FPGA的TCP端口，也就是CH1~CH3
+	SOCKET relaySocket; //继电器网络套接字
 	BOOL NetSwitchList[4]; // 网络开关,其中索引为0位置对应总开关
 
 	/* 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
@@ -131,6 +136,7 @@ public:
 	*/
 	const int DataMaxlen;
 	BOOL connectStatusList[3]; // 各网络联网状态
+	BOOL netRelayStatus; //继电器联网状态
 	int MeasureMode; // 测量状态。0：非测量状态，1：手动测量状态，2：自动测量状态。
 	int TrigerMode[3]; // 触发模式。0:非测量状态，1:软件触发模式，2：硬件触发模式（带硬件触发反馈）。用于处理数据内容判别（指令反馈/测量数据）。
 	BOOL GetDataStatus; // 是否接受到TCP网口的数据
@@ -236,9 +242,10 @@ public:
 	afx_msg void OnPowerMenu(); 
 	//菜单栏“设置”按钮
 	afx_msg void OnNetSettingMenu();
-	// 继电器开关
-	afx_msg void OnBnClickedPowerButton();
-
+	// 继电器网络连接按钮
+	afx_msg void OnBnClickedRelayConnect();
+	//切换继电器开关状态
+	afx_msg void OnRelayChange(); 
 	//-------------------------自定义消息---------------------
 	//从ARM来的网口接受到数据，进行相关数据处理
 	afx_msg LRESULT OnUpdateARMStatic(WPARAM wParam, LPARAM lParam);
@@ -248,10 +255,15 @@ public:
 	afx_msg LRESULT OnUpdateTimer1(WPARAM wParam, LPARAM lParam);
 	//UDP接收到炮号数据,更新主界面相关动作
 	afx_msg LRESULT OnUpdateShot(WPARAM wParam, LPARAM lParam);
+	//继电器查询状态刷新
+	afx_msg LRESULT OnUpdateRelay(WPARAM wParam, LPARAM lParam);
 
 	// 网络状态LED灯
 	LEDButton m_NetStatusLEDList[3];
-
+	// 继电器网络连接LED灯
+	LEDButton m_RelayNetStatusLED;
+	// 继电器开关状态，端口是开启还是关闭状态（定时查询）
+	LEDButton m_RelayStatusLED;
 	// 触发方式下拉框
 	// CComboBox m_TriggerType;
 	// 能谱模式选择下拉框

@@ -31,8 +31,10 @@ public:
 	int m_PortUDP;
 	int PortCHList[3];
 	int m_PortARM;
+	int m_PortRelay;//电源（继电器）
 	CString StrIP_CH[3];
 	CString StrIP_ARM;
+	CString StrIP_Relay;
 	//监测各个文本控件是否有过编辑痕迹（不检测内容的前后一致性），哪怕跟原始值相同仍然认为发生改动。
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnBnClickedOk();

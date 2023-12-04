@@ -35,7 +35,7 @@ CPowerDlg::~CPowerDlg()
 void CPowerDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX); 
-	DDX_Control(pDX, IDC_LED_Relay, m_NetStatusLED); // “建立链接”LED
+	DDX_Control(pDX, IDC_LED_RELAY, m_NetStatusLED); // “建立链接”LED
 	DDX_Control(pDX, IDC_RRLAY_STATUS, m_RelayStatusLED);
 	DDX_Text(pDX, IDC_RELAY_PORT, m_RelayPort);
 }
