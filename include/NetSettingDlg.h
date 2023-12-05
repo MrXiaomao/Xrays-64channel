@@ -32,6 +32,7 @@ public:
 	int PortCHList[3];
 	int m_PortARM;
 	int m_PortRelay;//电源（继电器）
+	//各设备IP
 	CString StrIP_CH[3];
 	CString StrIP_ARM;
 	CString StrIP_Relay;

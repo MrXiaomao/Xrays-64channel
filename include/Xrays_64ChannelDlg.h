@@ -246,6 +246,7 @@ public:
 	afx_msg void OnBnClickedRelayConnect();
 	//切换继电器开关状态
 	afx_msg void OnRelayChange(); 
+	
 	//-------------------------自定义消息---------------------
 	//从ARM来的网口接受到数据，进行相关数据处理
 	afx_msg LRESULT OnUpdateARMStatic(WPARAM wParam, LPARAM lParam);

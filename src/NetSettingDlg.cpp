@@ -20,12 +20,12 @@ CNetSetting::CNetSetting(CWnd* pParent /*=nullptr*/)
 	m_PortUDP = 5000;
 	m_PortARM = 6000;
 	m_PortRelay = 1030;
-	StrIP_ARM = _T("192.168.10.22");
-	StrIP_Relay = _T("192.168.10.22");
 	for (int num = 0; num < 3; num++) {
 		PortCHList[num] = 1000 + num;
 		StrIP_CH[num] = _T("192.168.10.22");
 	}
+	StrIP_ARM = _T("192.168.10.22");
+	StrIP_Relay = _T("192.168.10.22");
 }
 
 CNetSetting::~CNetSetting()
@@ -102,6 +102,7 @@ BOOL CNetSetting::OnInitDialog()
 		if (jsonSetting.isMember("IP_Relay")) {
 			StrIP_Relay = jsonSetting["IP_Relay"].asCString();
 		}
+		
 		if(jsonSetting.isMember("Port_Detector1")) {
 			PortCHList[0] = jsonSetting["Port_Detector1"].asInt();
 		}
