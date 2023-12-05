@@ -23,6 +23,9 @@
 #define IDC_IPADDRESS_ARM               1004
 #define IDC_UDPIP                       1005
 #define IDC_IPADDRESS_ARM2              1005
+#define IDC_LED_RELAYNET                1005
+#define IDC_LED_POWER                   1006
+#define IDC_IPADDRESS_ARM3              1006
 #define IDC_RefreshTimeEdit             1007
 #define IDC_COMBO1                      1008
 #define IDC_COMBO2                      1009
@@ -62,9 +65,10 @@
 #define IDC_CHECK5                      1047
 #define IDC_IPADDRESS_RELAY             1047
 #define IDC_LED_Relay                   1048
-#define IDC_POWER_BUTTON                1049
+#define IDC_POWER_NET                   1049
 #define IDC_RRLAY_STATUS                1050
 #define IDC_TEMP_VOLT                   1050
+#define IDC_POWER_ONOFF                 1050
 #define IDC_RELAY_PORT                  1051
 #define IDC_CH2_PORT                    1052
 #define IDC_CH3_PORT                    1053
@@ -77,20 +81,21 @@
 #define IDOK_NETSETTING                 1060
 #define IDC_TEMP_LED                    1061
 #define IDC_ARM_LED                     1061
-#define IDC_ARM_REFRESHTIME             1061
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
 #define ID_POWER_MENU                   32774
 #define ID_NETSETTING_MENU              32775
 #define ID_ARM_SETTING                  32776
+#define ID_32777                        32777
+#define ID_32778                        32778
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        147
-#define _APS_NEXT_COMMAND_VALUE         32777
+#define _APS_NEXT_COMMAND_VALUE         32779
 #define _APS_NEXT_CONTROL_VALUE         1062
 #define _APS_NEXT_SYMED_VALUE           106
 #endif

@@ -19,11 +19,13 @@ CNetSetting::CNetSetting(CWnd* pParent /*=nullptr*/)
 	isDataChange = FALSE;
 	m_PortUDP = 5000;
 	m_PortARM = 6000;
-	StrIP_ARM = _T("192.168.10.22");
+	m_PortRelay = 1030;
 	for (int num = 0; num < 4; num++) {
 		PortCHList[num] = 1000 + num;
 		StrIP_CH[num] = _T("192.168.10.22");
 	}
+	StrIP_ARM = _T("192.168.10.22");
+	StrIP_Relay = _T("192.168.10.22");
 }
 
 CNetSetting::~CNetSetting()
@@ -40,6 +42,8 @@ CNetSetting::~CNetSetting()
 	jsonSetting["IP_Detector3"] = pStrIP;
  	pStrIP = CstringToWideCharArry(StrIP_ARM);
  	jsonSetting["IP_ARM"] = pStrIP;
+	pStrIP = CstringToWideCharArry(StrIP_Relay);
+ 	jsonSetting["IP_Relay"] = pStrIP;
 
 	jsonSetting["Port_Detector1"] = PortCHList[0];
 	jsonSetting["Port_Detector2"] = PortCHList[1];
@@ -47,6 +51,7 @@ CNetSetting::~CNetSetting()
 	jsonSetting["Port_Detector4"] = PortCHList[3];
 	jsonSetting["Port_UDP"] = m_PortUDP;
 	jsonSetting["Port_ARM"] = m_PortARM;
+	jsonSetting["Port_Relay"] = m_PortRelay;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 }
 
@@ -58,12 +63,14 @@ void CNetSetting::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_IPADDRESS_CH3, StrIP_CH[2]);
 	DDX_Text(pDX, IDC_IPADDRESS_CH4, StrIP_CH[3]);
 	DDX_Text(pDX, IDC_IPADDRESS_ARM, StrIP_ARM);
+	DDX_Text(pDX, IDC_IPADDRESS_RELAY, StrIP_Relay);
 	DDX_Text(pDX, IDC_UDP_PORT, m_PortUDP);
 	DDX_Text(pDX, IDC_CH1_PORT, PortCHList[0]);
 	DDX_Text(pDX, IDC_CH2_PORT, PortCHList[1]);
 	DDX_Text(pDX, IDC_CH3_PORT, PortCHList[2]);
 	DDX_Text(pDX, IDC_CH4_PORT, PortCHList[3]);
 	DDX_Text(pDX, IDC_ARM_PORT, m_PortARM);
+	DDX_Text(pDX, IDC_RELAY_PORT, m_PortRelay);
 	DDV_MinMaxInt(pDX, m_PortUDP, 0, 65535);
 	DDV_MinMaxInt(pDX, PortCHList[0], 0, 65535);
 	DDV_MinMaxInt(pDX, PortCHList[1], 0, 65535);
@@ -101,6 +108,9 @@ BOOL CNetSetting::OnInitDialog()
 		if (jsonSetting.isMember("IP_ARM")) {
 			StrIP_ARM = jsonSetting["IP_ARM"].asCString();
 		}
+		if (jsonSetting.isMember("IP_Relay")) {
+			StrIP_Relay = jsonSetting["IP_Relay"].asCString();
+		}
 
 		if(jsonSetting.isMember("Port_Detector1")) {
 			PortCHList[0] = jsonSetting["Port_Detector1"].asInt();
@@ -121,6 +131,9 @@ BOOL CNetSetting::OnInitDialog()
 		if (jsonSetting.isMember("Port_ARM")) {
 			m_PortARM = jsonSetting["Port_ARM"].asInt();
 		}
+		if (jsonSetting.isMember("Port_Relay")) {
+			m_PortRelay = jsonSetting["Port_Relay"].asInt();
+		}
 	}
 	UpdateData(FALSE);
 	GetDlgItem(IDC_NETSETTING_APPLY)->EnableWindow(FALSE);
@@ -137,11 +150,13 @@ void CNetSetting::SaveNetSetting()
 	if (!jsonSetting.isNull()) {
 		CString StrIP_CH1, StrIP_CH2, StrIP_CH3, StrIP_CH4;
 		CString StrIP_ARM;
+		CString StrIP_Relay;
 		GetDlgItemText(IDC_IPADDRESS_CH1, StrIP_CH1);
 		GetDlgItemText(IDC_IPADDRESS_CH2, StrIP_CH2);
 		GetDlgItemText(IDC_IPADDRESS_CH3, StrIP_CH3);
 		GetDlgItemText(IDC_IPADDRESS_CH4, StrIP_CH4);
 		GetDlgItemText(IDC_IPADDRESS_ARM, StrIP_ARM);
+		GetDlgItemText(IDC_IPADDRESS_RELAY, StrIP_Relay);
 		
 		// 写入配置文件
 		Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
@@ -150,11 +165,13 @@ void CNetSetting::SaveNetSetting()
 		char* pStrIP3 = CstringToWideCharArry(StrIP_CH3);
 		char* pStrIP4 = CstringToWideCharArry(StrIP_CH4);
 		char* pStrIP_ARM = CstringToWideCharArry(StrIP_ARM);
+		char* pStrIP_Relay = CstringToWideCharArry(StrIP_Relay);
 		jsonSetting["IP_Detector1"] = pStrIP1;
 		jsonSetting["IP_Detector2"] = pStrIP2;
 		jsonSetting["IP_Detector3"] = pStrIP3;
 		jsonSetting["IP_Detector4"] = pStrIP4;
 		jsonSetting["IP_ARM"] = pStrIP_ARM;
+		jsonSetting["IP_Relay"] = pStrIP_Relay;
 
 		jsonSetting["Port_Detector1"] = PortCHList[0];
 		jsonSetting["Port_Detector2"] = PortCHList[1];
@@ -163,6 +180,7 @@ void CNetSetting::SaveNetSetting()
 
 		jsonSetting["Port_UDP"] = m_PortUDP;
 		jsonSetting["Port_ARM"] = m_PortARM;
+		jsonSetting["Port_Relay"] = m_PortRelay;
 
 		if (WriteSetting(_T("Setting.json"), jsonSetting) == 0) {
 			GetDlgItem(IDC_NETSETTING_APPLY)->EnableWindow(FALSE);
@@ -197,16 +215,13 @@ BOOL CNetSetting::OnCommand(WPARAM wParam, LPARAM lParam)
 		if (wmID == IDC_IPADDRESS_CH1 || wmID == IDC_IPADDRESS_CH2 || wmID == IDC_IPADDRESS_CH3 || wmID == IDC_IPADDRESS_CH4){
 			isDataChange = TRUE;
 		}
-		if (wmID == IDC_IPADDRESS_ARM) {
+		if (wmID == IDC_IPADDRESS_ARM || wmID == IDC_IPADDRESS_RELAY) {
 			isDataChange = TRUE;
 		}
 		if (wmID == IDC_CH1_PORT || wmID == IDC_CH2_PORT || wmID == IDC_CH3_PORT || wmID == IDC_CH4_PORT) {
 			isDataChange = TRUE;
 		}
-		if (wmID == IDC_ARM_PORT || wmID == IDC_UDP_PORT) {
-			isDataChange = TRUE;
-		}
-		if(wmID == IDC_ARM_REFRESHTIME){
+		if (wmID == IDC_ARM_PORT || wmID == IDC_UDP_PORT || wmID == IDC_RELAY_PORT) {
 			isDataChange = TRUE;
 		}
 		// 若控件发生了编辑动作，则激活“应用”按钮

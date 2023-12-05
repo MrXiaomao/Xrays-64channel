@@ -5,19 +5,141 @@
 #include "NetSettingDlg.h"
 #include "Order.h"
 
-void CXrays_64ChannelDlg::OnBnClickedPowerButton()
+void CXrays_64ChannelDlg::OnBnClickedRelayConnect()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	CPowerDlg powerdlg; // 创建一个模态对话框 
-	powerdlg.DoModal(); // 显示模态对话框 其中参数用swp_SHOWNOMAL,  SW_SHOW, SW_VISION 好像效果是一样的
+	// CPowerDlg powerdlg; // 创建一个模态对话框 
+	// powerdlg.DoModal(); // 显示模态对话框 其中参数用swp_SHOWNOMAL,  SW_SHOW, SW_VISION 好像效果是一样的
+	GetDlgItem(IDC_POWER_NET)->EnableWindow(FALSE); //禁用,防止用户重复点击
+
+	CString strTemp;
+	GetDlgItemText(IDC_POWER_NET, strTemp);
+	if (strTemp == _T("电源网络连接")) {
+		netRelayStatus = ConnectRelayTCP();
+		if (netRelayStatus) {
+			// 开启线程接收数据
+			AfxBeginThread(&Recv_Relay, this);
+			SetDlgItemText(IDC_POWER_NET, _T("电源网络断开"));
+			m_RelayNetStatusLED.RefreshWindow(1, _T("已连接"));//打开指示灯
+			GetDlgItem(IDC_POWER_ONOFF)->EnableWindow(TRUE); //允许使用
+			CString info = _T("电源网络（继电器）已连接");
+			m_page1.PrintLog(info);
+		}
+		else {
+			m_RelayNetStatusLED.RefreshWindow(0, _T("连接失败"));//指示灯
+			CString info = _T("电源网络（继电器）连接失败，请检查网络IP和端口号是否正确");
+			m_page1.PrintLog(info);
+		}
+	}
+	else {
+		netRelayStatus = FALSE; // 用来控制关闭线程
+		closesocket(relaySocket); // 关闭套接字
+		SetDlgItemText(IDC_POWER_NET, _T("电源网络连接"));
+		m_RelayNetStatusLED.RefreshWindow(0, _T("已断开"));//指示灯
+		m_RelayStatusLED.RefreshWindow(2, _T("Unknow"));
+		GetDlgItem(IDC_POWER_ONOFF)->EnableWindow(FALSE); //禁用
+		CString info = _T("电源网络（继电器）已断开");
+		m_page1.PrintLog(info);
+	}
+	GetDlgItem(IDC_POWER_NET)->EnableWindow(TRUE); //恢复使用
 }
 
-void CXrays_64ChannelDlg::OnPowerMenu()
-{
-	// TODO: 在此添加命令处理程序代码
-	CPowerDlg powerdlg; // 创建一个模态对话框 
-	powerdlg.DoModal(); // 显示模态对话框 其中参数用swp_SHOWNOMAL,  SW_SHOW, SW_VISION 好像效果是一样的
+BOOL CXrays_64ChannelDlg::ConnectRelayTCP() {
+	// 1、创建套接字
+	relaySocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (relaySocket == INVALID_SOCKET) {
+		CString info = _T("继电器网络初始化创建失败！");
+		m_page1.PrintLog(info);
+		return FALSE;
+	}
+
+	// 2、连接服务器
+	CString StrSerIp = _T("192.168.10.22"); //默认值
+	int RelayPort = 1030; //默认值
+
+	// 读取配置文件
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	if(!jsonSetting.isNull()){
+		if(jsonSetting.isMember("IP_Relay")) {
+			StrSerIp = jsonSetting["IP_Relay"].asCString();
+		}
+		else{
+			char* pStrIP = CstringToWideCharArry(StrSerIp);
+			jsonSetting["IP_Relay"] = pStrIP;
+			CString info = _T("配置文件中未查找到继电器网址IP，即关键字\"IP_Relay\",采用默认值：");
+			info += StrSerIp;
+			m_page1.PrintLog(info);
+		}
+		if(jsonSetting.isMember("Port_Relay")) {
+			RelayPort = jsonSetting["Port_Relay"].asInt();
+		}
+		else{
+			jsonSetting["Port_Relay"] = RelayPort;
+			CString info;
+			info.Format(_T("配置文件中未查找到继电器网址端口号，即关键字\"Port_Relay\",采用默认值：%d"),RelayPort);
+			m_page1.PrintLog(info);
+		}
+	}
+	char* pStrIP = CstringToWideCharArry(StrSerIp);
+	// 可能发生改动，保存到配置文件
+	WriteSetting(_T("Setting.json"), jsonSetting);
+
+	// 3、设置网络参数
+	sockaddr_in server_addr;
+	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
+	server_addr.sin_family = AF_INET;  // 使用IPv4地址
+	server_addr.sin_port = htons(RelayPort); //网关：5000
+
+	// 4、检测网络是否连接,以及显示设备联网状况
+	if (connect(relaySocket, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+		return FALSE;
+	}
+	return TRUE;
 }
+
+//接收继电器TCP网口数据
+UINT Recv_Relay(LPVOID p)
+{
+	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
+	while (1)
+	{
+		// 断开网络后关闭本线程
+		if (!dlg->netRelayStatus) return 0;
+		const int dataLen = 10; //接收的数据包长度
+		BYTE mk[dataLen];
+		int nLength;
+		nLength = recv(dlg->relaySocket, (char*)mk, dataLen, 0); //阻塞模式
+
+		if (nLength == -1)
+		{
+			return 0;
+		}
+		else {
+			::PostMessage(dlg->m_hWnd, WM_UPDATE_RELAY, nLength, (LPARAM)(BYTE*)mk); //发送消息通知主界面处理，更新继电器状态
+		}
+	}
+}
+
+void CXrays_64ChannelDlg::OnRelayChange() {
+	GetDlgItem(IDC_POWER_ONOFF)->EnableWindow(FALSE); //禁用
+	CString strTemp;
+	GetDlgItemText(IDC_POWER_ONOFF, strTemp);
+	if (strTemp == _T("电源开启")) {
+		send(relaySocket, (char*)Order::relay_ON, 10, 0);
+		SetDlgItemText(IDC_POWER_ONOFF, _T("电源关闭"));
+	}
+	else {
+		send(relaySocket, (char*)Order::relay_OFF, 10, 0);
+		SetDlgItemText(IDC_POWER_ONOFF, _T("电源开启"));
+	}
+	GetDlgItem(IDC_POWER_ONOFF)->EnableWindow(TRUE); //恢复使用
+}
+// void CXrays_64ChannelDlg::OnPowerMenu()
+// {
+// 	// TODO: 在此添加命令处理程序代码
+// 	CPowerDlg powerdlg; // 创建一个模态对话框 
+// 	powerdlg.DoModal(); // 显示模态对话框 其中参数用swp_SHOWNOMAL,  SW_SHOW, SW_VISION 好像效果是一样的
+// }
 
 void CXrays_64ChannelDlg::OnNetSettingMenu()
 {
