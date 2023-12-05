@@ -239,7 +239,7 @@ public:
 	//选择能谱模式
 	afx_msg void OnCbnSelchangeWaveMode(); 
 	//菜单栏的电源设置选项
-	afx_msg void OnPowerMenu(); 
+	// afx_msg void OnPowerMenu(); 
 	//菜单栏“设置”按钮
 	afx_msg void OnNetSettingMenu();
 	// 继电器网络连接按钮
