@@ -1,4 +1,5 @@
 {
+	"AppTitle" : "垂直硬X射线相机阵列",
 	"Detector_Refresh_Time" : 10,
 	"IP_ARM" : "192.168.0.189",
 	"IP_Detector1" : "192.168.0.189",

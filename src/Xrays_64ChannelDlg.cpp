@@ -1,4 +1,4 @@
-﻿
+﻿#pragma comment(lib,"Version.lib")
 // Xrays_64ChannelDlg.cpp: 实现文件
 //
 #include "json/json.h"
@@ -35,7 +35,9 @@ public:
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
-
+	virtual BOOL OnInitDialog();
+	CString GetFileVer();
+	CString m_strVersion; // 版本号
 // 实现
 protected:
 	DECLARE_MESSAGE_MAP()
@@ -43,6 +45,46 @@ protected:
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
 {
+	m_strVersion = _T("123");
+	m_strVersion = GetFileVer();
+}
+
+//获取软件当前的版本
+//该版本号是在资源文件中的../Version/VS_VERSION_INFO/FILEVERSION的值
+CString CAboutDlg::GetFileVer()
+{
+	TCHAR cPath[200],szVersionBuffer[200];
+	DWORD dwHandle,InfoSize;
+	CString strVersion;
+	::GetModuleFileName(NULL,cPath,200); //首先获得版本信息资源的长度
+	InfoSize = GetFileVersionInfoSize(cPath,&dwHandle); //将版本信息资源读入缓冲区
+	if(InfoSize==0) return _T("None VerSion Supprot");
+	TCHAR*InfoBuf = new TCHAR[InfoSize];
+	GetFileVersionInfo(cPath,0,InfoSize,InfoBuf); //获得生成文件使用的代码页及文件版本
+	unsigned int  cbTranslate = 0;
+	struct LANGANDCODEPAGE {
+	WORD wLanguage;
+	WORD wCodePage;
+	} *lpTranslate;
+	VerQueryValue(InfoBuf, TEXT("\\VarFileInfo\\Translation"),(LPVOID*)&lpTranslate,&cbTranslate);
+	// Read the file description for each language and code page.
+	for( int i=0; i < (cbTranslate/sizeof(struct LANGANDCODEPAGE)); i++ )
+	{
+	TCHAR   SubBlock[200];
+	wsprintf( SubBlock,
+				TEXT("\\StringFileInfo\\%04x%04x\\FileVersion"),
+				lpTranslate[i].wLanguage,
+				lpTranslate[i].wCodePage);
+	void *lpBuffer=NULL;
+	unsigned int dwBytes=0;
+	VerQueryValue(InfoBuf,
+	SubBlock,
+	&lpBuffer,
+	&dwBytes);
+	CString strTemp = (TCHAR *)lpBuffer;
+	strVersion+=strTemp;
+	}
+	return strVersion;
 }
 
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
@@ -53,6 +95,15 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
+BOOL CAboutDlg::OnInitDialog()
+{
+    CDialogEx::OnInitDialog();
+
+    // 将版本号设置为静态文本控件的文本
+    GetDlgItem(IDC_STATIC_VERSION)->SetWindowText(m_strVersion);
+
+    return TRUE;
+}
 
 // CXrays_64ChannelDlg 对话框
 CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
@@ -198,6 +249,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
 	// ON_COMMAND(ID_POWER_MENU, &CXrays_64ChannelDlg::OnPowerMenu)
 	ON_COMMAND(ID_NETSETTING_MENU, &CXrays_64ChannelDlg::OnNetSettingMenu)
+	ON_COMMAND(ID_VERSION, &CXrays_64ChannelDlg::OnAbout)
 	ON_BN_CLICKED(IDC_POWER_NET, &CXrays_64ChannelDlg::OnBnClickedRelayConnect)
 	ON_BN_CLICKED(IDC_POWER_ONOFF, &CXrays_64ChannelDlg::OnRelayChange)
 	ON_MESSAGE(WM_UPDATE_ARM, &CXrays_64ChannelDlg::OnUpdateARMStatic) //子线程发送消息通知主线程处理  
@@ -237,6 +289,22 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 			pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
 		}
 	}
+	
+	//设置软件标题名称
+	CString AppTitle = _T("垂直硬X射线相机阵列");//默认名称
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	if (!jsonSetting.isNull()) {
+		if (jsonSetting.isMember("SoftwareTitle"))
+		{
+			AppTitle = jsonSetting["SoftwareTitle"].asCString();
+		}
+		else {
+			char* pStrTitle = CstringToWideCharArry(AppTitle);
+			jsonSetting["AppTitle"] = pStrTitle;
+		}
+	}
+	WriteSetting(_T("Setting.json"), jsonSetting);
+	SetWindowText(AppTitle);
 
 	// 设置此对话框的图标。  当应用程序主窗口不是对话框时，框架将自动执行此操作
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
@@ -384,6 +452,12 @@ void CXrays_64ChannelDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	{
 		CDialogEx::OnSysCommand(nID, lParam);
 	}
+}
+
+void CXrays_64ChannelDlg::OnAbout()
+{
+	 CAboutDlg dlgAbout;
+	 dlgAbout.DoModal();
 }
 
 // 如果向对话框添加最小化按钮，则需要下面的代码

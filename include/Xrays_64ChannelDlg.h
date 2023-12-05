@@ -216,6 +216,7 @@ public:
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect); 
 	//连接探测器网络
 	afx_msg void OnConnect(); 
+
 	//限制刷新时间输入范围
 	afx_msg void OnEnKillfocusRefreshTime(); 
 	//限制能谱测量总时长输入范围
@@ -242,6 +243,8 @@ public:
 	// afx_msg void OnPowerMenu(); 
 	//菜单栏“设置”按钮
 	afx_msg void OnNetSettingMenu();
+	//菜单栏，关于，版本信息
+	afx_msg void OnAbout();
 	// 继电器网络连接按钮
 	afx_msg void OnBnClickedRelayConnect();
 	//切换继电器开关状态
