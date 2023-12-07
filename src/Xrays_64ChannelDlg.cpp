@@ -296,11 +296,26 @@ BOOL CXrays_64ChannelDlg::OnInitDialog()
 	if (!jsonSetting.isNull()) {
 		if (jsonSetting.isMember("SoftwareTitle"))
 		{
-			AppTitle = jsonSetting["SoftwareTitle"].asCString();
+			// AppTitle = jsonSetting["SoftwareTitle"].asCString();
+			const char* s  = jsonSetting["SoftwareTitle"].asCString();
+			int nLenW = ::MultiByteToWideChar(CP_UTF8, 0, s, -1, NULL, 0);
+			wchar_t* wszBuffer = new wchar_t[nLenW];
+			::MultiByteToWideChar(CP_UTF8, 0, s, -1, wszBuffer, nLenW);
+
+			// 将 Unicode 编码转换为 GB2312 编码（也就是简体中文编码）
+			int nLenA = ::WideCharToMultiByte(CP_ACP, 0, wszBuffer, -1, NULL, 0, NULL, NULL);
+			char* szBuffer = new char[nLenA];
+			::WideCharToMultiByte(CP_ACP, 0, wszBuffer, -1, szBuffer, nLenA, NULL, NULL);
+
+			// 输出结果
+			std::string strResult(szBuffer);
+			const char * tmp = strResult.c_str();
+			AppTitle = tmp;
 		}
 		else {
-			char* pStrTitle = CstringToWideCharArry(AppTitle);
-			jsonSetting["AppTitle"] = pStrTitle;
+			string pStrTitle = _UnicodeToUtf8(AppTitle);
+			// char* pStrTitle = CstringToWideCharArry(AppTitle);
+			jsonSetting["SoftwareTitle"] = pStrTitle;
 		}
 	}
 	WriteSetting(_T("Setting.json"), jsonSetting);
