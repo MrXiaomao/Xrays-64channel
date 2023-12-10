@@ -52,7 +52,7 @@ void CXrays_64ChannelDlg::OpenUDP()
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	//配置文件不存在，则生成配置文件
 	int m_UDPPort;
-	if(jsonSetting.isNull())
+	if(!jsonSetting.isNull())
 	{
 		if(jsonSetting.isMember("Port_UDP"))
 		{
