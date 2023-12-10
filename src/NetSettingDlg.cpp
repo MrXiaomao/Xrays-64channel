@@ -38,7 +38,7 @@ CNetSetting::~CNetSetting()
 	pStrIP = CstringToWideCharArry(StrIP_CH[2]);
 	jsonSetting["IP_Detector3"] = pStrIP;
 	pStrIP = CstringToWideCharArry(StrIP_CH[3]);
-	jsonSetting["IP_Detector3"] = pStrIP;
+	jsonSetting["IP_Detector4"] = pStrIP;
  	pStrIP = CstringToWideCharArry(StrIP_ARM);
  	jsonSetting["IP_ARM"] = pStrIP;
 

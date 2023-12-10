@@ -23,6 +23,8 @@ public:
 
 	static BYTE WorkMode3[]; // 探测器传输模式指令 16道能谱
 
+	static BYTE WorkMode5[]; // 探测器传输模式指令 波形模式
+
 	static BYTE StartSpectrumHardTrigger[]; // 能谱硬件触发——开始工作
 
 	static BYTE HardTriggerBack[]; // 硬件触发信号反馈指令,当给FPGA一个触发信号时

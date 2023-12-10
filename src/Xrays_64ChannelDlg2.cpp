@@ -274,6 +274,13 @@ BOOL CXrays_64ChannelDlg::SendParameterToTCP()
 	// 读取界面参数和配置参数并修改指令
 	UpdateData(TRUE);
 
+	//设置触发模式，波形触发模式
+	for (int num = 0; num < 4; num++) {
+		if(connectStatusList[num]) {
+			BackSend(num, Order::WorkMode5, 12, 0, 1);
+		}
+	}
+
 	//从配置文件中获取各通道波形触发阈值
 	Json::Value myJson = ReadSetting(_T("Setting.json"));
 	int Threshold[64] = {0};

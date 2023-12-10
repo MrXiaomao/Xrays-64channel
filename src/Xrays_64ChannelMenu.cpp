@@ -45,7 +45,9 @@ void CXrays_64ChannelDlg::TempVoltMonitorON_OFF()
 		{
 			portARM = jsonSetting["Port_ARM"].asInt();
 		}
-
+		if (jsonSetting.isMember("refreshTime_ARM")) {
+			refreshTime_ARM = jsonSetting["refreshTime_ARM"].asInt();
+		}
 		CString info;
 		if (ConnectGeneralTCP(armSocket, StrIP_ARM, portARM)) {
 			// 连接成功

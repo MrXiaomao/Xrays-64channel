@@ -854,7 +854,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			if (timer * TIMER_INTERVAL >= MeasureTime){
 				if (!sendStopFlag) {
 					for(int num=0; num<4; num++){
-						if(connectStatusList[num]) NoBackSend(num, Order::SpectrumStop, 12, 0, 2);
+						if(connectStatusList[num]) NoBackSend(num, Order::WaveStop, 12, 0, 2);
 					}
 
 					sendStopFlag = TRUE;
@@ -1138,7 +1138,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 		//往TCP发送停止指令
 		for(int num=0; num<4; num++){
-			if(connectStatusList[num]) NoBackSend(num, Order::SpectrumStop, 12, 0, 2);
+			if(connectStatusList[num]) NoBackSend(num, Order::WaveStop, 12, 0, 2);
 		}
 		sendStopFlag = TRUE;
 		if (GetDataStatus) {
@@ -1239,7 +1239,7 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		if (GetDataStatus) {
 			// 发送停止指令，带指令反馈，结束上一次测量结束。
 			for (int num = 0; num < 4; num++) {
-				if (connectStatusList[num]) NoBackSend(num, Order::SpectrumStop, 12, 0, 2);
+				if (connectStatusList[num]) NoBackSend(num, Order::WaveStop, 12, 0, 2);
 			}
 			sendStopFlag = TRUE;
 
