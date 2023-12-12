@@ -2,6 +2,7 @@
 // Xrays_64ChannelDlg.cpp: 实现文件
 //
 #include "json/json.h"
+#include "GitVerison.h"
 
 #include "pch.h"
 #include "framework.h"
@@ -37,6 +38,7 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
 	virtual BOOL OnInitDialog();
 	CString GetFileVer();
+	char* getGitVersion();
 	CString m_strVersion; // 版本号
 // 实现
 protected:
@@ -53,7 +55,7 @@ CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
 //该版本号是在资源文件中的../Version/VS_VERSION_INFO/FILEVERSION的值
 CString CAboutDlg::GetFileVer()
 {
-	TCHAR cPath[200],szVersionBuffer[200];
+	TCHAR cPath[200];// szVersionBuffer[200];
 	DWORD dwHandle,InfoSize;
 	CString strVersion;
 	::GetModuleFileName(NULL,cPath,200); //首先获得版本信息资源的长度
@@ -87,6 +89,12 @@ CString CAboutDlg::GetFileVer()
 	return strVersion;
 }
 
+char* CAboutDlg::getGitVersion()
+{
+	static char verstr[] = GIT_VER;
+	return verstr;
+}
+
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
@@ -100,8 +108,13 @@ BOOL CAboutDlg::OnInitDialog()
     CDialogEx::OnInitDialog();
 
     // 将版本号设置为静态文本控件的文本
-    GetDlgItem(IDC_STATIC_VERSION)->SetWindowText(m_strVersion);
-
+    GetDlgItem(IDC_STATIC_VERSION5)->SetWindowText(m_strVersion); 
+	CString commitHash;
+	char* ver = getGitVersion();
+	string commitVer = GIT_VER;
+	commitHash = commitVer.c_str();
+	//commitHash.Format(_T("%s"), GIT_VER);
+	GetDlgItem(IDC_STATIC_VERSION3)->SetWindowText(commitHash);
     return TRUE;
 }
 
