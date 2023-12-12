@@ -38,7 +38,7 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
 	virtual BOOL OnInitDialog();
 	CString GetFileVer();
-	char* getGitVersion();
+	CString getGitVersion();
 	CString m_strVersion; // 版本号
 // 实现
 protected:
@@ -89,11 +89,13 @@ CString CAboutDlg::GetFileVer()
 	return strVersion;
 }
 
-char* CAboutDlg::getGitVersion()
-{
-	static char verstr[] = GIT_VER;
-	return verstr;
+CString CAboutDlg::getGitVersion() {
+	CString commitHash;
+	string commitVer = GIT_VER;
+	commitHash = commitVer.c_str();
+	return commitHash;
 }
+
 
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 {
@@ -110,10 +112,8 @@ BOOL CAboutDlg::OnInitDialog()
     // 将版本号设置为静态文本控件的文本
     GetDlgItem(IDC_STATIC_VERSION5)->SetWindowText(m_strVersion); 
 	CString commitHash;
-	char* ver = getGitVersion();
 	string commitVer = GIT_VER;
 	commitHash = commitVer.c_str();
-	//commitHash.Format(_T("%s"), GIT_VER);
 	GetDlgItem(IDC_STATIC_VERSION3)->SetWindowText(commitHash);
     return TRUE;
 }
@@ -123,12 +123,14 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_XRAYS64CHANNEL_DIALOG, pParent)
 	, m_UDPSocket(NULL)
 	, UDPStatus(FALSE)
+	, relaySocket(NULL)
 	, DataMaxlen(10)
 	, netRelayStatus(FALSE)
 	, MeasureMode(0)
 	, GetDataStatus(FALSE)
 	, m_getTargetChange(FALSE)
 	, sendStopFlag(FALSE)
+	, armSocket(NULL)
 	, ARMnetStatus(FALSE)
 	, powerVolt(0.0)
 	, powerCurrent(0.0)
@@ -138,6 +140,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, saveAsPath("")
 	, saveAsTargetPath("")
 	, m_currentTab(0)
+	, m_pThread_ARM(NULL)
 	, m_targetID(_T("00000"))
 	, MeasureTime(3000)
 	, RefreshTime(10)
@@ -160,13 +163,20 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 		FeedbackLen[num] = 12;
 		TrigerMode[num] = 0;
 	}
-
+	for (int i = 0; i < 3; i++) {
+		feedbackARM[i] = FALSE;
+	}
+	for (int i = 0; i < 3; i++) {
+		m_pThread_CH[i] = NULL;
+	}
 	for(int i=0; i<3; i++){
 		m_nTimerId[i] = 0;
 	}
+	for (int i = 0; i < 6; i++) {
+		temperature[i] = -999.0;
+	}
 
 	NetSwitchList[3] = TRUE;
-	armSocket = NULL;
 	CLog::WriteMsg(_T("打开软件，软件环境初始化！"));
 }
 
