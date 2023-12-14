@@ -272,6 +272,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
 	// ON_COMMAND(ID_POWER_MENU, &CXrays_64ChannelDlg::OnPowerMenu)
 	ON_COMMAND(ID_NETSETTING_MENU, &CXrays_64ChannelDlg::OnNetSettingMenu)
+	ON_COMMAND(ID_HELPVIEW, &CXrays_64ChannelDlg::OnHelpview)
 	ON_COMMAND(ID_VERSION, &CXrays_64ChannelDlg::OnAbout)
 	ON_BN_CLICKED(IDC_POWER_NET, &CXrays_64ChannelDlg::OnBnClickedRelayConnect)
 	ON_BN_CLICKED(IDC_POWER_ONOFF, &CXrays_64ChannelDlg::OnRelayChange)
@@ -427,7 +428,7 @@ void CXrays_64ChannelDlg::InitTabSettings(){
 
 void CXrays_64ChannelDlg::InitOtherSettings(){
 	m_NetStatusLEDList[0].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
-
+	m_RelayNetStatusLED.RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 	CString strPath = GetExeDir();
 	if (IsPathExit(strPath)) {
 		saveAsPath = strPath;
@@ -489,6 +490,16 @@ void CXrays_64ChannelDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	else
 	{
 		CDialogEx::OnSysCommand(nID, lParam);
+	}
+}
+
+
+void CXrays_64ChannelDlg::OnHelpview()
+{
+	// TODO: 在此添加命令处理程序代码
+	CString filePath = _T(".\\help.CHM");
+	if(IsFileExit(filePath)){
+		ShellExecute(NULL, _T("open"), filePath, NULL, NULL, SW_SHOWMAXIMIZED);
 	}
 }
 
