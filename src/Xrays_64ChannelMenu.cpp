@@ -162,8 +162,7 @@ BOOL CXrays_64ChannelDlg::TempVoltMonitorON()
 		{
 			StrIP_ARM = jsonSetting["IP_ARM"].asCString();
 		}
-		else
-		{
+		else{
 			info = _T("配置文件中无法查找到\"IP_ARM\",ARM设备IP采用默认值：") + StrIP_ARM;
 			m_page1.PrintLog(info);
 		}
@@ -171,7 +170,7 @@ BOOL CXrays_64ChannelDlg::TempVoltMonitorON()
 		{
 			portARM = jsonSetting["Port_ARM"].asInt();
 		}
-		{
+		else{
 			info.Format(_T("配置文件中无法查找到\"Port_ARM\",ARM设备Port采用默认值：%d"), portARM);
 			m_page1.PrintLog(info);
 		}
