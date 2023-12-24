@@ -256,7 +256,11 @@ public:
 	//菜单栏的电源设置选项
 	// afx_msg void OnPowerMenu(); 
 	//菜单栏“设置”按钮
-	afx_msg void OnNetSettingMenu();
+	afx_msg void OnNetSettingMenu();	
+	//查看帮助
+	afx_msg void OnHelpview();
+	//菜单栏，关于，版本信息
+	afx_msg void OnAbout();
 	// 继电器网络连接按钮
 	afx_msg void OnBnClickedRelayConnect();
 	//切换继电器开关状态

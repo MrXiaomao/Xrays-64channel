@@ -1,6 +1,7 @@
 ﻿
 // Xrays_64ChannelDlg.cpp: 实现文件
 //
+#pragma comment(lib,"Version.lib")
 #include "json/json.h"
 
 #include "pch.h"
@@ -11,6 +12,7 @@
 #include "Order.h"
 #include "Log.h"
 #include "LayoutInit.h"
+#include "GitVerison.h"
 
 //定时器时间间隔
 const int TIMER_INTERVAL = 100;
@@ -35,7 +37,10 @@ public:
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
-
+	virtual BOOL OnInitDialog();
+	CString GetFileVer();
+	CString getGitVersion();
+	CString m_strVersion; // 版本号
 // 实现
 protected:
 	DECLARE_MESSAGE_MAP()
@@ -43,8 +48,53 @@ protected:
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
 {
+	m_strVersion = _T("123");
+	m_strVersion = GetFileVer();
+}
+//获取软件当前的版本
+//该版本号是在资源文件中的../Version/VS_VERSION_INFO/FILEVERSION的值
+CString CAboutDlg::GetFileVer()
+{
+	TCHAR cPath[200];// szVersionBuffer[200];
+	DWORD dwHandle,InfoSize;
+	CString strVersion;
+	::GetModuleFileName(NULL,cPath,200); //首先获得版本信息资源的长度
+	InfoSize = GetFileVersionInfoSize(cPath,&dwHandle); //将版本信息资源读入缓冲区
+	if(InfoSize==0) return _T("None VerSion Supprot");
+	TCHAR*InfoBuf = new TCHAR[InfoSize];
+	GetFileVersionInfo(cPath,0,InfoSize,InfoBuf); //获得生成文件使用的代码页及文件版本
+	unsigned int  cbTranslate = 0;
+	struct LANGANDCODEPAGE {
+	WORD wLanguage;
+	WORD wCodePage;
+	} *lpTranslate;
+	VerQueryValue(InfoBuf, TEXT("\\VarFileInfo\\Translation"),(LPVOID*)&lpTranslate,&cbTranslate);
+	// Read the file description for each language and code page.
+	for( int i=0; i < (cbTranslate/sizeof(struct LANGANDCODEPAGE)); i++ )
+	{
+	TCHAR   SubBlock[200];
+	wsprintf( SubBlock,
+				TEXT("\\StringFileInfo\\%04x%04x\\FileVersion"),
+				lpTranslate[i].wLanguage,
+				lpTranslate[i].wCodePage);
+	void *lpBuffer=NULL;
+	unsigned int dwBytes=0;
+	VerQueryValue(InfoBuf,
+	SubBlock,
+	&lpBuffer,
+	&dwBytes);
+	CString strTemp = (TCHAR *)lpBuffer;
+	strVersion+=strTemp;
+	}
+	return strVersion;
 }
 
+CString CAboutDlg::getGitVersion() {
+	CString commitHash;
+	string commitVer = GIT_VER;
+	commitHash = commitVer.c_str();
+	return commitHash;
+}
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
@@ -53,6 +103,18 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
+BOOL CAboutDlg::OnInitDialog()
+{
+    CDialogEx::OnInitDialog();
+
+    // 将版本号设置为静态文本控件的文本
+    GetDlgItem(IDC_STATIC_VERSION5)->SetWindowText(m_strVersion); 
+	CString commitHash;
+	string commitVer = GIT_VER;
+	commitHash = commitVer.c_str();
+	GetDlgItem(IDC_GIT_VERSION)->SetWindowText(commitHash);
+    return TRUE;
+}
 
 // CXrays_64ChannelDlg 对话框
 CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
@@ -205,6 +267,8 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
 	// ON_COMMAND(ID_POWER_MENU, &CXrays_64ChannelDlg::OnPowerMenu)
 	ON_COMMAND(ID_NETSETTING_MENU, &CXrays_64ChannelDlg::OnNetSettingMenu)
+	ON_COMMAND(ID_HELPVIEW, &CXrays_64ChannelDlg::OnHelpview)
+	ON_COMMAND(ID_VERSION, &CXrays_64ChannelDlg::OnAbout)
 	ON_BN_CLICKED(IDC_POWER_NET, &CXrays_64ChannelDlg::OnBnClickedRelayConnect)
 	ON_BN_CLICKED(IDC_POWER_ONOFF, &CXrays_64ChannelDlg::OnRelayChange)
 	ON_MESSAGE(WM_UPDATE_ARM, &CXrays_64ChannelDlg::OnUpdateARMStatic) //子线程发送消息通知主线程处理  
@@ -411,6 +475,21 @@ void CXrays_64ChannelDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	{
 		CDialogEx::OnSysCommand(nID, lParam);
 	}
+}
+
+void CXrays_64ChannelDlg::OnHelpview()
+{
+	// TODO: 在此添加命令处理程序代码
+	CString filePath = _T(".\\help.CHM");
+	if (IsFileExit(filePath)) {
+		ShellExecute(NULL, _T("open"), filePath, NULL, NULL, SW_SHOWMAXIMIZED);
+	}
+}
+
+void CXrays_64ChannelDlg::OnAbout()
+{
+	CAboutDlg dlgAbout;
+	dlgAbout.DoModal();
 }
 
 // 如果向对话框添加最小化按钮，则需要下面的代码
@@ -660,9 +739,8 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 		m_NetStatusLEDList[0].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 		// 打印日志
 		CString info;
-		info.Format(_T("CH%d网络连接失败。请重新尝试，若再次连接失败,请做以下尝试:\
-            1、检查网络参数设置是否正确；2、检查设备电源是否打开；\
-			3、检查电脑的网络适配器属性设置是否正确"), num+1);
+		info.Format(_T("CH%d网络连接失败。请重新尝试，若再次连接失败,请做以下尝试:1、检查网络参数设置是否正确；2、检查设备电源是否打开；"
+		"3、检查电脑的网络适配器属性设置是否正确"), num+1);
 		m_page1.PrintLog(info);
 		return FALSE;
 	}
