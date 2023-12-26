@@ -1,7 +1,7 @@
 {
 	"Detector_Refresh_Time" : 10,
 	"IP_ARM" : "192.168.0.189",
-	"IP_Detector1" : "192.168.0.189",
+	"IP_Detector" : "192.168.0.189",
 	"IP_Detector2" : "192.168.0.189",
 	"IP_Detector3" : "192.168.0.189",
 	"IP_Relay" : "192.168.10.22",
@@ -12,7 +12,7 @@
 	"NetSwitchCH3" : 1,
 	"NetSwitchTotal" : 1,
 	"Port_ARM" : 8000,
-	"Port_Detector1" : 5000,
+	"Port_Detector" : 5000,
 	"Port_Detector2" : 6000,
 	"Port_Detector3" : 7000,
 	"Port_Relay" : 1030,

@@ -20,11 +20,9 @@
 using namespace std;
 
 UINT Recv_Th1(LPVOID p); // 多线程接收CH1网口数据
-UINT Recv_Th2(LPVOID p); // 多线程接收CH2网口数据
-UINT Recv_Th3(LPVOID p); // 多线程接收CH3网口数据
 UINT Recv_ARM(LPVOID p); // 多线程接收ARM网口数据
 UINT Recv_Relay(LPVOID p); // 多线程接收网口数据(继电器)
-UINT Recv_Thread(const int num, LPVOID p); //四个探测器接受数据线程公有部分
+UINT Recv_Thread(LPVOID p); //四个探测器接受数据线程公有部分
 
 //线程锁
 extern CMutex Mutex; 
@@ -62,7 +60,6 @@ public:
 	void SetSocketSize(SOCKET &sock, int nsize); 
 	
 	/*阻塞式发送，网口发送数据到FPGA，直到检测到指令反馈成功或者等待超时才退出。
-	* num 网口编号，从0开始
 	* msg 发送信息
 	* msgLength 数据长度
 	* flags 标志位
@@ -70,18 +67,16 @@ public:
 	* maxWaitingTime 最大等待时间，单位：s
 	* isShow TRUE:即保存日志信息，也在界面显示日志信息。 FALSE：只保存日志信息，不在界面显示日志信息。
 	*/
-	BOOL BackSend(int num, BYTE *msg, int msgLength, int flags, 
+	BOOL BackSend(BYTE *msg, int msgLength, int flags, 
 		int sleepTime = 1, int maxWaitingTime = 1, BOOL isShow = FALSE);
 	
 	/*非阻塞式发送，不进行指令反馈检测
-	* num 网口编号，从0开始
 	* msg 发送信息
 	* msgLength 数据长度
 	* flags 标志位
 	* sleepTime 发送指令后程序Sleep时间，单位：ms
 	*/
-	void NoBackSend(int num, BYTE* msg, int msgLength, int flags,
-		int sleepTime = 1);
+	void NoBackSend(BYTE* msg, int msgLength, int flags, int sleepTime = 1);
 
 	//-------------------四个探测器网络相关设置函数--------------
 	//发送配置参数
@@ -89,7 +84,7 @@ public:
 	//发送刻度曲线
 	void SendCalibration(CString fileName); 
 	//连接探测器设备网络
-	BOOL ConnectTCP(int num); 
+	BOOL ConnectTCP(); 
 	//继电器连接
 	BOOL ConnectRelayTCP();
 	//限制端口号输入范围
@@ -105,7 +100,7 @@ public:
 	*/
 	void SaveFile(CString fileName, char* mk, int length); 
 	// 缓存网口数据
-	void AddTCPData(int num, BYTE* tempChar, int len); 
+	void AddTCPData(BYTE* tempChar, int len); 
 	// 重置缓存数据
 	void ResetTCPData(); 
 
@@ -127,36 +122,33 @@ public:
 public: 
 	CUDP_Socket* m_UDPSocket; //本地UDP服务
 	BOOL UDPStatus; // UDP工作状态
-	SOCKET SocketList[3]; // FPGA的TCP端口，也就是CH1~CH3
+	SOCKET SocketList; // FPGA的TCP端口，也就是CH1~CH3
 	SOCKET relaySocket; //继电器网络套接字
-	BOOL NetSwitchList[4]; // 网络开关,其中索引为0位置对应总开关
 
 	/* 单个包：512能谱=516*4字节，（单个包长=516*4*16=33024字节,10ms刷新，10秒测量时长对应总包长=100*10*516*4=）
 		16通道=20*4字节（1ms刷新，10秒测量时长对应总包长=1000*10*20*4）
 	*/
 	const int DataMaxlen;
-	BOOL connectStatusList[3]; // 各网络联网状态
+	BOOL connectStatusList; // 各网络联网状态
 	BOOL netRelayStatus; //继电器联网状态
 	int MeasureMode; // 测量状态。0：非测量状态，1：手动测量状态，2：自动测量状态。
-	int TrigerMode[3]; // 触发模式。0:非测量状态，1:软件触发模式，2：硬件触发模式（带硬件触发反馈）。用于处理数据内容判别（指令反馈/测量数据）。
+	int TrigerMode; // 触发模式。0:非测量状态，1:软件触发模式，2：硬件触发模式（带硬件触发反馈）。用于处理数据内容判别（指令反馈/测量数据）。
 	BOOL GetDataStatus; // 是否接受到TCP网口的数据
 	BOOL m_getTargetChange; // 检测炮号是否变化
 	BOOL sendStopFlag; // 用来告知是否发送停止指令的标志，防止重复发送停止指令
 	
 	// ------------------TCP网络指令反馈的相关变量--------------------------------
-	BOOL ifFeedback[3]; //用于判断当前接收数据是否为指令反馈。
-	BOOL TCPfeedback[3]; // 发送数据后，网口指令反馈状态.无正确反馈则禁止发送下一条指令。
-	BYTE* LastSendMsg[3]; // 上一次发送的指令
-	BYTE* RecvMsg[3]; // 网口接收数据
-	int recievedFBLength[3]; //已接收网口数据长度，取前N个字节
-	int FeedbackLen[3]; //指令反馈字节长度
+	BOOL ifFeedback; //用于判断当前接收数据是否为指令反馈。
+	BOOL TCPfeedback; // 发送数据后，网口指令反馈状态.无正确反馈则禁止发送下一条指令。
+	BYTE* LastSendMsg; // 上一次发送的指令
+	BYTE* RecvMsg; // 网口接收数据
+	int recievedFBLength; //已接收网口数据长度，取前N个字节
+	int FeedbackLen; //指令反馈字节长度
 
 	// -------------------TCP网络接受数据相关变量----------------------------
 	BYTE* DataCH1; // 网口接收的数据，缓存下来，接收完后再存储到文件中。
-	BYTE* DataCH2;
-	BYTE* DataCH3;
-	int RECVLength[3];//网口已接收数据长度
-	fstream fileDetector[3]; //探测器文件保持常开状态，以减小打频繁开关闭所浪费的时间
+	int RECVLength;//网口已接收数据长度
+	fstream fileDetector; //探测器文件保持常开状态，以减小打频繁开关闭所浪费的时间
 
 	//----------------ARM网络监测温度/电压/电流相关变量-------------
 	SOCKET armSocket; // ARM网络的TCP端口
@@ -183,7 +175,7 @@ public:
 	int m_currentTab; //Tab子窗口序号
 
 	CWinThread *m_pThread_ARM; //线程函数返回指针，
-	CWinThread* m_pThread_CH[3]; //线程函数返回指针
+	CWinThread* m_pThread_CH; //线程函数返回指针
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -265,7 +257,7 @@ public:
 	afx_msg LRESULT OnUpdateRelay(WPARAM wParam, LPARAM lParam);
 
 	// 网络状态LED灯
-	LEDButton m_NetStatusLEDList[3];
+	LEDButton m_NetStatusLEDList;
 	// 继电器网络连接LED灯
 	LEDButton m_RelayNetStatusLED;
 	// 继电器开关状态，端口是开启还是关闭状态（定时查询）

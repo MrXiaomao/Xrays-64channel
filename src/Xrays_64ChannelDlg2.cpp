@@ -85,14 +85,8 @@ void CXrays_64ChannelDlg::OpenUDP()
 
 	UDPStatus = TRUE;
 
-	// 2、判断TCP连接状态
-	BOOL AllconnectStatus = TRUE;
-	for (int num = 0; num < 3; num++) {
-		if(connectStatusList[num] != NetSwitchList[num+1]) AllconnectStatus = FALSE;
-	}
-
 	// UDP和TCP都打开后才允许使用自动测量
-	if (AllconnectStatus)
+	if (connectStatusList)
 	{
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 	}
@@ -177,12 +171,7 @@ void CXrays_64ChannelDlg::SaveEnviromentFile(double data[])
 void CXrays_64ChannelDlg::ResetTCPData()
 {
 	memset(DataCH1, 0, DataMaxlen);
-	memset(DataCH2, 0, DataMaxlen);
-	memset(DataCH3, 0, DataMaxlen);
-
-	for(int num=0; num < 3; num++){
-		RECVLength[num] = 0;
-	}
+	RECVLength = 0;
 }
 
 //限制端口号输入范围0~65535
@@ -343,30 +332,24 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	Order::TriggerThreshold[9] = res2[3];
 
 	//能谱刷新时间，波形触发间隔，波形触发阈值
-	for (int num = 0; num < 3; num++) {
-		if(connectStatusList[num]) {
-			BackSend(num, Order::WaveRefreshTime, 12, 0, 1);
-			BackSend(num, Order::TriggerThreshold, 12, 0, 1);
-			BackSend(num, Order::TriggerIntervalTime, 12, 0, 1);
-		}
+	if(connectStatusList) {
+		NoBackSend(Order::WaveRefreshTime, 12, 0, 1);
+		NoBackSend(Order::TriggerThreshold, 12, 0, 1);
+		NoBackSend(Order::TriggerIntervalTime, 12, 0, 1);
 	}
 	
 	CString info;
 	if (m_WaveMode.GetCurSel() == 0)
 	{ //512道能谱
-		for (int num = 0; num < 3; num++) {
-			if(connectStatusList[num]) {
-				BackSend(num, Order::WorkMode0, 12, 0, 1);
-			}
+		if(connectStatusList) {
+			NoBackSend(Order::WorkMode0, 12, 0, 1);
 		}
 		info.Format(_T("能谱刷新时间:%dms,512道能谱工作模式"), RefreshTime);
 	}
 	else if (m_WaveMode.GetCurSel() == 1)
 	{ // 16道能谱
-		for (int num = 0; num < 3; num++) {
-			if(connectStatusList[num]) {
-				BackSend(num, Order::WorkMode3, 12, 0, 1);
-			}
+		if(connectStatusList) {
+			NoBackSend(Order::WorkMode3, 12, 0, 1);
 		}
 		info.Format(_T("能谱刷新时间:%dms,16道能谱工作模式"), RefreshTime);
 	}
@@ -418,15 +401,9 @@ void CXrays_64ChannelDlg::OnBnClickedClearLog()
 }
 
 //缓存网口数据
-void CXrays_64ChannelDlg::AddTCPData(int num, BYTE *tempChar, int len)
+void CXrays_64ChannelDlg::AddTCPData(BYTE *tempChar, int len)
 {
-	/*for (int i = 0; i < len; i++) {
-		if (RECVLength[num] + i < DataMaxlen)
-		{
-			DataCH1[RECVLength[num] + i] = tempChar[i];
-		}
-	}*/
-	RECVLength[num] += len;
+	RECVLength += len;
 }
 
 //设置网口缓存区大小
@@ -503,12 +480,12 @@ void CXrays_64ChannelDlg::OnSizing(UINT fwSide, LPRECT pRect)
 }
 
 //带指令反馈的发送指令
-BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
+BOOL CXrays_64ChannelDlg::BackSend(BYTE *msg, int msgLength, int flags,
 								 int sleepTime, int maxWaitingTime, BOOL isShow)
 {
 	CSingleLock singleLock(&Mutex); //线程锁
 
-	if (ifFeedback[num])
+	if (ifFeedback)
 		return FALSE;
 
 	// 若超时未检测到反馈指令，则再次发送指令到FPGA。循环等待三次。
@@ -523,31 +500,31 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 
 		singleLock.Lock(); //Mutex
 		if (singleLock.IsLocked()){
-			ifFeedback[num] = FALSE;
+			ifFeedback = FALSE;
 		}
 		singleLock.Unlock(); //Mutex
 
-		TCPfeedback[num] = FALSE;
-		LastSendMsg[num] = NULL;
-		RecvMsg[num] = NULL;
-		recievedFBLength[num] = 0;
+		TCPfeedback = FALSE;
+		LastSendMsg = NULL;
+		RecvMsg = NULL;
+		recievedFBLength = 0;
 
 		// 发送指令
-		if (!ifFeedback[num])
+		if (!ifFeedback)
 		{
 			singleLock.Lock(); //线程锁
 			if (singleLock.IsLocked()){
-				ifFeedback[num] = TRUE;
+				ifFeedback = TRUE;
 			}
 			singleLock.Unlock(); 
 
-			send(SocketList[num], (char *)msg, msgLength, flags);
+			send(SocketList, (char *)msg, msgLength, flags);
 			// Sleep(sleepTime);
-			LastSendMsg[num] = msg;
-			FeedbackLen[num] = msgLength;
+			LastSendMsg = msg;
+			FeedbackLen = msgLength;
 			CString info;
-			info.Format(_T("CH%d SEND HEX(%d):"), num+1, i+1);
-			info = info + Char2HexCString(LastSendMsg[num], msgLength);
+			info.Format(_T("TCP SEND HEX(%d):"), i+1);
+			info = info + Char2HexCString(LastSendMsg, msgLength);
 			m_page1.PrintLog(info, isShow); 
 		}
 
@@ -555,40 +532,38 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 		do
 		{ 
 			// 判断接收指令与发送指令是否相同
-			if (recievedFBLength[num] == msgLength)
+			if (recievedFBLength == msgLength)
 			{
-				CString info;
-				info.Format(_T("CH%d RECV HEX:"), num+1);
-				info += Char2HexCString(RecvMsg[num], recievedFBLength[num]);
+				CString info = _T("TCP RECV HEX:");
+				info += Char2HexCString(RecvMsg, recievedFBLength);
 				m_page1.PrintLog(info, isShow);
-				if (compareBYTE(RecvMsg[num], LastSendMsg[num], msgLength)){
-					TCPfeedback[num] = TRUE;
+				if (compareBYTE(RecvMsg, LastSendMsg, msgLength)){
+					TCPfeedback = TRUE;
 				}
-				if (!TCPfeedback[num]) {
-					RecvMsg[num] = NULL;
-					recievedFBLength[num] = 0;
+				if (!TCPfeedback) {
+					RecvMsg = NULL;
+					recievedFBLength = 0;
 				}
 			}
 
-			if (TCPfeedback[num])
+			if (TCPfeedback)
 			{
-				CString info;
-				info.Format(_T("CH%d指令反馈校验成功:"), num+1);
-				info += Char2HexCString(RecvMsg[num], recievedFBLength[num]);
+				CString info = _T("TCP指令反馈校验成功:");
+				info += Char2HexCString(RecvMsg, recievedFBLength);
 				m_page1.PrintLog(info, isShow);
 
 				//接收到反馈指令，重新初始化反馈相关数据
-				TCPfeedback[num] = FALSE;
+				TCPfeedback = FALSE;
 				
 				singleLock.Lock(); //线程锁
 				if (singleLock.IsLocked()){
-					ifFeedback[num] = FALSE;
+					ifFeedback = FALSE;
 				}
 				singleLock.Unlock(); 
 
-				LastSendMsg[num] = NULL;
-				RecvMsg[num] = NULL;
-				recievedFBLength[num] = 0;
+				LastSendMsg = NULL;
+				RecvMsg = NULL;
+				recievedFBLength = 0;
 
 				return TRUE;
 			}
@@ -602,56 +577,48 @@ BOOL CXrays_64ChannelDlg::BackSend(int num, BYTE *msg, int msgLength, int flags,
 		} while (times < maxWaitingTime); 
 
 		CString info;
-		info.Format(_T("CH%d 等待指令反馈时间%ds,超出最大设置时长%ds,"), num+1, times, maxWaitingTime);
+		info.Format(_T("TCP等待指令反馈时间%ds,超出最大设置时长%ds,"), times, maxWaitingTime);
 		m_page1.PrintLog(info, isShow);
 	}
 
-	CString info;
-	info.Format(_T("CH%d 尝试3次下发指令，均无法接受到反馈指令，SEND HEX: "), num+1);
-	info = info + Char2HexCString(LastSendMsg[num], msgLength);
+	CString info = _T("TCP尝试3次下发指令，均无法接受到反馈指令，SEND HEX: ");
+	info = info + Char2HexCString(LastSendMsg, msgLength);
 	m_page1.PrintLog(info, TRUE);
 
 	// 恢复指令反馈相关参数
 	singleLock.Lock(); //线程锁
 	if (singleLock.IsLocked()){
-		ifFeedback[num] = FALSE;
+		ifFeedback = FALSE;
 	}
 	singleLock.Unlock();
 	
-	TCPfeedback[num] = FALSE;
-	LastSendMsg[num] = NULL;
-	RecvMsg[num] = NULL;
-	recievedFBLength[num] = 0;
+	TCPfeedback = FALSE;
+	LastSendMsg = NULL;
+	RecvMsg = NULL;
+	recievedFBLength = 0;
 
 	return FALSE;
 }
 
 //不带指令反馈的发送指令
-void CXrays_64ChannelDlg::NoBackSend(int num, BYTE* msg, int msgLength, int flags,
-	int sleepTime){
-	send(SocketList[num], (char*)msg, msgLength, flags);
-	CString info;
-	info.Format(_T("CH%d SEND HEX :"), num + 1);
+void CXrays_64ChannelDlg::NoBackSend(BYTE* msg, int msgLength, int flags, int sleepTime){
+	send(SocketList, (char*)msg, msgLength, flags);
+	CString info = _T("TCP SEND HEX :");
 	info = info + Char2HexCString(msg, msgLength);
 	m_page1.PrintLog(info, FALSE);
 	Sleep(sleepTime);
 }
 
 LRESULT CXrays_64ChannelDlg::OnUpdateTrigerLog(WPARAM wParam, LPARAM lParam){
-	int num = (int) wParam;
-	CString info;
-	info.Format(_T("CH%d已收到硬件触发信号"), num+1);
+	CString info = _T("探测器已收到硬件触发信号");
 	m_page1.PrintLog(info,FALSE);
 	return 0;
 }
 
 LRESULT CXrays_64ChannelDlg::OnUpdateTimer1(WPARAM wParam, LPARAM lParam){
-	int num = (int)wParam;
 	if (m_nTimerId[0]==0) {
 		m_nTimerId[0] = SetTimer(1, TIMER_INTERVAL, NULL); //如果已经开启则不再重复开启
-
-		CString info;
-		info.Format(_T("CH%d开启2号定时器"), num + 1);
+		CString info = _T("开启2号定时器");
 		m_page1.PrintLog(info, FALSE);
 	}
 	return 0;
@@ -714,14 +681,8 @@ BOOL CXrays_64ChannelDlg::DestroyWindow()
 void CXrays_64ChannelDlg::OnClose()
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	BOOL AllconnectStatus = TRUE;
-	// 判断探测器网络连接状态，勾选的设备是否都是连接
-	for (int num = 0; num < 3; num++) {
-		if (connectStatusList[num] != NetSwitchList[num + 1]) AllconnectStatus = FALSE;
-	}
-
 	// 若ARM或者探测器处于联网状态则提醒用户是否退出
-	if (AllconnectStatus || ARMnetStatus) {
+	if (connectStatusList || ARMnetStatus) {
 		int choose = MessageBox(L"是否关闭窗口？", L"提示", MB_YESNO | MB_ICONQUESTION);
 		if (choose == IDYES)
 		{

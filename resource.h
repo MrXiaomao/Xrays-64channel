@@ -15,9 +15,7 @@
 #define IDR_MENU1                       142
 #define IDD_NETSETTING_DLG              143
 #define IDC_PORT1                       1001
-#define IDC_IPADDRESS_CH2               1001
 #define IDC_CONNECT1                    1002
-#define IDC_IPADDRESS_CH3               1002
 #define IDC_LED                         1003
 #define IDC_TargetNum                   1004
 #define IDC_IPADDRESS_ARM               1004
@@ -62,8 +60,6 @@
 #define IDC_RELAY_PORT                  1051
 #define IDC_LED_Relay2                  1051
 #define IDC_LED_POWER                   1051
-#define IDC_CH2_PORT                    1052
-#define IDC_CH3_PORT                    1053
 #define IDC_ARM_PORT                    1055
 #define IDC_IPADDRESS_CH1               1056
 #define IDC_CH1_PORT                    1057

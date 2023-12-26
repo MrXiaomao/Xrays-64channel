@@ -148,35 +148,28 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_NUCLEAR); //设置主界面图标
 	DataCH1 = new BYTE[DataMaxlen];
-	DataCH2 = new BYTE[DataMaxlen];
-	DataCH3 = new BYTE[DataMaxlen];
-	for(int num=0; num < 3; num++){
-		RECVLength[num]=0;
-		connectStatusList[num] = FALSE;
-		SocketList[num] = NULL;
-		NetSwitchList[num] = TRUE; // 默认打开所有网络
-		ifFeedback[num] = FALSE;
-		TCPfeedback[num] = FALSE;
-		LastSendMsg[num] = NULL;
-		RecvMsg[num] = NULL;
-		recievedFBLength[num] = 0;
-		FeedbackLen[num] = 12;
-		TrigerMode[num] = 0;
-	}
+
+	RECVLength =0;
+	connectStatusList = FALSE;
+	SocketList = NULL;
+	ifFeedback = FALSE;
+	TCPfeedback = FALSE;
+	LastSendMsg = NULL;
+	RecvMsg = NULL;
+	recievedFBLength = 0;
+	FeedbackLen = 12;
+	TrigerMode = 0;
+	m_pThread_CH = NULL;
 	for (int i = 0; i < 3; i++) {
 		feedbackARM[i] = FALSE;
 	}
 	for (int i = 0; i < 3; i++) {
-		m_pThread_CH[i] = NULL;
-	}
-	for(int i=0; i<3; i++){
 		m_nTimerId[i] = 0;
 	}
 	for (int i = 0; i < 6; i++) {
 		temperature[i] = -999.0;
 	}
 
-	NetSwitchList[3] = TRUE;
 	CLog::WriteMsg(_T("打开软件，软件环境初始化！"));
 }
 
@@ -199,20 +192,16 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 		feedbackARM[i] = FALSE;
 	}
 	
-	for(int num = 0; num < 3; num++){
-		if(connectStatusList[num]) {
-			connectStatusList[num] = FALSE; // 停止线程执行，用来控制关闭线程
-			// WaitForSingleObject(m_pThread_CH[num]->m_hThread, INFINITE);   //一直等待线程退出，无限期等待
-			// CString info;
-			// info.Format(_T("CH%d网口数据线程退出成功！"),num+1);
-			// CLog::WriteMsg(info);
-			// 关闭打开的文件
-			if(fileDetector[num].is_open()){
-				fileDetector[num].close();
-			}
-			closesocket(SocketList[num]); //关闭套接字
+	
+	if(connectStatusList) {
+		connectStatusList = FALSE; // 停止线程执行，用来控制关闭线程
+		// 关闭打开的文件
+		if(fileDetector.is_open()){
+			fileDetector.close();
 		}
+		closesocket(SocketList); //关闭套接字
 	}
+	
 	if(ARMnetStatus) {
 		ARMnetStatus = FALSE; //停止线程执行
 		//WaitForSingleObject(m_pThread_ARM->m_hThread, INFINITE);   //一直等待线程退出
@@ -226,8 +215,6 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 	//if (UDPStatus) CloseUDP();
 	if (m_UDPSocket != NULL) delete m_UDPSocket;
 	delete DataCH1;
-	delete DataCH2;
-	delete DataCH3;
 
 	for(int i=0;i<3;i++){
 		if(m_nTimerId[i] > 0) KillTimer(m_nTimerId[i]);
@@ -242,7 +229,7 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
-	DDX_Control(pDX, IDC_LED, m_NetStatusLEDList[0]);
+	DDX_Control(pDX, IDC_LED, m_NetStatusLEDList);
 	DDX_Control(pDX, IDC_LED_RELAYNET, m_RelayNetStatusLED);
 	DDX_Control(pDX, IDC_LED_POWER, m_RelayStatusLED);
 	DDX_Control(pDX, IDC_WAVE_MODE, m_WaveMode);
@@ -427,7 +414,7 @@ void CXrays_64ChannelDlg::InitTabSettings(){
 
 
 void CXrays_64ChannelDlg::InitOtherSettings(){
-	m_NetStatusLEDList[0].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
+	m_NetStatusLEDList.RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 	m_RelayNetStatusLED.RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 	CString strPath = GetExeDir();
 	if (IsPathExit(strPath)) {
@@ -566,28 +553,18 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 
 	vector<CString> messageList = ReadEnCalibration(fileName);
 	BYTE cmd[2000] = { 0 }; //144条指令*12字节=1728字节
-	BYTE cmd2[2000] = { 0 };
-	BYTE cmd3[2000] = { 0 };
 	int iSize = 0;
 	
 	iSize = Str2Hex(messageList[0], cmd);
-	Str2Hex(messageList[1], cmd2);
-	Str2Hex(messageList[2], cmd3);
 	// 将各个指令分开发送
 	for (int i = 0; i < iSize / 12; i++) {
 		BYTE temp[13] = { 0 };
-		BYTE temp2[13] = { 0 };
-		BYTE temp3[13] = { 0 };
 		for (int j = 0; j < 12; j++) {
 			temp[j] = cmd[i * 12 + j];
-			temp2[j] = cmd2[i * 12 + j];
-			temp3[j] = cmd3[i * 12 + j];
 		}
 
 		// 若当前是联网状态，则发送数据
-		if (connectStatusList[0]) sendStatus = sendStatus & BackSend(0, temp, 12, 0, 2, 10, FALSE);
-		if (connectStatusList[1]) sendStatus = sendStatus & BackSend(1, temp2, 12, 0, 2, 10, FALSE);
-		if (connectStatusList[2]) sendStatus = sendStatus & BackSend(2, temp3, 12, 0, 2, 10, FALSE);
+		if (connectStatusList) sendStatus = sendStatus & NoBackSend(temp, 12, 0, 2);
 	}
 	if(sendStatus){
 		CString info;
@@ -621,23 +598,19 @@ void CXrays_64ChannelDlg::OnConnect()
 		// 打开温度/电压/电流监测
 		BOOL ARMConnectFlag = TempVoltMonitorON();
 		// 1、尝试建立网络
-		for (int num = 0; num < 3; num++) {
-				connectStatusList[num] = ConnectTCP(num);
-		}
+		connectStatusList = ConnectTCP();
+
 		
 		// 2、判断连接状态
-		for (int num = 0; num < 3; num++) {
-			if(!connectStatusList[num]) AllconnectStatus = FALSE;
-		}
+		if(!connectStatusList) AllconnectStatus = FALSE;
+
 
 		// 3、连接成功
 		if (AllconnectStatus) {
 			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
 			
 			// 开启线程接收数据
-			if(connectStatusList[0]) m_pThread_CH[0] = AfxBeginThread(&Recv_Th1, this);
-			if(connectStatusList[1]) m_pThread_CH[1] = AfxBeginThread(&Recv_Th2, this);
-			if(connectStatusList[2]) m_pThread_CH[2] = AfxBeginThread(&Recv_Th3, this);
+			if(connectStatusList) m_pThread_CH = AfxBeginThread(&Recv_Th1, this);
 
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE);
 			// 必须TCP和UDP同时工作才能使用自动测量
@@ -648,12 +621,10 @@ void CXrays_64ChannelDlg::OnConnect()
 		}
 		else {
 			// 断开连接成功的网口
-			for (int num = 0; num < 3; num++) {
-				if(connectStatusList[num]) {
-					connectStatusList[num] = FALSE; // 用来控制关闭线程
-					closesocket(SocketList[num]); // 关闭套接字
-					m_NetStatusLEDList[0].RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
-				}
+			if(connectStatusList) {
+				connectStatusList = FALSE; // 用来控制关闭线程
+				closesocket(SocketList); // 关闭套接字
+				m_NetStatusLEDList.RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
 			}
 			CloseUDP();
 			// 关闭温度/电压/电流监测
@@ -670,18 +641,11 @@ void CXrays_64ChannelDlg::OnConnect()
 		// 关闭温度/电压/电流监测
 		TempVoltMonitorOFF();
 		// 1、断开连接成功的套接字
-		for(int num=0; num < 3; num++){
-			if(connectStatusList[num]) {
-				connectStatusList[num] = FALSE; // 用来控制关闭线程
-				// WaitForSingleObject(m_pThread_CH[num]->m_hThread, 2000);   //等待时间：ms。一直等待线程退出,若为INFINITE则无限期等待下去
-				// CString info;
-				// info.Format(_T("CH%d网口数据线程退出成功！"),num+1);
-				// CLog::WriteMsg(info);
-
-				closesocket(SocketList[num]); // 关闭套接字
-				m_NetStatusLEDList[0].RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
-			}
-		} 
+		if(connectStatusList) {
+			connectStatusList = FALSE; // 用来控制关闭线程
+			closesocket(SocketList); // 关闭套接字
+			m_NetStatusLEDList.RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
+		}
 
 		SetDlgItemText(IDC_CONNECT1, _T("连接网络"));
 
@@ -695,12 +659,11 @@ void CXrays_64ChannelDlg::OnConnect()
 	GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); // 恢复按钮使能
 }
 
-BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
+BOOL CXrays_64ChannelDlg::ConnectTCP(){
 	// 1、创建套接字
-	SocketList[num] = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (SocketList[num] == INVALID_SOCKET) {
-		CString info;
-		info.Format(_T("设备%d网络初始化创建失败！"), num+1);
+	SocketList = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (SocketList == INVALID_SOCKET) {
+		CString info=_T("设备网络初始化创建失败！");
 		m_page1.PrintLog(info);
 		return FALSE;
 	}
@@ -708,13 +671,10 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	// 2、连接服务器
 	CString StrSerIp;
 	int myPort;
-	char keyIP[] = "IP_Detector1";
-	char keyPort[] = "Port_Detector1";
+	char keyIP[] = "IP_Detector";
+	char keyPort[] = "Port_Detector";
 	char keyRecvLen[] = "RECVLength_CH1";
 	
-	keyIP[strlen(keyIP)-1] = '1' + num;
-	keyPort[strlen(keyPort)-1] = '1' + num;
-	keyRecvLen[strlen(keyRecvLen)-1] = '1' + num;
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	if (!jsonSetting.isNull()) 
 	{
@@ -739,70 +699,68 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(int num){
 	inet_pton(AF_INET, pStrIP, (void*)&server_addr.sin_addr.S_un.S_addr);
 	server_addr.sin_family = AF_INET;  // 使用IPv4地址
 	server_addr.sin_port = htons(myPort); //网关：5000
-	SetSocketSize(SocketList[num], 1048576*4); //1M=1024k=1048576字节，缓存区大小
+	SetSocketSize(SocketList, 1048576*4); //1M=1024k=1048576字节，缓存区大小
 	
 	// 4、检测网络是否连接,以及显示设备联网状况
-	if (connect(SocketList[num], (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-		m_NetStatusLEDList[0].RefreshWindow(FALSE, _T("OFF"));//设置指示灯
+	if (connect(SocketList, (sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+		m_NetStatusLEDList.RefreshWindow(FALSE, _T("OFF"));//设置指示灯
 		// 打印日志
-		CString info;
-		info.Format(_T("CH%d网络连接失败。请重新尝试，若再次连接失败,请做以下尝试:\
+		CString info = _T("网络连接失败。请重新尝试，若再次连接失败,请做以下尝试:\
             1、检查网络参数设置是否正确；2、检查设备电源是否打开；\
-			3、检查电脑的网络适配器属性设置是否正确"), num+1);
+			3、检查电脑的网络适配器属性设置是否正确");
 		m_page1.PrintLog(info);
 		return FALSE;
 	}
-	CString info;
-	info.Format(_T("CH%d网络已连接"), num+1);
+	CString info = _T("网络已连接");
 	m_page1.PrintLog(info);
 
-	m_NetStatusLEDList[0].RefreshWindow(TRUE, _T("ON"));//打开指示灯
+	m_NetStatusLEDList.RefreshWindow(TRUE, _T("ON"));//打开指示灯
 	return TRUE;
 }
 
 //各个探测器接受数据线程的公有部分
-UINT Recv_Thread(const int num, LPVOID p)
+UINT Recv_Thread(LPVOID p)
 {
 	CSingleLock singleLock(&Mutex); //线程锁
 	CXrays_64ChannelDlg* dlg = (CXrays_64ChannelDlg*)p;
 	while (1)
 	{
 		// 断开网络后关闭本线程
-		if (!dlg->connectStatusList[num]) return 0;
+		if (!dlg->connectStatusList) return 0;
 
 		const int dataLen = 10000; //接收的数据包长度
 		BYTE mk[dataLen];
 
 		int nLength;
-		nLength = recv(dlg->SocketList[num], (char*)mk, dataLen, 0);
+		nLength = recv(dlg->SocketList, (char*)mk, dataLen, 0);
 		if (nLength == -1) //超过recvTimeout不再有数据，关闭该线程
 		{
 			return 0;
 		}
 		else {
 			// 提取指令反馈数据,只取前12字节
-			if (dlg->ifFeedback[num]) {
+			if (dlg->ifFeedback) {
 				int receLen = 0; //本次接受总反馈指令长度
-				int receivedLen = dlg->recievedFBLength[num]; //上一次已接收数据长度
+				int receivedLen = dlg->recievedFBLength; //上一次已接收数据长度
 
 				// 计算本次及之前接受到的反馈指令字节数
-				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
+				if (receivedLen + nLength < dlg->FeedbackLen) {
 					receLen = receivedLen + nLength;
 				}
 				else {
-					receLen = dlg->FeedbackLen[num];
+					receLen = dlg->FeedbackLen;
 				}
 
 				BYTE* tempChar = (BYTE*)malloc(receLen);
 				//先取旧数据
-				if (dlg->RecvMsg[num] != NULL) {
+				if (dlg->RecvMsg != NULL) {
 					for (int i = 0; i < receivedLen; i++) {
-						tempChar[i] = *(dlg->RecvMsg[num] + i);
+						tempChar[i] = *(dlg->RecvMsg + i);
 					}
 				}
 
 				// 拼接新数据
-				if (receivedLen + nLength < dlg->FeedbackLen[num]) {
+				if (receivedLen + nLength < dlg->FeedbackLen) {
 					// 拼接反馈指令
 					for (int i = 0; i < nLength; i++) {
 						tempChar[receivedLen + i] = mk[i];
@@ -825,15 +783,15 @@ UINT Recv_Thread(const int num, LPVOID p)
 
 				singleLock.Lock(); //线程锁
 				if (singleLock.IsLocked()) {
-					dlg->RecvMsg[num] = tempChar;
-					dlg->recievedFBLength[num] = receLen;
+					dlg->RecvMsg = tempChar;
+					dlg->recievedFBLength = receLen;
 				}
 				singleLock.Unlock();
 
-				if (receLen == dlg->FeedbackLen[num]) {
+				if (receLen == dlg->FeedbackLen) {
 					singleLock.Lock(); //线程锁
 					if (singleLock.IsLocked()) {
-						dlg->ifFeedback[num] = FALSE; //接收完12字节，重置标志位
+						dlg->ifFeedback = FALSE; //接收完12字节，重置标志位
 					}
 					singleLock.Unlock();
 				}
@@ -843,7 +801,7 @@ UINT Recv_Thread(const int num, LPVOID p)
 
 			// 普通数据，写入文件
 			BOOL writeFlag = FALSE;
-			writeFlag  = SaveFile_BYTE_Cache(dlg->fileDetector[num], mk, nLength);
+			writeFlag  = SaveFile_BYTE_Cache(dlg->fileDetector, mk, nLength);
 			if (!writeFlag) {
 				// 添加日志到文件
 				CLog::SetPrefix(_T("ERROR"));
@@ -852,17 +810,17 @@ UINT Recv_Thread(const int num, LPVOID p)
 				info += Char2HexCString(mk, nLength);
 				CLog::WriteMsg(info);
 			}
-			dlg->AddTCPData(num, mk, nLength);
+			dlg->AddTCPData(mk, nLength);
 
 			// 触发信号甄别
-			if (dlg->TrigerMode[num] == 2) {
+			if (dlg->TrigerMode == 2) {
 				if (nLength == 12 && compareBYTE(mk, Order::HardTriggerBack, nLength)) {
 					singleLock.Lock();
 					if (singleLock.IsLocked()) {
-						dlg->TrigerMode[num] = 0;
+						dlg->TrigerMode = 0;
 					}
 					singleLock.Unlock();
-					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, num, 0); //发送消息通知主界面,第三个参数表示探测器序号
+					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, 0, 0); //发送消息通知主界面,第三个参数表示探测器序号
 				}
 				continue;
 			}
@@ -876,7 +834,7 @@ UINT Recv_Thread(const int num, LPVOID p)
 
 			//发送消息通知主界面,进入定时测量状态
 			if (dlg->m_nTimerId[0] == 0) {
-				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, num, 0);
+				::PostMessage(dlg->m_hWnd, WM_UPDATE_CH_DATA, 0, 0);
 			}
 		}
 	}
@@ -886,24 +844,7 @@ UINT Recv_Thread(const int num, LPVOID p)
 //线程1，接收TCP网口数据
 UINT Recv_Th1(LPVOID p)
 {
-	const int num = 0;
 	Recv_Thread(0,p);
-	return 0;
-}
-
-//线程2，接收TCP网口数据
-UINT Recv_Th2(LPVOID p)
-{
-	const int num = 1;
-	Recv_Thread(1,p);
-	return 0;
-}
-
-//线程3，接收TCP网口数据
-UINT Recv_Th3(LPVOID p)
-{
-	const int num = 2;
-	Recv_Thread(2,p);
 	return 0;
 }
 
@@ -919,15 +860,13 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			//状态栏显示
 			CString strInfo;
-			strInfo.Format(_T("Receieve:CH1=%d,CH2=%d,CH3=%d"),
-				RECVLength[0], RECVLength[1], RECVLength[2]);
+			strInfo.Format(_T("Receieve data Length:%d"), RECVLength);
 			m_statusBar.SetPaneText(0, strInfo);
 
 			if (timer * TIMER_INTERVAL >= MeasureTime){
 				if (!sendStopFlag) {
-					for(int num=0; num < 3; num++){
-						if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 2);
-					}
+					if(connectStatusList) NoBackSend(Order::Stop, 12, 0, 2);
+
 
 					sendStopFlag = TRUE;
 					// 打印日志
@@ -938,18 +877,14 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				
 				//在这规定时间内四个线程均没有接收到新的数据，即全部stop了
 				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-				if (RECVLength[0] == jsonSetting["RECVLength_CH1"].asInt() 
-					&& RECVLength[1] == jsonSetting["RECVLength_CH2"].asInt()
-				 	&& RECVLength[2] == jsonSetting["RECVLength_CH3"].asInt())
+				if (RECVLength == jsonSetting["RECVLength_CH1"].asInt())
 				{
 					// 重置部分数据
 					timer = 0;
 
 					singleLock.Lock(); //Mutex线程锁
 					if (singleLock.IsLocked()){
-						for(int num=0; num < 3; num++){
-							TrigerMode[num] = 0;
-						}
+						TrigerMode = 0;
 						GetDataStatus = FALSE;
 					}
 					singleLock.Unlock(); //Mutex
@@ -979,19 +914,16 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 						GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 					}
 
-					if (RECVLength[0] + RECVLength[1] + RECVLength[2] > 0) {
+					if (RECVLength> 0) {
 						// 打印日志
 						CString info = _T("实验数据存储路径：") + saveAsTargetPath;
 						m_page1.PrintLog(info);
-						info.Format(_T("Receieve Data(byte): CH1 = %d, CH2 = %d, CH3 = %d"),
-							RECVLength[0], RECVLength[1], RECVLength[2]);
+						info.Format(_T("Receieve Data(byte): %d"), RECVLength);
 						m_page1.PrintLog(info);
 					}
 					// 关闭文件指针
-					for(int num=0; num < 3; num++){
-						if(connectStatusList[num] && fileDetector[num].is_open()){
-							fileDetector[num].close();
-						}
+					if(connectStatusList && fileDetector.is_open()){
+						fileDetector.close();
 					}
 					//重置定时器开关状态
 					m_nTimerId[0] = 0;
@@ -1003,9 +935,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			if (timer % 10 == 0)//每间隔10个timer记录一次
 			{	// 写入配置文件
 				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-				jsonSetting["RECVLength_CH1"] = RECVLength[0];
-				jsonSetting["RECVLength_CH2"] = RECVLength[1];
-				jsonSetting["RECVLength_CH3"] = RECVLength[2];
+				jsonSetting["RECVLength_CH1"] = RECVLength;
 				WriteSetting(_T("Setting.json"), jsonSetting);
 			}
 		}
@@ -1025,28 +955,22 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				Mkdir(saveAsTargetPath);
 				
 				// 先确保上一次炮号的文件指针关闭成功
-				for(int num=0; num < 3; num++){
-					if(connectStatusList[num] && fileDetector[num].is_open()){
-						fileDetector[num].close();
-					}
+				if(connectStatusList && fileDetector.is_open()){
+					fileDetector.close();
 				}
 
 				// 打开文件指针
-				for (int num = 0; num < 3; num++) {
-					if(connectStatusList[num]) {
-						CString strCH;
-						strCH.Format(_T("CH%d.dat"), num + 1);
-						CString fileName = saveAsTargetPath + m_targetID + strCH;
-						fileDetector[num].open(fileName, ios::out | ios::app | ios::binary); // 追加  | ios::binary
-					}
+				if(connectStatusList) {
+					CString strCH;
+					strCH.Format(_T("CH%d.dat"), 1);
+					CString fileName = saveAsTargetPath + m_targetID + strCH;
+					fileDetector.open(fileName, ios::out | ios::app | ios::binary); // 追加  | ios::binary
 				}
 
 				// 重置
 				singleLock.Lock(); //Mutex
 				if (singleLock.IsLocked()){
-					for(int num=0; num < 3; num++){
-						TrigerMode[num] = 0;
-					}
+					TrigerMode = 0;
 				}
 				singleLock.Unlock(); //Mutex
 				// 重置从网口接收的缓存数据
@@ -1066,17 +990,15 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				sendStopFlag = FALSE;
 				
 				//发送开始测量指令，采用硬件触发
-				for (int num = 0; num < 3; num++) {
-					if(connectStatusList[num]) {
-						BackSend(num, Order::StartHardTrigger, 12, 0, 1);
-					}
-					
-					singleLock.Lock(); //Mutex
-					if (singleLock.IsLocked()){
-						TrigerMode[num] = 2;
-					}
-					singleLock.Unlock(); //Mutex
+				if(connectStatusList) {
+					NoBackSend(Order::StartHardTrigger, 12, 0);
 				}
+				
+				singleLock.Lock(); //Mutex
+				if (singleLock.IsLocked()){
+					TrigerMode = 2;
+				}
+				singleLock.Unlock(); //Mutex
 				
 				m_page1.PrintLog(_T("\"硬件触发\"工作模式，等待触发信号"));
 			}
@@ -1132,9 +1054,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 		singleLock.Lock(); // 线程锁
 		if (singleLock.IsLocked()){
-			for(int num = 0; num < 3; num++){
-				TrigerMode[num] = 0;
-			}
+			TrigerMode = 0;
 			GetDataStatus = FALSE;
 		}
 		singleLock.Unlock();
@@ -1163,27 +1083,22 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		m_page1.PrintLog(info);
 		
 		//打开文件，准备存储
-		for (int num = 0; num < 3; num++) {
-			if(connectStatusList[num]) {
-				CString strCH;
-				strCH.Format(_T("CH%d.dat"), num + 1);
-				CString fileName = saveAsTargetPath + m_targetID + strCH;
-				// char* strfileName = CstringToWideCharArry(fileName);
-				fileDetector[num].open(fileName, ios::out | ios::app | ios::binary); // 追加  | ios::binary
-			}
+		if(connectStatusList) {
+			CString strCH;
+			strCH.Format(_T("CH%d.dat"), 1);
+			CString fileName = saveAsTargetPath + m_targetID + strCH;
+			fileDetector.open(fileName, ios::out | ios::app | ios::binary); // 追加  | ios::binary
 		}
 
 		//向TCP发送开始指令
-		for (int num = 0; num < 3; num++) {
-			if(connectStatusList[num]) {
-				BackSend(num, Order::StartSoftTrigger, 12, 0, 1);
-			}
-			singleLock.Lock();
-			if (singleLock.IsLocked()){
-				TrigerMode[num] = 1;
-			}
-			singleLock.Unlock();
+		if(connectStatusList) {
+			NoBackSend(Order::StartSoftTrigger, 12, 0, 1);
 		}
+		singleLock.Lock();
+		if (singleLock.IsLocked()){
+			TrigerMode = 1;
+		}
+		singleLock.Unlock();
 
 		SetDlgItemText(IDC_Start, _T("停止测量"));
 		
@@ -1200,16 +1115,13 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 	else {
 		singleLock.Lock(); //Mutex
 		if (singleLock.IsLocked()){
-			for(int num=0; num < 3; num++){
-				TrigerMode[num] = 0;
-			}
+			TrigerMode = 0;
 		}
 		singleLock.Unlock(); //Mutex
 
 		//往TCP发送停止指令
-		for(int num=0; num < 3; num++){
-			if(connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 2);
-		}
+		if(connectStatusList) NoBackSend(Order::Stop, 12, 0, 2);
+
 		sendStopFlag = TRUE;
 		if (GetDataStatus) {
 			//打印日志
@@ -1225,10 +1137,8 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		}
 		
 		// 完成测量，关闭文件
-		for(int num=0; num < 3; num++){
-			if(connectStatusList[num] && fileDetector[num].is_open()){
-				fileDetector[num].close();
-			}
+		if(connectStatusList && fileDetector.is_open()){
+			fileDetector.close();
 		}
 		//按键在定时器中自动在数据接收完毕后恢复使能
 	}
@@ -1257,22 +1167,19 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 
 		singleLock.Lock(); // 线程锁
 		if (singleLock.IsLocked()){
-			for(int num=0; num < 3; num++){
-				TrigerMode[num] = 0;
-				ifFeedback[num] = FALSE; //接收完12字节，重置标志位
-			}
+			TrigerMode = 0;
+			ifFeedback = FALSE; //接收完12字节，重置标志位
 			GetDataStatus = FALSE;
 		}
 		singleLock.Unlock();
 
 		m_getTargetChange = FALSE;
-		for(int num=0; num < 3; num++){
-			TCPfeedback[num] = FALSE;
-			LastSendMsg[num] = NULL;
-			RecvMsg[num] = NULL;
-			recievedFBLength[num] = 0;
-			FeedbackLen[num] = 12;
-		}
+		TCPfeedback = FALSE;
+		LastSendMsg = NULL;
+		RecvMsg = NULL;
+		recievedFBLength = 0;
+		FeedbackLen = 12;
+
 
 		SendParameterToTCP();
 		SetParameterInputStatus(FALSE);
@@ -1291,18 +1198,15 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		MeasureMode = 0;
 		singleLock.Lock();
 		if (singleLock.IsLocked()){
-			for(int num=0; num < 3; num++){
-				TrigerMode[num] = 0;
-			}
+			TrigerMode = 0;
 		}
 		singleLock.Unlock(); 
 
 		// 若处于接收数据状态,则利用定时器进行自动关闭复位
 		if (GetDataStatus) {
 			// 发送停止指令，带指令反馈，结束上一次测量结束。
-			for (int num = 0; num < 3; num++) {
-				if (connectStatusList[num]) NoBackSend(num, Order::Stop, 12, 0, 2);
-			}
+			if (connectStatusList) NoBackSend(Order::Stop, 12, 0, 2);
+
 			sendStopFlag = TRUE;
 
 			// 打印日志
@@ -1314,9 +1218,8 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		}
 		else{
 			// 发送停止指令，带指令反馈，结束上一次测量结束。
-			for (int num = 0; num < 3; num++) {
-				if (connectStatusList[num]) BackSend(num, Order::Stop, 12, 0, 1);
-			}
+			if (connectStatusList) NoBackSend(Order::Stop, 12, 0, 1);
+
 			sendStopFlag = TRUE;
 
 			SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
