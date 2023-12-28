@@ -24,8 +24,8 @@ extern const int TIMER_INTERVAL;
 // 联网后才能使用的按钮，断网后不能使用的按钮
 void CXrays_64ChannelDlg::SetTCPnetStatus(BOOL flag)
 {
-	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
-	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
+	GetDlgItem(IDC_Start)->EnableWindow(flag);
+	GetDlgItem(IDC_AutoMeasure)->EnableWindow(flag);
 }
 
 //设置配置参数框的使能状态

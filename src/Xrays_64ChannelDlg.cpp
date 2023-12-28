@@ -535,12 +535,16 @@ void CXrays_64ChannelDlg::EnergyCalibration()
 	}else
 	{
 		CString info;
-		info = _T("刻度曲线设置失败，无法在配置文件中找到关键字'CalibrationFile'！");
+		info = _T("能量刻度失败，无法在配置文件中找到关键字'CalibrationFile'！");
 		m_page1.PrintLog(info);
 	}	
 	if(IsFileExit(fileName))
 	{
 		SendCalibration(fileName);
+	}
+	else{
+		CString info = _T("能量刻度失败，能量刻度文件不存在：") + fileName;
+		m_page1.PrintLog(info);
 	}
 }
 
@@ -549,7 +553,7 @@ void CXrays_64ChannelDlg::EnergyCalibration()
 void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 {
 	CString info;
-	info = _T("刻度曲线指令发送中。。。");
+	info = _T("能量刻度指令发送中。。。");
 	m_page1.PrintLog(info);
 
 	BOOL sendStatus = TRUE; // 刻度曲线发送是否成功
@@ -586,12 +590,12 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 	}
 	if(sendStatus){
 		CString info;
-		info = _T("刻度曲线指令发送成功");
+		info = _T("能量刻度指令发送成功");
 		m_page1.PrintLog(info);
 	}
 	else{
 		CString info;
-		info = _T("刻度曲线指令发送失败");
+		info = _T("能量刻度指令发送失败");
 		m_page1.PrintLog(info);
 	}
 }
