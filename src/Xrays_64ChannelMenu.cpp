@@ -171,7 +171,6 @@ BOOL CXrays_64ChannelDlg::TempVoltMonitorON()
 		info.Format(_T("配置文件中无法查找到\"Port_ARM\",ARM设备Port采用默认值：%d"), portARM);
 		m_page1.PrintLog(info);
 	}
-	CString info;
 	if (ConnectGeneralTCP(armSocket, StrIP_ARM, portARM)) {
 		// 连接成功
 		// 开启线程接收数据

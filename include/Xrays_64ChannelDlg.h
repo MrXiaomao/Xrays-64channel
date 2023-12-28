@@ -84,6 +84,8 @@ public:
 		int sleepTime = 1);
 
 	//-------------------四个探测器网络相关设置函数--------------
+	//进行能量刻度，选择刻度曲线数据文件，并发送指令到FPGA
+	void EnergyCalibration();
 	//发送配置参数
 	void SendParameterToTCP(); 
 	//发送刻度曲线
@@ -94,8 +96,8 @@ public:
 	BOOL ConnectRelayTCP();
 	//限制端口号输入范围
 	void ConfinePortRange(int &myPort); 
-	//设置TCP的IP、PORT、复选框的输入使能状态
-	void SetTCPInputStatus(BOOL flag); 
+	//设置TCP的联网/断网后的输入使能状态
+	void SetTCPnetStatus(BOOL flag); 
 	//设置配置参数框的使能状态
 	void SetParameterInputStatus(BOOL flag); 
 	/* 保存文件
@@ -235,8 +237,6 @@ public:
 	afx_msg void OnBnClickedClearLog();
 	//多页对话框选择
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
-	//选择刻度曲线数据文件，并发送指令到FPGA
-	afx_msg void OnBnClickedCalibration();
 	//选择能谱模式
 	afx_msg void OnCbnSelchangeWaveMode(); 
 	//菜单栏的电源设置选项
