@@ -49,7 +49,6 @@
 #define IDC_UDP_LOG2                    1032
 #define IDC_EDIT1                       1035
 #define IDC_RUNNING_LOG                 1035
-#define IDC_CALIBRATION                 1042
 #define IDC_BUTTON1                     1045
 #define IDC_RELAY_CONNECT               1045
 #define IDC_NETSETTING_APPLY            1045

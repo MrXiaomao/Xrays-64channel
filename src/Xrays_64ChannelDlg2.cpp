@@ -20,11 +20,12 @@ using namespace std;
 extern const int TIMER_INTERVAL;
 //CMutex Mutex; //mutex，线程锁
 
-// 设置TCP的IP、PORT、复选框的输入使能状态
-void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag)
+// 设置TCP的联网成功与否相关的按钮使能状态,
+// 联网后才能使用的按钮，断网后不能使用的按钮
+void CXrays_64ChannelDlg::SetTCPnetStatus(BOOL flag)
 {
-	//发送刻度数据,只有联网后才能使用
-	GetDlgItem(IDC_CALIBRATION)->EnableWindow(!flag);
+	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
+	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
 }
 
 //设置配置参数框的使能状态

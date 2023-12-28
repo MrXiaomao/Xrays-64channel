@@ -264,7 +264,6 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_SaveAs, &CXrays_64ChannelDlg::OnBnClickedSaveas)
 	ON_BN_CLICKED(IDC_CLEAR_LOG, &CXrays_64ChannelDlg::OnBnClickedClearLog)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
-	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
 	// ON_COMMAND(ID_POWER_MENU, &CXrays_64ChannelDlg::OnPowerMenu)
 	ON_COMMAND(ID_NETSETTING_MENU, &CXrays_64ChannelDlg::OnNetSettingMenu)
 	ON_COMMAND(ID_HELPVIEW, &CXrays_64ChannelDlg::OnHelpview)
@@ -457,9 +456,7 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	}
 	
 	// ---------------设置部分按钮初始化使能状态-------------
-	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
-	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
-	GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE);
+	SetTCPnetStatus(FALSE);
 	GetDlgItem(IDC_POWER_ONOFF)->EnableWindow(FALSE);
 }
 
@@ -529,12 +526,22 @@ HCURSOR CXrays_64ChannelDlg::OnQueryDragIcon()
 }
 
 // 获取刻度曲线数据文件的全路径
-void CXrays_64ChannelDlg::OnBnClickedCalibration()
+void CXrays_64ChannelDlg::EnergyCalibration()
 {
 	CString fileName(_T(""));
-	if(!ChooseFile(fileName)) return;
-
-	SendCalibration(fileName);
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	if (!jsonSetting.isNull()) {
+		fileName = jsonSetting["CalibrationFile"].asCString();
+	}else
+	{
+		CString info;
+		info = _T("刻度曲线设置失败，无法在配置文件中找到关键字'CalibrationFile'！");
+		m_page1.PrintLog(info);
+	}	
+	if(IsFileExit(fileName))
+	{
+		SendCalibration(fileName);
+	}
 }
 
 //发送刻度曲线数据
@@ -595,7 +602,6 @@ void CXrays_64ChannelDlg::OnConnect()
 	UpdateData(TRUE); //界面——>控件变量
 	// 停用连接按钮，防止用户连续点击多次
 	GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE);
-	SetTCPInputStatus(FALSE);
 	
 	CString strTemp;
 	GetDlgItemText(IDC_CONNECT1, strTemp);
@@ -629,6 +635,9 @@ void CXrays_64ChannelDlg::OnConnect()
 			if(connectStatusList[1]) m_pThread_CH[1] = AfxBeginThread(&Recv_Th2, this);
 			if(connectStatusList[2]) m_pThread_CH[2] = AfxBeginThread(&Recv_Th3, this);
 			if(connectStatusList[3]) m_pThread_CH[3] = AfxBeginThread(&Recv_Th4, this);
+			
+			//联网成功后对探测器进行能量刻度
+			EnergyCalibration();
 
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE);
 			// 必须TCP和UDP同时工作才能使用自动测量
@@ -650,10 +659,7 @@ void CXrays_64ChannelDlg::OnConnect()
 			CloseUDP();
 			// 关闭温度/电压/电流监测
 			TempVoltMonitorOFF();
-			// 恢复各个输入框使能状态
-			SetTCPInputStatus(TRUE);
-			GetDlgItem(IDC_Start)->EnableWindow(FALSE);
-			GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
+			SetTCPnetStatus(FALSE);
 			m_page1.PrintLog(_T("TCP网络未能全部连接成功！"));
 		}
 	}
@@ -679,9 +685,7 @@ void CXrays_64ChannelDlg::OnConnect()
 		SetDlgItemText(IDC_CONNECT1, _T("连接网络"));
 
 		// 恢复各个输入框使能状态
-		SetTCPInputStatus(TRUE);
-		GetDlgItem(IDC_Start)->EnableWindow(FALSE);
-		GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
+		SetTCPnetStatus(FALSE);
 		m_page1.PrintLog(_T("TCP网络(CH1,CH2,CH3,CH4)已断开"));
 	}
 	// 恢复各个输入框使能状态
@@ -960,13 +964,11 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					// 测量结束，恢复各按钮使能
 					if(MeasureMode == 1){
 						SetDlgItemText(IDC_Start, _T("开始测量"));
-						GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
-						GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
+						SetTCPnetStatus(TRUE);
 					}
 					else if(MeasureMode == 0){ // 表明按下了停止测量按钮
 						SetDlgItemText(IDC_AutoMeasure, _T("自动测量"));
-						GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
-						GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
+						SetTCPnetStatus(TRUE);
 					}
 					
 					//按下停止手动测量或者自动测量。还有一种情况是仍然在自动测量，但是随着炮号刷新一直测量
@@ -977,7 +979,6 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 						//打开其他相关按键使能
 						GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 						GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
-						GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 					}
 
 					if (RECVLength[0] + RECVLength[1] + RECVLength[2] + RECVLength[3] > 0) {
@@ -1191,7 +1192,6 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE); //自动测量
 		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
-		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
 		
 		//恢复按键
 		GetDlgItem(IDC_Start)->EnableWindow(TRUE);
@@ -1281,7 +1281,6 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		GetDlgItem(IDC_Start)->EnableWindow(FALSE); //手动测量
 		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
-		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
 
 		// 恢复按键
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
@@ -1324,7 +1323,6 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 			//打开其他相关按键使能
 			GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
-			GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 			GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
 			// 打印日志
