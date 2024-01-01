@@ -13,7 +13,6 @@
 
 //自定义消息，必须大于100，100以内系统自己使用
 #define WM_UPDATE_ARM (WM_USER + 100)
-#define WM_UPDATE_TRIGER_LOG (WM_USER + 120)
 #define WM_UPDATE_CH_DATA (WM_USER + 130)
 #define WM_UPDATE_SHOT (WM_USER + 140)  //炮号刷新
 #define WM_UPDATE_RELAY (WM_USER + 150)  //继电器状态查询刷新
@@ -227,8 +226,6 @@ public:
 	afx_msg void OnBnClickedClearLog();
 	//多页对话框选择
 	afx_msg void OnTcnSelchangeTab1(NMHDR* pNMHDR, LRESULT* pResult);
-	//选择刻度曲线数据文件，并发送指令到FPGA
-	afx_msg void OnBnClickedCalibration();
 	//选择能谱模式
 	afx_msg void OnCbnSelchangeWaveMode(); 
 	//菜单栏的电源设置选项
@@ -247,8 +244,6 @@ public:
 	//-------------------------自定义消息---------------------
 	//从ARM来的网口接受到数据，进行相关数据处理
 	afx_msg LRESULT OnUpdateARMStatic(WPARAM wParam, LPARAM lParam);
-	// 接收到触发信号，刷新文本日志，可以刷新界面日志显示
-	afx_msg LRESULT OnUpdateTrigerLog(WPARAM wParam, LPARAM lParam);
 	//接收到数据信号，开启定时器1，进行相关的处理
 	afx_msg LRESULT OnUpdateTimer1(WPARAM wParam, LPARAM lParam);
 	//UDP接收到炮号数据,更新主界面相关动作

@@ -23,8 +23,6 @@ extern const int TIMER_INTERVAL;
 // 设置TCP的IP、PORT、复选框的输入使能状态
 void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag)
 {
-	//发送刻度数据,只有联网后才能使用
-	GetDlgItem(IDC_CALIBRATION)->EnableWindow(!flag);
 }
 
 //设置配置参数框的使能状态
@@ -267,17 +265,17 @@ void CXrays_64ChannelDlg::OnEnKillfocusThreshold()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(true);
-	if ((m_Threshold < 1) || (m_Threshold > 2048))
+	if ((m_Threshold < 1900) || (m_Threshold > 4096))
 	{
-		CString message = _T("触发阈值范围为1~2048\n");
+		CString message = _T("触发阈值范围为1900~4096\n");
 		MessageBox(message);
-		if (m_Threshold > 2048)
+		if (m_Threshold > 4096)
 		{
-			m_Threshold = 2048;
+			m_Threshold = 4096;
 		}
 		else
 		{
-			m_Threshold = 1;
+			m_Threshold = 1900;
 		}
 		UpdateData(false);
 	}
@@ -316,42 +314,33 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	// 读取界面参数并修改指令
 	UpdateData(TRUE);
 
-	//从界面获取刷新时间
+	//从界面获取波形阈值
 	BYTE res[4];
-	DecToHex(RefreshTime, res);
-	Order::WaveRefreshTime[6] = res[0];
-	Order::WaveRefreshTime[7] = res[1];
-	Order::WaveRefreshTime[8] = res[2];
-	Order::WaveRefreshTime[9] = res[3];
-	
-	BYTE res2[4];
-	DecToHex(m_Threshold, res2);
-	Order::TriggerThreshold[6] = res2[0];
-	Order::TriggerThreshold[7] = res2[1];
-	Order::TriggerThreshold[8] = res2[2];
-	Order::TriggerThreshold[9] = res2[3];
+	DecToHex(m_Threshold, res);
+	Order::TriggerThreshold[6] = res[0];
+	Order::TriggerThreshold[7] = res[1];
+	Order::TriggerThreshold[8] = res[2];
+	Order::TriggerThreshold[9] = res[3];
 
-	//能谱刷新时间，波形触发间隔，波形触发阈值
+	//波形触发阈值
 	if(connectStatusList) {
-		NoBackSend(Order::WaveRefreshTime, 12, 0, 1);
 		NoBackSend(Order::TriggerThreshold, 12, 0, 1);
-		NoBackSend(Order::TriggerIntervalTime, 12, 0, 1);
 	}
 	
 	CString info;
 	if (m_WaveMode.GetCurSel() == 0)
-	{ //512道能谱
+	{ //积分
 		if(connectStatusList) {
 			NoBackSend(Order::WorkMode0, 12, 0, 1);
 		}
-		info.Format(_T("能谱刷新时间:%dms,512道能谱工作模式"), RefreshTime);
+		info = _T("积分工作模式");
 	}
 	else if (m_WaveMode.GetCurSel() == 1)
-	{ // 16道能谱
+	{ // 波形
 		if(connectStatusList) {
-			NoBackSend(Order::WorkMode3, 12, 0, 1);
+			NoBackSend(Order::WorkMode5, 12, 0, 1);
 		}
-		info.Format(_T("能谱刷新时间:%dms,16道能谱工作模式"), RefreshTime);
+		info = _T("波形采集工作模式");
 	}
 	m_page1.PrintLog(info);
 }
@@ -607,12 +596,6 @@ void CXrays_64ChannelDlg::NoBackSend(BYTE* msg, int msgLength, int flags, int sl
 	info = info + Char2HexCString(msg, msgLength);
 	m_page1.PrintLog(info, FALSE);
 	Sleep(sleepTime);
-}
-
-LRESULT CXrays_64ChannelDlg::OnUpdateTrigerLog(WPARAM wParam, LPARAM lParam){
-	CString info = _T("探测器已收到硬件触发信号");
-	m_page1.PrintLog(info,FALSE);
-	return 0;
 }
 
 LRESULT CXrays_64ChannelDlg::OnUpdateTimer1(WPARAM wParam, LPARAM lParam){

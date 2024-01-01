@@ -256,15 +256,12 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_SaveAs, &CXrays_64ChannelDlg::OnBnClickedSaveas)
 	ON_BN_CLICKED(IDC_CLEAR_LOG, &CXrays_64ChannelDlg::OnBnClickedClearLog)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CXrays_64ChannelDlg::OnTcnSelchangeTab1)
-	ON_BN_CLICKED(IDC_CALIBRATION, &CXrays_64ChannelDlg::OnBnClickedCalibration)
-	// ON_COMMAND(ID_POWER_MENU, &CXrays_64ChannelDlg::OnPowerMenu)
 	ON_COMMAND(ID_NETSETTING_MENU, &CXrays_64ChannelDlg::OnNetSettingMenu)
 	ON_COMMAND(ID_HELPVIEW, &CXrays_64ChannelDlg::OnHelpview)
 	ON_COMMAND(ID_VERSION, &CXrays_64ChannelDlg::OnAbout)
 	ON_BN_CLICKED(IDC_POWER_NET, &CXrays_64ChannelDlg::OnBnClickedRelayConnect)
 	ON_BN_CLICKED(IDC_POWER_ONOFF, &CXrays_64ChannelDlg::OnRelayChange)
 	ON_MESSAGE(WM_UPDATE_ARM, &CXrays_64ChannelDlg::OnUpdateARMStatic) //子线程发送消息通知主线程处理  
-	ON_MESSAGE(WM_UPDATE_TRIGER_LOG, &CXrays_64ChannelDlg::OnUpdateTrigerLog) 
 	ON_MESSAGE(WM_UPDATE_CH_DATA, &CXrays_64ChannelDlg::OnUpdateTimer1)
 	ON_MESSAGE(WM_UPDATE_SHOT, &CXrays_64ChannelDlg::OnUpdateShot)
 	ON_MESSAGE(WM_UPDATE_RELAY, &CXrays_64ChannelDlg::OnUpdateRelay)
@@ -462,7 +459,6 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 	// ---------------设置部分按钮初始化使能状态-------------
 	GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 	GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
-	GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE);
 	GetDlgItem(IDC_POWER_ONOFF)->EnableWindow(FALSE);
 }
 
@@ -532,15 +528,6 @@ HCURSOR CXrays_64ChannelDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-// 获取刻度曲线数据文件的全路径
-void CXrays_64ChannelDlg::OnBnClickedCalibration()
-{
-	CString fileName(_T(""));
-	if(!ChooseFile(fileName)) return;
-
-	SendCalibration(fileName);
-}
-
 //发送刻度曲线数据
 //fileName为发送文件路径（绝对路径）
 void CXrays_64ChannelDlg::SendCalibration(CString fileName)
@@ -548,8 +535,6 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 	CString info;
 	info = _T("刻度曲线指令发送中。。。");
 	m_page1.PrintLog(info);
-
-	BOOL sendStatus = TRUE; // 刻度曲线发送是否成功
 
 	vector<CString> messageList = ReadEnCalibration(fileName);
 	BYTE cmd[2000] = { 0 }; //144条指令*12字节=1728字节
@@ -564,17 +549,7 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 		}
 
 		// 若当前是联网状态，则发送数据
-		if (connectStatusList) sendStatus = sendStatus & NoBackSend(temp, 12, 0, 2);
-	}
-	if(sendStatus){
-		CString info;
-		info = _T("刻度曲线指令发送成功");
-		m_page1.PrintLog(info);
-	}
-	else{
-		CString info;
-		info = _T("刻度曲线指令发送失败");
-		m_page1.PrintLog(info);
+		if (connectStatusList) NoBackSend(temp, 12, 0, 2);
 	}
 }
 
@@ -812,19 +787,6 @@ UINT Recv_Thread(LPVOID p)
 			}
 			dlg->AddTCPData(mk, nLength);
 
-			// 触发信号甄别
-			if (dlg->TrigerMode == 2) {
-				if (nLength == 12 && compareBYTE(mk, Order::HardTriggerBack, nLength)) {
-					singleLock.Lock();
-					if (singleLock.IsLocked()) {
-						dlg->TrigerMode = 0;
-					}
-					singleLock.Unlock();
-					::PostMessage(dlg->m_hWnd, WM_UPDATE_TRIGER_LOG, 0, 0); //发送消息通知主界面,第三个参数表示探测器序号
-				}
-				continue;
-			}
-
 			// 有效测量数据开始
 			singleLock.Lock();
 			if (singleLock.IsLocked()) {
@@ -844,7 +806,7 @@ UINT Recv_Thread(LPVOID p)
 //线程1，接收TCP网口数据
 UINT Recv_Th1(LPVOID p)
 {
-	Recv_Thread(0,p);
+	Recv_Thread(p);
 	return 0;
 }
 
@@ -865,8 +827,14 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			if (timer * TIMER_INTERVAL >= MeasureTime){
 				if (!sendStopFlag) {
-					if(connectStatusList) NoBackSend(Order::Stop, 12, 0, 2);
-
+					if (connectStatusList) {
+						if (m_WaveMode.GetCurSel() == 0) {
+							NoBackSend(Order::Stop_Integ, 12, 0, 2);
+						}
+						else if (m_WaveMode.GetCurSel() == 1) {
+							NoBackSend(Order::Stop_Wave, 12, 0, 2);
+						}
+					}
 
 					sendStopFlag = TRUE;
 					// 打印日志
@@ -911,7 +879,6 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 						//打开其他相关按键使能
 						GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 						GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
-						GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 					}
 
 					if (RECVLength> 0) {
@@ -991,7 +958,13 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				
 				//发送开始测量指令，采用硬件触发
 				if(connectStatusList) {
-					NoBackSend(Order::StartHardTrigger, 12, 0);
+					if (m_WaveMode.GetCurSel() == 0){
+						NoBackSend(Order::StartHardTrigger_Integ, 12, 0);
+					}
+					if (m_WaveMode.GetCurSel() == 1){
+						NoBackSend(Order::StartHardTrigger_Wave, 12, 0);
+					}
+					
 				}
 				
 				singleLock.Lock(); //Mutex
@@ -1092,7 +1065,12 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 		//向TCP发送开始指令
 		if(connectStatusList) {
-			NoBackSend(Order::StartSoftTrigger, 12, 0, 1);
+			if (m_WaveMode.GetCurSel() == 0){
+				NoBackSend(Order::StartSoftTrigger_Integ, 12, 0, 1);
+			}
+			if (m_WaveMode.GetCurSel() == 1){
+				NoBackSend(Order::StartSoftTrigger_Wave, 12, 0, 1);
+			}
 		}
 		singleLock.Lock();
 		if (singleLock.IsLocked()){
@@ -1107,7 +1085,6 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE); //自动测量
 		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
-		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
 		
 		//恢复按键
 		GetDlgItem(IDC_Start)->EnableWindow(TRUE);
@@ -1120,7 +1097,14 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		singleLock.Unlock(); //Mutex
 
 		//往TCP发送停止指令
-		if(connectStatusList) NoBackSend(Order::Stop, 12, 0, 2);
+		if(connectStatusList) {
+			if (m_WaveMode.GetCurSel() == 0){
+				NoBackSend(Order::Stop_Integ, 12, 0, 2);
+			}
+			else if (m_WaveMode.GetCurSel() == 1){
+				NoBackSend(Order::Stop_Wave, 12, 0, 2);
+			}
+		}
 
 		sendStopFlag = TRUE;
 		if (GetDataStatus) {
@@ -1189,7 +1173,6 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		GetDlgItem(IDC_Start)->EnableWindow(FALSE); //手动测量
 		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
-		GetDlgItem(IDC_CALIBRATION)->EnableWindow(FALSE); //刻度曲线
 
 		// 恢复按键
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
@@ -1205,7 +1188,14 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		// 若处于接收数据状态,则利用定时器进行自动关闭复位
 		if (GetDataStatus) {
 			// 发送停止指令，带指令反馈，结束上一次测量结束。
-			if (connectStatusList) NoBackSend(Order::Stop, 12, 0, 2);
+			if (connectStatusList) {
+				if (m_WaveMode.GetCurSel() == 0){
+					NoBackSend(Order::Stop_Integ, 12, 0, 2);
+				}
+				else if (m_WaveMode.GetCurSel() == 1){
+					NoBackSend(Order::Stop_Wave, 12, 0, 2);
+				}
+			}
 
 			sendStopFlag = TRUE;
 
@@ -1218,7 +1208,14 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 		}
 		else{
 			// 发送停止指令，带指令反馈，结束上一次测量结束。
-			if (connectStatusList) NoBackSend(Order::Stop, 12, 0, 1);
+			if (connectStatusList) {
+				if (m_WaveMode.GetCurSel() == 0){
+					NoBackSend(Order::Stop_Integ, 12, 0, 2);
+				}
+				else if (m_WaveMode.GetCurSel() == 1){
+					NoBackSend(Order::Stop_Wave, 12, 0, 2);
+				}
+			}
 
 			sendStopFlag = TRUE;
 
@@ -1228,7 +1225,6 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 			//打开其他相关按键使能
 			GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
-			GetDlgItem(IDC_CALIBRATION)->EnableWindow(TRUE); //刻度曲线
 			GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
 			// 打印日志
