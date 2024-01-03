@@ -128,7 +128,7 @@ public:
 		16通道=20*4字节（1ms刷新，10秒测量时长对应总包长=1000*10*20*4）
 	*/
 	const int DataMaxlen;
-	BOOL connectStatusList; // 各网络联网状态
+	BOOL connectStatus; // 各网络联网状态
 	BOOL netRelayStatus; //继电器联网状态
 	int MeasureMode; // 测量状态。0：非测量状态，1：手动测量状态，2：自动测量状态。
 	int TrigerMode; // 触发模式。0:非测量状态，1:软件触发模式，2：硬件触发模式（带硬件触发反馈）。用于处理数据内容判别（指令反馈/测量数据）。
@@ -208,8 +208,6 @@ public:
 	//连接探测器网络
 	afx_msg void OnConnect(); 
 
-	//限制刷新时间输入范围
-	afx_msg void OnEnKillfocusRefreshTime(); 
 	//限制能谱测量总时长输入范围
 	afx_msg void OnEnKillfocusMeasureTime(); 
 	//限制阈值输入范围
@@ -267,8 +265,6 @@ public:
 	CTabCtrl m_Tab;
 	// 界面输入的能谱总测量时间,ms
 	int MeasureTime;
-	// 界面输入的能谱刷新时间，ms
-	int RefreshTime;
 	//触发阈值
 	int m_Threshold;
 };

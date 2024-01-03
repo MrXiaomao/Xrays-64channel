@@ -5,6 +5,7 @@
         "cstdlib": "cpp",
         "fstream": "cpp",
         "ostream": "cpp",
-        "xiosbase": "cpp"
+        "xiosbase": "cpp",
+        "iostream": "cpp"
     }
 }

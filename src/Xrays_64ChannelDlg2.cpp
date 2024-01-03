@@ -28,14 +28,20 @@ void CXrays_64ChannelDlg::SetTCPInputStatus(BOOL flag)
 //设置配置参数框的使能状态
 void CXrays_64ChannelDlg::SetParameterInputStatus(BOOL flag)
 {
-	//能谱刷新时间
-	GetDlgItem(IDC_RefreshTimeEdit)->EnableWindow(flag);
 	//能谱测量时间
 	GetDlgItem(IDC_MeasureTime)->EnableWindow(flag);
 	//能谱模式选择
-	GetDlgItem(IDC_WAVE_MODE)->EnableWindow(flag);
+	GetDlgItem(IDC_WORK_MODE)->EnableWindow(flag);
+	
 	//阈值设置
-	GetDlgItem(IDC_CH1Threshold)->EnableWindow(flag);
+	int mode = m_WaveMode.GetCurSel();
+	//积分模式下不允许使用触发阈值
+	if(mode==0){
+		GetDlgItem(IDC_CH1Threshold)->EnableWindow(flag&&FALSE);
+	}
+	if(mode==1){
+		GetDlgItem(IDC_CH1Threshold)->EnableWindow(flag&&TRUE);
+	}
 }
 
 // 打开UDP通信
@@ -84,7 +90,7 @@ void CXrays_64ChannelDlg::OpenUDP()
 	UDPStatus = TRUE;
 
 	// UDP和TCP都打开后才允许使用自动测量
-	if (connectStatusList)
+	if (connectStatus)
 	{
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 	}
@@ -191,7 +197,7 @@ void CXrays_64ChannelDlg::ConfinePortRange(int &myPort)
 	}
 }
 
-//选择能谱模式：512道/16道 能谱
+//选择工作模式：积分模式/波形模式
 //更新相关的能谱刷新时间检查
 void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
 {
@@ -199,45 +205,19 @@ void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
 	// 保存参数设置
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	int mode = m_WaveMode.GetCurSel();
-	jsonSetting["WaveMode"] = m_WaveMode.GetCurSel();
+	jsonSetting["WorkMode"] = m_WaveMode.GetCurSel();
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
-	//检查相应的刷新时间，限定范围
-	OnEnKillfocusRefreshTime();
-}
-
-//限制能谱刷新时间范围,单位ms，
-//能谱刷新时间指的是FPGA采集一个能谱数据所用时间
-void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
-{
-	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(true);
-	int minTime = 1; //单位ms
-	int waveMode = 16; //能谱模式，512/16道两种
-	// 512道能谱，最小刷新时间10ms，16道能谱，最小刷新时间1ms
-	if (m_WaveMode.GetCurSel() == 0) {
-		minTime = 10; 
-		waveMode = 512;
+	//积分模式下不允许使用触发阈值
+	if(mode==0){
+		GetDlgItem(IDC_CH1Threshold)->EnableWindow(FALSE);
 	}
-	int MaxTime = 60000 * 1000; //单位ms
-	if ((RefreshTime < minTime) || (RefreshTime > MaxTime))
-	{
-		CString message;
-		message.Format(_T("%d能谱模式下，能谱刷新时间范围为%d~%dms\n"), waveMode, minTime, MaxTime);
-		MessageBox(message);
-		if (RefreshTime > MaxTime)
-		{
-			RefreshTime = MaxTime;
-		}
-		else
-		{
-			RefreshTime = minTime;
-		}
-		UpdateData(false);
+	if(mode==1){
+		GetDlgItem(IDC_CH1Threshold)->EnableWindow(TRUE);
 	}
 }
 
-//限制能谱测量时间范围，单位ms
+//限制测量时间范围，单位ms
 void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -321,24 +301,22 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	Order::TriggerThreshold[7] = res[1];
 	Order::TriggerThreshold[8] = res[2];
 	Order::TriggerThreshold[9] = res[3];
-
-	//波形触发阈值
-	if(connectStatusList) {
-		NoBackSend(Order::TriggerThreshold, 12, 0, 1);
-	}
 	
 	CString info;
 	if (m_WaveMode.GetCurSel() == 0)
 	{ //积分
-		if(connectStatusList) {
+		if(connectStatus) {
 			NoBackSend(Order::WorkMode0, 12, 0, 1);
 		}
 		info = _T("积分工作模式");
 	}
 	else if (m_WaveMode.GetCurSel() == 1)
-	{ // 波形
-		if(connectStatusList) {
+	{ 
+		if(connectStatus) {
+			// 波形工作模式
 			NoBackSend(Order::WorkMode5, 12, 0, 1);
+			// 波形触发阈值
+			NoBackSend(Order::TriggerThreshold, 12, 0, 1);
 		}
 		info = _T("波形采集工作模式");
 	}
@@ -665,7 +643,7 @@ void CXrays_64ChannelDlg::OnClose()
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	// 若ARM或者探测器处于联网状态则提醒用户是否退出
-	if (connectStatusList || ARMnetStatus) {
+	if (connectStatus || ARMnetStatus) {
 		int choose = MessageBox(L"是否关闭窗口？", L"提示", MB_YESNO | MB_ICONQUESTION);
 		if (choose == IDYES)
 		{

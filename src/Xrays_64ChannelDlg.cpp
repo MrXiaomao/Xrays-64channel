@@ -143,14 +143,13 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, m_pThread_ARM(NULL)
 	, m_targetID(_T("00000"))
 	, MeasureTime(3000)
-	, RefreshTime(10)
 	, m_Threshold(15)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_NUCLEAR); //设置主界面图标
 	DataCH1 = new BYTE[DataMaxlen];
 
 	RECVLength =0;
-	connectStatusList = FALSE;
+	connectStatus = FALSE;
 	SocketList = NULL;
 	ifFeedback = FALSE;
 	TCPfeedback = FALSE;
@@ -178,7 +177,6 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 	// 保存界面部分参数设置
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	jsonSetting["Measure_Time"] = MeasureTime;
-	jsonSetting["Detector_Refresh_Time"] = RefreshTime;
 	jsonSetting["Threshold"] = m_Threshold;
 	WriteSetting(_T("Setting.json"), jsonSetting);
 
@@ -193,8 +191,8 @@ CXrays_64ChannelDlg::~CXrays_64ChannelDlg()
 	}
 	
 	
-	if(connectStatusList) {
-		connectStatusList = FALSE; // 停止线程执行，用来控制关闭线程
+	if(connectStatus) {
+		connectStatus = FALSE; // 停止线程执行，用来控制关闭线程
 		// 关闭打开的文件
 		if(fileDetector.is_open()){
 			fileDetector.close();
@@ -232,12 +230,11 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LED, m_NetStatusLEDList);
 	DDX_Control(pDX, IDC_LED_RELAYNET, m_RelayNetStatusLED);
 	DDX_Control(pDX, IDC_LED_POWER, m_RelayStatusLED);
-	DDX_Control(pDX, IDC_WAVE_MODE, m_WaveMode);
+	DDX_Control(pDX, IDC_WORK_MODE, m_WaveMode);
 	DDX_Text(pDX, IDC_TargetNum, m_targetID);
 	DDX_Control(pDX, IDC_TAB1, m_Tab);
 	DDX_Text(pDX, IDC_MeasureTime, MeasureTime);
 	DDX_Text(pDX, IDC_CH1Threshold, m_Threshold);
-	DDX_Text(pDX, IDC_RefreshTimeEdit, RefreshTime);
 }
 
 BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
@@ -249,7 +246,6 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_WM_SIZING()
 	ON_BN_CLICKED(IDC_CONNECT1, &CXrays_64ChannelDlg::OnConnect)
 	ON_EN_KILLFOCUS(IDC_CH1Threshold, &CXrays_64ChannelDlg::OnEnKillfocusThreshold)
-	ON_EN_KILLFOCUS(IDC_RefreshTimeEdit, &CXrays_64ChannelDlg::OnEnKillfocusRefreshTime)
 	ON_EN_KILLFOCUS(IDC_MeasureTime, &CXrays_64ChannelDlg::OnEnKillfocusMeasureTime)
 	ON_BN_CLICKED(IDC_Start, &CXrays_64ChannelDlg::OnBnClickedStart)
 	ON_BN_CLICKED(IDC_AutoMeasure, &CXrays_64ChannelDlg::OnBnClickedAutomeasure)
@@ -265,7 +261,7 @@ BEGIN_MESSAGE_MAP(CXrays_64ChannelDlg, CDialogEx)
 	ON_MESSAGE(WM_UPDATE_CH_DATA, &CXrays_64ChannelDlg::OnUpdateTimer1)
 	ON_MESSAGE(WM_UPDATE_SHOT, &CXrays_64ChannelDlg::OnUpdateShot)
 	ON_MESSAGE(WM_UPDATE_RELAY, &CXrays_64ChannelDlg::OnUpdateRelay)
-	ON_CBN_SELCHANGE(IDC_WAVE_MODE, &CXrays_64ChannelDlg::OnCbnSelchangeWaveMode)
+	ON_CBN_SELCHANGE(IDC_WORK_MODE, &CXrays_64ChannelDlg::OnCbnSelchangeWaveMode)
 	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
@@ -436,10 +432,6 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 		{
 			MeasureTime = jsonSetting["Measure_Time"].asInt();
 		}
-		if (jsonSetting.isMember("Detector_Refresh_Time"))
-		{
-			RefreshTime = jsonSetting["Detector_Refresh_Time"].asInt();
-		}
 		if (jsonSetting.isMember("refreshTime_ARM")) {
 			refreshTime_ARM = jsonSetting["refreshTime_ARM"].asInt();
 		}
@@ -447,9 +439,9 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 		//设置下拉框默认选项
 		m_WaveMode.SetCurSel(0);
 		int waveMode = 0;
-		if (jsonSetting.isMember("WaveMode"))
+		if (jsonSetting.isMember("WorkMode"))
 		{
-			waveMode = jsonSetting["WaveMode"].asInt();
+			waveMode = jsonSetting["WorkMode"].asInt();
 			if(waveMode<2){
 				m_WaveMode.SetCurSel(waveMode);
 			}
@@ -549,7 +541,7 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 		}
 
 		// 若当前是联网状态，则发送数据
-		if (connectStatusList) NoBackSend(temp, 12, 0, 2);
+		if (connectStatus) NoBackSend(temp, 12, 0, 2);
 	}
 }
 
@@ -573,11 +565,11 @@ void CXrays_64ChannelDlg::OnConnect()
 		// 打开温度/电压/电流监测
 		BOOL ARMConnectFlag = TempVoltMonitorON();
 		// 1、尝试建立网络
-		connectStatusList = ConnectTCP();
+		connectStatus = ConnectTCP();
 
 		
 		// 2、判断连接状态
-		if(!connectStatusList) AllconnectStatus = FALSE;
+		if(!connectStatus) AllconnectStatus = FALSE;
 
 
 		// 3、连接成功
@@ -585,7 +577,7 @@ void CXrays_64ChannelDlg::OnConnect()
 			SetDlgItemText(IDC_CONNECT1, _T("断开网络"));
 			
 			// 开启线程接收数据
-			if(connectStatusList) m_pThread_CH = AfxBeginThread(&Recv_Th1, this);
+			if(connectStatus) m_pThread_CH = AfxBeginThread(&Recv_Th1, this);
 
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE);
 			// 必须TCP和UDP同时工作才能使用自动测量
@@ -596,8 +588,8 @@ void CXrays_64ChannelDlg::OnConnect()
 		}
 		else {
 			// 断开连接成功的网口
-			if(connectStatusList) {
-				connectStatusList = FALSE; // 用来控制关闭线程
+			if(connectStatus) {
+				connectStatus = FALSE; // 用来控制关闭线程
 				closesocket(SocketList); // 关闭套接字
 				m_NetStatusLEDList.RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
 			}
@@ -616,8 +608,8 @@ void CXrays_64ChannelDlg::OnConnect()
 		// 关闭温度/电压/电流监测
 		TempVoltMonitorOFF();
 		// 1、断开连接成功的套接字
-		if(connectStatusList) {
-			connectStatusList = FALSE; // 用来控制关闭线程
+		if(connectStatus) {
+			connectStatus = FALSE; // 用来控制关闭线程
 			closesocket(SocketList); // 关闭套接字
 			m_NetStatusLEDList.RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
 		}
@@ -648,7 +640,7 @@ BOOL CXrays_64ChannelDlg::ConnectTCP(){
 	int myPort;
 	char keyIP[] = "IP_Detector";
 	char keyPort[] = "Port_Detector";
-	char keyRecvLen[] = "RECVLength_CH1";
+	char keyRecvLen[] = "RECVLength_Detector";
 	
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	if (!jsonSetting.isNull()) 
@@ -701,7 +693,7 @@ UINT Recv_Thread(LPVOID p)
 	while (1)
 	{
 		// 断开网络后关闭本线程
-		if (!dlg->connectStatusList) return 0;
+		if (!dlg->connectStatus) return 0;
 
 		const int dataLen = 10000; //接收的数据包长度
 		BYTE mk[dataLen];
@@ -827,7 +819,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 
 			if (timer * TIMER_INTERVAL >= MeasureTime){
 				if (!sendStopFlag) {
-					if (connectStatusList) {
+					if (connectStatus) {
 						if (m_WaveMode.GetCurSel() == 0) {
 							NoBackSend(Order::Stop_Integ, 12, 0, 2);
 						}
@@ -845,7 +837,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				
 				//在这规定时间内四个线程均没有接收到新的数据，即全部stop了
 				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-				if (RECVLength == jsonSetting["RECVLength_CH1"].asInt())
+				if (RECVLength == jsonSetting["RECVLength_Detector"].asInt())
 				{
 					// 重置部分数据
 					timer = 0;
@@ -889,7 +881,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 						m_page1.PrintLog(info);
 					}
 					// 关闭文件指针
-					if(connectStatusList && fileDetector.is_open()){
+					if(connectStatus && fileDetector.is_open()){
 						fileDetector.close();
 					}
 					//重置定时器开关状态
@@ -902,7 +894,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			if (timer % 10 == 0)//每间隔10个timer记录一次
 			{	// 写入配置文件
 				Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
-				jsonSetting["RECVLength_CH1"] = RECVLength;
+				jsonSetting["RECVLength_Detector"] = RECVLength;
 				WriteSetting(_T("Setting.json"), jsonSetting);
 			}
 		}
@@ -916,18 +908,18 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				//创建对应炮号文件夹
 				CString pathPostfix;
 				//(.4表示将占用4位，如果数字超过4位将输出所有数字，不会截断)
-				pathPostfix.Format(_T("_%.3d_%.4d"), RefreshTime, MeasureTime/1000);
+				pathPostfix.Format(_T("_%.4d"), MeasureTime/1000);
 				saveAsTargetPath = saveAsPath + m_targetID + pathPostfix;
 				saveAsTargetPath += "\\";
 				Mkdir(saveAsTargetPath);
 				
 				// 先确保上一次炮号的文件指针关闭成功
-				if(connectStatusList && fileDetector.is_open()){
+				if(connectStatus && fileDetector.is_open()){
 					fileDetector.close();
 				}
 
 				// 打开文件指针
-				if(connectStatusList) {
+				if(connectStatus) {
 					CString strCH;
 					strCH.Format(_T("CH%d.dat"), 1);
 					CString fileName = saveAsTargetPath + m_targetID + strCH;
@@ -957,7 +949,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				sendStopFlag = FALSE;
 				
 				//发送开始测量指令，采用硬件触发
-				if(connectStatusList) {
+				if(connectStatus) {
 					if (m_WaveMode.GetCurSel() == 0){
 						NoBackSend(Order::StartHardTrigger_Integ, 12, 0);
 					}
@@ -1056,7 +1048,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		m_page1.PrintLog(info);
 		
 		//打开文件，准备存储
-		if(connectStatusList) {
+		if(connectStatus) {
 			CString strCH;
 			strCH.Format(_T("CH%d.dat"), 1);
 			CString fileName = saveAsTargetPath + m_targetID + strCH;
@@ -1064,7 +1056,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		}
 
 		//向TCP发送开始指令
-		if(connectStatusList) {
+		if(connectStatus) {
 			if (m_WaveMode.GetCurSel() == 0){
 				NoBackSend(Order::StartSoftTrigger_Integ, 12, 0, 1);
 			}
@@ -1097,7 +1089,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		singleLock.Unlock(); //Mutex
 
 		//往TCP发送停止指令
-		if(connectStatusList) {
+		if(connectStatus) {
 			if (m_WaveMode.GetCurSel() == 0){
 				NoBackSend(Order::Stop_Integ, 12, 0, 2);
 			}
@@ -1121,7 +1113,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		}
 		
 		// 完成测量，关闭文件
-		if(connectStatusList && fileDetector.is_open()){
+		if(connectStatus && fileDetector.is_open()){
 			fileDetector.close();
 		}
 		//按键在定时器中自动在数据接收完毕后恢复使能
@@ -1187,8 +1179,8 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 
 		// 若处于接收数据状态,则利用定时器进行自动关闭复位
 		if (GetDataStatus) {
-			// 发送停止指令，带指令反馈，结束上一次测量结束。
-			if (connectStatusList) {
+			// 发送停止指令，结束上一次测量结束。
+			if (connectStatus) {
 				if (m_WaveMode.GetCurSel() == 0){
 					NoBackSend(Order::Stop_Integ, 12, 0, 2);
 				}
@@ -1207,8 +1199,8 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 			timer = (int)floor(MeasureTime/TIMER_INTERVAL);
 		}
 		else{
-			// 发送停止指令，带指令反馈，结束上一次测量结束。
-			if (connectStatusList) {
+			// 发送停止指令,结束上一次测量结束。
+			if (connectStatus) {
 				if (m_WaveMode.GetCurSel() == 0){
 					NoBackSend(Order::Stop_Integ, 12, 0, 2);
 				}
