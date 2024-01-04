@@ -1,4 +1,5 @@
 {
+	"CalibrationFile" : "EnergyCalibation.txt",
 	"Detector_Refresh_Time" : 10,
 	"IP_ARM" : "192.168.0.189",
 	"IP_Detector1" : "192.168.0.189",
@@ -24,7 +25,5 @@
 	"SavePictureDir" : "C:\\Users\\DELL\\Desktop\\工作事项\\16-伽马中子探测\\MFC界面\\N_GammaReceiveData\\",
 	"SoftwareTitle" : "垂直硬X射线相机阵列",
 	"Threshold" : 2048,
-	"ThresholdA" : "12",
-	"ThresholdB" : "12",
 	"WaveMode" : 0
 }

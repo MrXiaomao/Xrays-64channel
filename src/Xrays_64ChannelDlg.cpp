@@ -542,19 +542,31 @@ HCURSOR CXrays_64ChannelDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-// 获取刻度曲线数据文件的全路径
+// 进行能量刻度
 void CXrays_64ChannelDlg::EnergyCalibration()
 {
+	CString info;
+	info = _T("准备进行能量刻度！");
+	m_page1.PrintLog(info);
+	
+	// 获取刻度曲线数据文件的全路径
 	CString fileName(_T(""));
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	if (!jsonSetting.isNull()) {
-		fileName = jsonSetting["CalibrationFile"].asCString();
+		if (jsonSetting.isMember("CalibrationFile")) {
+			fileName = jsonSetting["CalibrationFile"].asCString();
+		}else
+		{
+			info = _T("能量刻度失败，无法在配置文件中找到关键字'CalibrationFile'！");
+			m_page1.PrintLog(info);
+		}
 	}else
 	{
-		CString info;
-		info = _T("能量刻度失败，无法在配置文件中找到关键字'CalibrationFile'！");
+		info = _T("未能正常打开配置文件\'Setting.json\'");
 		m_page1.PrintLog(info);
-	}	
+	}
+	
+	//判断刻度文件是否存在
 	if(IsFileExit(fileName))
 	{
 		SendCalibration(fileName);
