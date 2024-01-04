@@ -297,8 +297,8 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	//从界面获取波形阈值
 	BYTE res[4];
 	DecToHex(m_Threshold, res);
-	Order::TriggerThreshold[6] = res[0];
-	Order::TriggerThreshold[7] = res[1];
+	Order::TriggerThreshold[6] = res[2];
+	Order::TriggerThreshold[7] = res[3];
 	Order::TriggerThreshold[8] = res[2];
 	Order::TriggerThreshold[9] = res[3];
 	

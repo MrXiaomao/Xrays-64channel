@@ -584,7 +584,7 @@ void CXrays_64ChannelDlg::OnConnect()
 			if (UDPStatus) {
 				GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE);
 			}
-			m_page1.PrintLog(_T("TCP网络全部连接成功！"));
+			m_page1.PrintLog(_T("探测器网络连接成功！"));
 		}
 		else {
 			// 断开连接成功的网口
@@ -600,7 +600,7 @@ void CXrays_64ChannelDlg::OnConnect()
 			SetTCPInputStatus(TRUE);
 			GetDlgItem(IDC_Start)->EnableWindow(FALSE);
 			GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE);
-			m_page1.PrintLog(_T("TCP网络未能全部连接成功！"));
+			m_page1.PrintLog(_T("探测器网络未能连接成功！"));
 		}
 	}
 	else{
@@ -1030,6 +1030,11 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		SetParameterInputStatus(FALSE);
 		//重置网口接收的数据
 		ResetTCPData();
+		
+		//状态栏更新显示
+		CString strBarInfo;
+		strBarInfo.Format(_T("Receieve data Length:%d"), RECVLength);
+		m_statusBar.SetPaneText(0, strBarInfo);
 
 		// 生成文件夹名称
 		CTime t = CTime::GetCurrentTime();
@@ -1108,15 +1113,30 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 			timer = (int)floor(MeasureTime/TIMER_INTERVAL);
 		}
 		else{
-			//打印日志
+		// 未接收到数据，直接结束测量，恢复系统状态
+			// 恢复控件使能
+			GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+			GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
+			GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
+			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
+			GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
+			SetParameterInputStatus(TRUE);
+			SetDlgItemText(IDC_Start, _T("开始测量"));
+			
+			// 完成测量，关闭文件
+			if(connectStatus && fileDetector.is_open()){
+				fileDetector.close();
+			}
+
+			// 打印日志
+			CString info = _T("实验数据存储路径：") + saveAsTargetPath;
+			m_page1.PrintLog(info);
+			info.Format(_T("Receieve Data(byte): %d"), RECVLength);
+			m_page1.PrintLog(info);
 			m_page1.PrintLog(_T("\r\n已停止（手动）测量\r\n"));
 		}
 		
-		// 完成测量，关闭文件
-		if(connectStatus && fileDetector.is_open()){
-			fileDetector.close();
-		}
-		//按键在定时器中自动在数据接收完毕后恢复使能
+
 	}
 }
 
