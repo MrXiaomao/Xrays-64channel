@@ -1,4 +1,4 @@
 #ifndef _GITVER_H
 #define _GITVER_H
-#define GIT_VER "Sun Dec 24 21:47:01 2023 +0800 hash:4fb05f0 modified"
+#define GIT_VER "Thu Dec 28 22:02:12 2023 +0800 hash:36c4553 modified"
 #endif
