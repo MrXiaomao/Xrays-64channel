@@ -78,6 +78,7 @@
 #define IDC_STATIC_VERSION              1063
 #define IDC_STATIC_VERSION5             1064
 #define IDC_GIT_VERSION                 1065
+#define IDC_20KEV_CHANNEL               1066
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -96,7 +97,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        148
 #define _APS_NEXT_COMMAND_VALUE         32783
-#define _APS_NEXT_CONTROL_VALUE         1066
+#define _APS_NEXT_CONTROL_VALUE         1067
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif

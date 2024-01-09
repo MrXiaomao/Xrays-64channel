@@ -136,6 +136,7 @@ CXrays_64ChannelDlg::CXrays_64ChannelDlg(CWnd* pParent /*=nullptr*/)
 	, saveAsPath("")
 	, saveAsTargetPath("")
 	, m_currentTab(0)
+	, m_channel_20keV(0)
 	, m_targetID(_T("00000"))
 	, MeasureTime(3000)
 	, RefreshTime(10)
@@ -242,6 +243,7 @@ void CXrays_64ChannelDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LED_POWER, m_RelayStatusLED);
 	DDX_Control(pDX, IDC_WAVE_MODE, m_WaveMode);
 	DDX_Text(pDX, IDC_TargetNum, m_targetID);
+	DDX_Text(pDX, IDC_20KEV_CHANNEL, m_channel_20keV);
 	DDX_Control(pDX, IDC_TAB1, m_Tab);
 	DDX_Text(pDX, IDC_MeasureTime, MeasureTime);
 	DDX_Text(pDX, IDC_CH1Threshold, m_Threshold);
@@ -442,7 +444,10 @@ void CXrays_64ChannelDlg::InitOtherSettings(){
 		if (jsonSetting.isMember("refreshTimeARM")) {
 			refreshTime_ARM = jsonSetting["refreshTimeARM"].asInt();
 		}
-
+		if (jsonSetting.isMember("Channel_20keV"))
+		{
+			m_channel_20keV = jsonSetting["Channel_20keV"].asInt();
+		}
 		//设置下拉框默认选项
 		m_WaveMode.SetCurSel(0);
 		int waveMode = 0;
