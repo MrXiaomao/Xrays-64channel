@@ -226,17 +226,17 @@ void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(true);
 	int minTime = 1; //单位ms
-	int waveMode = 16; //能谱模式，512/16道两种
+	CString waveMode = _T("HXR能量道"); //能谱模式，分时能谱/HXR能量道 也就是512/16道两种
 	// 512道能谱，最小刷新时间10ms，16道能谱，最小刷新时间1ms
 	if (m_WaveMode.GetCurSel() == 0) {
 		minTime = 10; 
-		waveMode = 512;
+		waveMode = _T("分时能谱");
 	}
 	int MaxTime = 60000 * 1000; //单位ms
 	if ((RefreshTime < minTime) || (RefreshTime > MaxTime))
 	{
 		CString message;
-		message.Format(_T("%d能谱模式下，能谱刷新时间范围为%d~%dms\n"), waveMode, minTime, MaxTime);
+		message.Format(_T("%s模式下，能谱刷新时间范围为%d~%dms\n"), waveMode, minTime, MaxTime);
 		MessageBox(message);
 		if (RefreshTime > MaxTime)
 		{
@@ -278,9 +278,24 @@ void CXrays_64ChannelDlg::OnEnKillfocusThreshold()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(true);
-	if ((m_Threshold < 1) || (m_Threshold > 2048))
+	int minT = 1;
+	//读取配置文件中的阈值可设置下限
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	if (!jsonSetting.isNull()) {
+		if (jsonSetting.isMember("LowerThreshold")) {
+			minT = jsonSetting["LowerThreshold"].asInt();
+		}else
+		{
+			CString info;
+			info.Format(_T("警告：无法在配置文件中找到关键字'LowerThreshold',默认阈值下限为%d！"),minT);
+			m_page1.PrintLog(info);
+		}
+	}
+	
+	if ((m_Threshold < minT) || (m_Threshold > 2048))
 	{
-		CString message = _T("触发阈值范围为1~2048\n");
+		CString message;
+		message.Format(_T("触发阈值范围为%d~2048\n"), minT);
 		MessageBox(message);
 		if (m_Threshold > 2048)
 		{
@@ -288,7 +303,7 @@ void CXrays_64ChannelDlg::OnEnKillfocusThreshold()
 		}
 		else
 		{
-			m_Threshold = 1;
+			m_Threshold = minT;
 		}
 		UpdateData(false);
 	}
@@ -359,7 +374,7 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 				BackSend(num, Order::WorkMode0, 12, 0, 1);
 			}
 		}
-		info.Format(_T("能谱刷新时间:%dms,512道能谱工作模式"), RefreshTime);
+		info.Format(_T("能谱刷新时间:%dms,分时能谱工作模式"), RefreshTime);
 	}
 	else if (m_WaveMode.GetCurSel() == 1)
 	{ // 16道能谱
@@ -368,7 +383,7 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 				BackSend(num, Order::WorkMode3, 12, 0, 1);
 			}
 		}
-		info.Format(_T("能谱刷新时间:%dms,16道能谱工作模式"), RefreshTime);
+		info.Format(_T("能谱刷新时间:%dms,HXR能量道工作模式"), RefreshTime);
 	}
 	m_page1.PrintLog(info);
 }

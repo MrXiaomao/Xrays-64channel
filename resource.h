@@ -74,6 +74,7 @@
 #define IDC_LED_RELAYNET                1062
 #define IDC_STATIC_VERSION              1063
 #define IDC_STATIC_VERSION2             1064
+#define IDC_20KEV_CHANNEL               1064
 #define IDC_STATIC_VERSION3             1065
 #define IDC_STATIC_VERSION4             1066
 #define IDC_STATIC_VERSION5             1067
@@ -97,7 +98,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        148
 #define _APS_NEXT_COMMAND_VALUE         32783
-#define _APS_NEXT_CONTROL_VALUE         1064
+#define _APS_NEXT_CONTROL_VALUE         1065
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif

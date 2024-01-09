@@ -183,7 +183,8 @@ public:
 	CRect m_rect;
 	CLayout m_layout;
 	int m_currentTab; //Tab子窗口序号
-
+	int m_channel_20keV; //20keV对应的道址
+	
 	CWinThread *m_pThread_ARM; //线程函数返回指针，
 	CWinThread* m_pThread_CH[3]; //线程函数返回指针
 
