@@ -192,7 +192,7 @@ void CXrays_64ChannelDlg::ResetTCPData()
 //限制端口号输入范围0~65535
 void CXrays_64ChannelDlg::ConfinePortRange(int &myPort)
 {
-	UpdateData(true);
+	UpdateData(TRUE);
 	if ((myPort < 0) || (myPort > 65535))
 	{
 		MessageBox(_T("端口的范围为0~65535\n"));
@@ -204,14 +204,14 @@ void CXrays_64ChannelDlg::ConfinePortRange(int &myPort)
 		{
 			myPort = 1;
 		}
-		UpdateData(false);
+		UpdateData(FALSE);
 	}
 }
 
 //选择测量模式：波形，512道能谱 16道能谱
 void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
 {
-	UpdateData(true);
+	UpdateData(TRUE);
 	// 保存参数设置
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	jsonSetting["WaveMode"] = m_WaveMode.GetCurSel();
@@ -222,13 +222,11 @@ void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
 void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(true);
+	UpdateData(TRUE);
 	int MaxTime = 60000 * 1000; //单位ms
 	if ((MeasureTime < 1) || (MeasureTime > MaxTime))
 	{
-		CString message;
-		message.Format(_T("能谱测量时间范围为1~%dms\n"), MaxTime);
-		MessageBox(message);
+		//注意这里要先刷新值，再弹出框提醒用户，因为编辑框响应“光标移除”与“enter"键两种信号，后刷新值会导致重复触发本函数
 		if (MeasureTime > MaxTime)
 		{
 			MeasureTime = MaxTime;
@@ -237,7 +235,11 @@ void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 		{
 			MeasureTime = 1;
 		}
-		UpdateData(false);
+		UpdateData(FALSE);
+
+		CString message;
+		message.Format(_T("能谱测量时间范围为1~%dms\n"), MaxTime);
+		MessageBox(message);
 	}
 }
 
@@ -721,6 +723,17 @@ void CXrays_64ChannelDlg::OnOK()
 
 BOOL CXrays_64ChannelDlg::PreTranslateMessage(MSG* pMsg)
 {
+	// ENTER回车键
+	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN)
+    {
+		if (GetFocus()->GetDlgCtrlID() == IDC_MeasureTime)//按下回车，如果当前焦点是在自己期望的控件上
+		{
+			// 检测测量时间输入框数值
+			OnEnKillfocusMeasureTime();
+			return TRUE;
+		}
+	}
+
 	if(pMsg->message==WM_KEYDOWN && pMsg->wParam==VK_ESCAPE)
 	{
 		pMsg->wParam=VK_RETURN; //将ESC键的消息替换为回车键的消息，这样，按ESC的时候 
