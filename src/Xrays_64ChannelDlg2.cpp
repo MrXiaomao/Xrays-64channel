@@ -188,7 +188,7 @@ void CXrays_64ChannelDlg::ResetTCPData()
 //限制端口号输入范围0~65535
 void CXrays_64ChannelDlg::ConfinePortRange(int &myPort)
 {
-	UpdateData(true);
+	UpdateData(TRUE);
 	if ((myPort < 0) || (myPort > 65535))
 	{
 		MessageBox(_T("端口的范围为0~65535\n"));
@@ -200,7 +200,7 @@ void CXrays_64ChannelDlg::ConfinePortRange(int &myPort)
 		{
 			myPort = 1;
 		}
-		UpdateData(false);
+		UpdateData(FALSE);
 	}
 }
 
@@ -208,7 +208,7 @@ void CXrays_64ChannelDlg::ConfinePortRange(int &myPort)
 //更新相关的能谱刷新时间检查
 void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
 {
-	UpdateData(true);
+	UpdateData(TRUE);
 	// 保存参数设置
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
 	int mode = m_WaveMode.GetCurSel();
@@ -224,7 +224,7 @@ void CXrays_64ChannelDlg::OnCbnSelchangeWaveMode()
 void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(true);
+	UpdateData(TRUE);
 	int minTime = 1; //单位ms
 	CString waveMode = _T("HXR能量道"); //能谱模式，分时能谱/HXR能量道 也就是512/16道两种
 	// 512道能谱，最小刷新时间10ms，16道能谱，最小刷新时间1ms
@@ -235,9 +235,6 @@ void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 	int MaxTime = 60000 * 1000; //单位ms
 	if ((RefreshTime < minTime) || (RefreshTime > MaxTime))
 	{
-		CString message;
-		message.Format(_T("%s模式下，能谱刷新时间范围为%d~%dms\n"), waveMode, minTime, MaxTime);
-		MessageBox(message);
 		if (RefreshTime > MaxTime)
 		{
 			RefreshTime = MaxTime;
@@ -246,7 +243,11 @@ void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 		{
 			RefreshTime = minTime;
 		}
-		UpdateData(false);
+		UpdateData(FALSE);
+
+		CString message;
+		message.Format(_T("%s模式下，能谱刷新时间范围为%d~%dms\n"), waveMode, minTime, MaxTime);
+		MessageBox(message);
 	}
 }
 
@@ -254,13 +255,10 @@ void CXrays_64ChannelDlg::OnEnKillfocusRefreshTime()
 void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(true);
+	UpdateData(TRUE);
 	int MaxTime = 60000 * 1000; //单位ms
 	if ((MeasureTime < 1) || (MeasureTime > MaxTime))
 	{
-		CString message;
-		message.Format(_T("能谱测量时间范围为1~%dms\n"), MaxTime);
-		MessageBox(message);
 		if (MeasureTime > MaxTime)
 		{
 			MeasureTime = MaxTime;
@@ -269,7 +267,11 @@ void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 		{
 			MeasureTime = 1;
 		}
-		UpdateData(false);
+		UpdateData(FALSE);
+
+		CString message;
+		message.Format(_T("能谱测量时间范围为1~%dms\n"), MaxTime);
+		MessageBox(message);
 	}
 }
 
@@ -277,7 +279,7 @@ void CXrays_64ChannelDlg::OnEnKillfocusMeasureTime()
 void CXrays_64ChannelDlg::OnEnKillfocusThreshold()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(true);
+	UpdateData(TRUE);
 	int minT = 1;
 	//读取配置文件中的阈值可设置下限
 	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
@@ -294,9 +296,7 @@ void CXrays_64ChannelDlg::OnEnKillfocusThreshold()
 	
 	if ((m_Threshold < minT) || (m_Threshold > 2048))
 	{
-		CString message;
-		message.Format(_T("触发阈值范围为%d~2048\n"), minT);
-		MessageBox(message);
+		//注意这里要先刷新值，再弹出框提醒用户，因为编辑框响应“光标移除”与“enter"键两种信号，后刷新值会导致重复触发本函数
 		if (m_Threshold > 2048)
 		{
 			m_Threshold = 2048;
@@ -305,7 +305,11 @@ void CXrays_64ChannelDlg::OnEnKillfocusThreshold()
 		{
 			m_Threshold = minT;
 		}
-		UpdateData(false);
+		UpdateData(FALSE);
+
+		CString message;
+		message.Format(_T("触发阈值范围为%d~2048\n"), minT);
+		MessageBox(message);
 	}
 }
 
@@ -725,6 +729,45 @@ BOOL CXrays_64ChannelDlg::DestroyWindow()
 	return CDialogEx::DestroyWindow();
 }
 
+//禁用enter导致的退出
+void CXrays_64ChannelDlg::OnOK()
+{
+    // CDialog::OnOK();
+}
+
+BOOL CXrays_64ChannelDlg::PreTranslateMessage(MSG* pMsg)
+{
+	// ENTER回车键
+	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN)
+    {
+        if (GetFocus()->GetDlgCtrlID() == IDC_CH1Threshold)//按下回车，如果当前焦点是在自己期望的控件上
+        {
+			// 检测阈值输入框数值
+			OnEnKillfocusThreshold();
+        	return TRUE;
+        }
+		if (GetFocus()->GetDlgCtrlID() == IDC_RefreshTimeEdit)
+        {
+			// 检测刷新时间输入框数值
+			OnEnKillfocusRefreshTime();
+        	return TRUE;
+        }
+		if (GetFocus()->GetDlgCtrlID() == IDC_MeasureTime)
+        {
+			// 检测测量时间输入框数值
+			OnEnKillfocusMeasureTime();
+        	return TRUE;
+        }
+    }
+	
+	// ESC键
+	if(pMsg->message==WM_KEYDOWN && pMsg->wParam==VK_ESCAPE)
+	{
+		pMsg->wParam=VK_RETURN; //将ESC键的消息替换为回车键的消息，这样，按ESC的时候 
+		//也会去调用OnOK函数，而OnOK什么也不做，这样ESC也被屏蔽 
+	}
+	return CDialogEx::PreTranslateMessage(pMsg);
+}
 
 void CXrays_64ChannelDlg::OnClose()
 {
