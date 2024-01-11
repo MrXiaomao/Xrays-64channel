@@ -244,6 +244,10 @@ public:
 	afx_msg void OnPowerMenu(); 
 	//菜单栏“设置”按钮
 	afx_msg void OnNetSettingMenu();
+	//查看帮助
+	afx_msg void OnHelpview();
+	//菜单栏，关于，版本信息
+	afx_msg void OnAbout();
 	// 继电器开关
 	afx_msg void OnBnClickedPowerButton();
 	//温度、电压电流监测开关

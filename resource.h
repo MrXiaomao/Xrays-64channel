@@ -81,20 +81,26 @@
 #define IDC_TEMP_LED                    1061
 #define IDC_ARM_LED                     1061
 #define IDC_ARM_REFRESHTIME             1061
+#define IDC_STATIC_VERSION5             1062
+#define IDC_GIT_VERSION                 1063
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
 #define ID_POWER_MENU                   32774
 #define ID_NETSETTING_MENU              32775
 #define ID_ARM_SETTING                  32776
+#define ID_32777                        32777
+#define ID_32778                        32778
+#define ID_HELPVIEW                     32779
+#define ID_VERSION                      32780
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        147
-#define _APS_NEXT_COMMAND_VALUE         32777
-#define _APS_NEXT_CONTROL_VALUE         1062
+#define _APS_NEXT_RESOURCE_VALUE        148
+#define _APS_NEXT_COMMAND_VALUE         32781
+#define _APS_NEXT_CONTROL_VALUE         1064
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif
