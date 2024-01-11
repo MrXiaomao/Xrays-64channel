@@ -197,6 +197,10 @@ protected:
 	virtual BOOL OnInitDialog();
 	// OnClose()后进入该函数
 	virtual BOOL DestroyWindow();
+	// 重写Enter按钮，禁用Enter导致的退出
+	virtual void OnOK();
+	// 重写ESC按钮，禁用ESC按钮导致的退出
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	// 关闭窗口
 	afx_msg void OnClose();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);

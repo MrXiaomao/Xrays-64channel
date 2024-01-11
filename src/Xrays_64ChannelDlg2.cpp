@@ -713,6 +713,21 @@ BOOL CXrays_64ChannelDlg::DestroyWindow()
 	return CDialogEx::DestroyWindow();
 }
 
+//禁用enter导致的退出
+void CXrays_64ChannelDlg::OnOK()
+{
+    // CDialog::OnOK();
+}
+
+BOOL CXrays_64ChannelDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if(pMsg->message==WM_KEYDOWN && pMsg->wParam==VK_ESCAPE)
+	{
+		pMsg->wParam=VK_RETURN; //将ESC键的消息替换为回车键的消息，这样，按ESC的时候 
+		//也会去调用OnOK函数，而OnOK什么也不做，这样ESC也被屏蔽 
+	}
+	return CDialogEx::PreTranslateMessage(pMsg);
+}
 
 void CXrays_64ChannelDlg::OnClose()
 {
