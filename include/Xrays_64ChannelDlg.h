@@ -125,7 +125,9 @@ public:
 	void GetARMData();//GetARMData(CByteArray& packge)
 	
 	//保存ARM监测的温度数据
-	void SaveEnviromentFile(double data[]);
+	//dirPath 存储根路径
+	//fileName 存储文件名
+	void SaveEnviromentFile(CString dirPath, CString fileName, double data[]);
 
 	//-----------------自定义变量-------------------
 public: 
@@ -167,7 +169,7 @@ public:
 	SOCKET armSocket; // ARM网络的TCP端口
 	BOOL ARMnetStatus; //ARM联网状态，无法实时监测，只能在联网后置TRUE，断开连接后置FALSE
 	BOOL feedbackARM[3]; //获取到数据包状态，前两个是温度包，最后一个电压电流包
-	double temperature[6]; //三个通道的温度
+	double temperature[6]; //6个通道的温度
 	double powerVolt; //电压
 	double powerCurrent; //电流
 	int refreshTime_ARM; //温度检测模块刷新数据时间,units: s
@@ -232,7 +234,7 @@ public:
 	afx_msg void OnEnKillfocusMeasureTime(); 
 	//限制阈值输入范围
 	afx_msg void OnEnKillfocusThreshold();
-	//开始测量（手动测量）
+	//手动测量
 	afx_msg void OnBnClickedStart(); 
 	//自动测量
 	afx_msg void OnBnClickedAutomeasure(); 

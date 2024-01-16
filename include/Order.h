@@ -39,8 +39,6 @@ public:
 
 public:
 	//---------------------------ARM---------------------------
-	static BYTE ARM_Temperature1[]; // 温度查询指令1
-	static BYTE ARM_Temperature2[]; // 温度查询指令2
-	static BYTE ARM_VoltCurrent[]; // 电压电流查询指令
+	static BYTE ARM_GetStatus[]; // 查询指令
 };
 
