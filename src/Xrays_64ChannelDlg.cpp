@@ -985,7 +985,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					
 					// 测量结束，恢复各按钮使能
 					if(MeasureMode == 1){
-						SetDlgItemText(IDC_Start, _T("开始测量"));
+						SetDlgItemText(IDC_Start, _T("手动测量"));
 						SetTCPnetStatus(TRUE);
 					}
 					else if(MeasureMode == 0){ // 表明按下了停止测量按钮
@@ -1048,6 +1048,12 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 				saveAsTargetPath += "\\";
 				Mkdir(saveAsTargetPath);
 				
+				// 查询环境监测信息,这里必须在saveAsTargetPath文件夹路径生成好后进行调用
+				if (ARMnetStatus)
+				{
+					send(armSocket, (char*)Order::ARM_GetStatus, 12, 0);
+				}
+
 				// 先确保上一次炮号的文件指针关闭成功
 				for(int num=0; num < 3; num++){
 					if(connectStatusList[num] && fileDetector[num].is_open()){
@@ -1120,7 +1126,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 			if (ARMnetStatus && (ArmTimer >refreshTime_ARM))
 			{
 				ArmTimer = 0;
-				send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
+				send(armSocket, (char*)Order::ARM_GetStatus, 12, 0);
 			}
 			// 继电器状态查询
 			if(netRelayStatus)
@@ -1138,7 +1144,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 	CDialogEx::OnTimer(nIDEvent);
 }
 
-//开始测量——手动测量，采用软件触发方式工作
+//手动测量，采用软件触发方式工作
 void CXrays_64ChannelDlg::OnBnClickedStart()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -1148,7 +1154,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 	CString strTemp;
 	GetDlgItemText(IDC_Start, strTemp);
-	if (strTemp == _T("开始测量")) {
+	if (strTemp == _T("手动测量")) {
 		timer = 0;
 		MeasureMode = 1;
 		m_nTimerId[0] = 0;
@@ -1170,22 +1176,39 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		//重置网口接收的数据
 		ResetTCPData();
 
+		// ================打印日志=======================
+		CString info;
+		info = _T("\r\n手动测量，数据类型:");
+		// 数据类型
+		if (m_WaveMode.GetCurSel() == 0) {
+			info += _T("分时能谱,");
+		}
+		else if(m_WaveMode.GetCurSel() == 1){
+			info += _T("HXR能量道,");
+		}
+		// 触发阈值，刷新时间，测量时间
+		CString meassure_para;
+		meassure_para.Format(_T("触发阈值%d,刷新时间%dms,测量时间%dms"),m_Threshold,RefreshTime,MeasureTime);
+		info += meassure_para;
+		m_page1.PrintLog(info);
+
 		// 生成文件夹名称
 		CTime t = CTime::GetCurrentTime();
-		// 打印日志
-		CString info;
-		info = _T("\r\n开始测量（手动测量），软件触发，开始时间：");
-		info += t.Format(_T("%Y-%m-%d %H:%M:%S"));
-		m_page1.PrintLog(info);
-		// 创建文件夹
 		CString strInfo = t.Format(_T("%Y-%m-%d_%H-%M-%S"));
 		saveAsTargetPath = saveAsPath + strInfo;
 		saveAsTargetPath += "\\";
+		// 创建文件夹
 		Mkdir(saveAsTargetPath);
 
 		info = _T("测试数据存储路径:") + saveAsTargetPath;
 		m_page1.PrintLog(info);
 		
+		// 查询环境监测信息,这里必须在saveAsTargetPath文件夹路径生成好后进行调用
+		if (ARMnetStatus)
+		{
+			send(armSocket, (char*)Order::ARM_GetStatus, 12, 0);
+		}
+
 		//打开文件，准备存储
 		for (int num = 0; num < 3; num++) {
 			if(connectStatusList[num]) {
@@ -1236,7 +1259,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		sendStopFlag = TRUE;
 		if (GetDataStatus) {
 			//打印日志
-			m_page1.PrintLog(_T("\r\n已停止（手动）测量，请等待剩余数据接收完毕\r\n"));
+			m_page1.PrintLog(_T("\r\n已停止手动测量，请等待剩余数据接收完毕\r\n"));
 
 			// 这里不能直接KillTimer，因为在发送停止指令后还会有剩余数据。
 			// 通过强制让计数器满值，来使其进入收尾状态，接收停止指令后的剩余数据。
@@ -1244,7 +1267,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		}
 		else{
 			//打印日志
-			m_page1.PrintLog(_T("\r\n已停止（手动）测量\r\n"));
+			m_page1.PrintLog(_T("\r\n已停止手动测量\r\n"));
 		}
 		
 		// 完成测量，关闭文件
@@ -1270,7 +1293,20 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 	GetDlgItemText(IDC_AutoMeasure, strTemp);
 	if (strTemp == _T("自动测量")) {
 		// 打印日志
-		m_page1.PrintLog(_T("\r\n开始自动测量。。。"));
+		CString info;
+		info = _T("\r\n开始自动测量,数据类型:");
+		// 数据类型
+		if (m_WaveMode.GetCurSel() == 0) {
+			info += _T("分时能谱,");
+		}
+		else if(m_WaveMode.GetCurSel() == 1){
+			info += _T("HXR能量道,");
+		}
+		// 触发阈值，刷新时间，测量时间
+		CString meassure_para;
+		meassure_para.Format(_T("触发阈值%d,刷新时间%dms,测量时间%dms"),m_Threshold,RefreshTime,MeasureTime);
+		info += meassure_para;
+		m_page1.PrintLog(info);
 
 		// 重新初始化部分数据
 		MeasureMode = 2;

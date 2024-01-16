@@ -124,15 +124,13 @@ void CXrays_64ChannelDlg::SaveFile(CString fileName, char *mk, int length)
 }
 
 //保存ARM监测的温度数据
-void CXrays_64ChannelDlg::SaveEnviromentFile(double data[])
+void CXrays_64ChannelDlg::SaveEnviromentFile(CString dirPath, CString fileName, double data[])
 {	
 	CTime ct = CTime::GetCurrentTime();
-	CString filename = ct.Format(_T("Temperatue_%Y%m%d.dat"));
 	CString strPart_Time = ct.Format(_T("%Y-%m-%d %H:%M:%S"));
 
-	CString parentPath = _T("Enviroment\\");
-	CString wholePath = parentPath + filename;
-	if (!IsPathExit(parentPath)) Mkdir(parentPath);
+	CString wholePath = dirPath + fileName;
+	if (!IsPathExit(dirPath)) Mkdir(dirPath);
 	if (!IsFileExit(wholePath)) {
 		//首次创建文件的时候产生表头
 		fstream datafile(wholePath, ios::out | ios::app| ios::left); // 追加
@@ -294,12 +292,12 @@ void CXrays_64ChannelDlg::OnEnKillfocusThreshold()
 		}
 	}
 	
-	if ((m_Threshold < minT) || (m_Threshold > 2048))
+	if ((m_Threshold < minT) || (m_Threshold > 512))
 	{
 		//注意这里要先刷新值，再弹出框提醒用户，因为编辑框响应“光标移除”与“enter"键两种信号，后刷新值会导致重复触发本函数
-		if (m_Threshold > 2048)
+		if (m_Threshold > 512)
 		{
-			m_Threshold = 2048;
+			m_Threshold = 512;
 		}
 		else
 		{
@@ -308,7 +306,7 @@ void CXrays_64ChannelDlg::OnEnKillfocusThreshold()
 		UpdateData(FALSE);
 
 		CString message;
-		message.Format(_T("触发阈值范围为%d~2048\n"), minT);
+		message.Format(_T("触发阈值范围为%d~512\n"), minT);
 		MessageBox(message);
 	}
 }
@@ -355,7 +353,8 @@ void CXrays_64ChannelDlg::SendParameterToTCP()
 	Order::WaveRefreshTime[9] = res[3];
 	
 	BYTE res2[4];
-	DecToHex(m_Threshold, res2);
+	int threshold = m_Threshold*4; //MFC界面限定为512道能谱，FPGA内部为2048道能谱,这里进行转化
+	DecToHex(threshold, res2);
 	Order::TriggerThreshold[6] = res2[0];
 	Order::TriggerThreshold[7] = res2[1];
 	Order::TriggerThreshold[8] = res2[2];

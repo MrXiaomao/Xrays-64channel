@@ -126,10 +126,14 @@ void CXrays_64ChannelDlg::OnRelayChange() {
 	if (strTemp == _T("电源开启")) {
 		send(relaySocket, (char*)Order::relay_ON, 10, 0);
 		SetDlgItemText(IDC_POWER_ONOFF, _T("电源关闭"));
+		CString info = _T("电源已开启");
+		m_page1.PrintLog(info);
 	}
 	else {
 		send(relaySocket, (char*)Order::relay_OFF, 10, 0);
 		SetDlgItemText(IDC_POWER_ONOFF, _T("电源开启"));
+		CString info = _T("电源已关闭");
+		m_page1.PrintLog(info);
 	}
 	GetDlgItem(IDC_POWER_ONOFF)->EnableWindow(TRUE); //恢复使用
 }
@@ -183,7 +187,7 @@ BOOL CXrays_64ChannelDlg::TempVoltMonitorON()
 		m_page1.PrintLog(info);
 		
 		//首次连接上时直接查询一次温度/电压/电流
-		send(armSocket, (char*)Order::ARM_Temperature1, 12, 0);
+		send(armSocket, (char*)Order::ARM_GetStatus, 12, 0);
 		return TRUE;
 	}
 	else {
@@ -313,15 +317,24 @@ void CXrays_64ChannelDlg::refreshBar() {
 		strInfo2.Format(_T("Volt:%.2fV,Current:%.2fA"), powerVolt, powerCurrent);
 	}
 
-	// CString strInfo = strInfo1 + strInfo2;
-	CString strInfo = strInfo2;
-	m_statusBar.SetPaneText(1, strInfo);
-	m_page1.PrintLog(_T("温度、电压、电流采集数据：") + strInfo,FALSE);
+	CString strInfo = strInfo1 + strInfo2;
+	m_statusBar.SetPaneText(1, strInfo2);
+	m_page1.PrintLog(_T("温度、电压、电流采集数据：") + strInfo, FALSE);
+
+	// 生成工作环境监测文件名
+	CTime ct = CTime::GetCurrentTime();
+	CString parentPath = _T("Enviroment\\");
+	CString filename = ct.Format(_T("Temperature_%Y%m%d.dat"));
 
 	// 保存数据到文件
 	double data[8] = { temperature[0], temperature[1], temperature[2], temperature[3], temperature[4], temperature[5], 
 						powerVolt, powerCurrent};
-	SaveEnviromentFile(data);
+	SaveEnviromentFile(parentPath, filename, data);
+
+	// 如果在测量模式,则同时在测量数据目录下存储一份数据
+	if(MeasureMode>0){
+		SaveEnviromentFile(saveAsTargetPath, _T("Temperature.dat"), data);
+	}
 
 	// 重置温度/电压/电流查询反馈状态
 	for (int i = 0; i < 3; i++) {
