@@ -624,11 +624,11 @@ LRESULT CXrays_64ChannelDlg::OnUpdateRelay(WPARAM wParam, LPARAM lParam)
 	BYTE* recBuf = (BYTE*)lParam;
 	if (compareBYTE(recBuf, Order::relay_StatusON, nLength)) {
 	m_RelayStatusLED.RefreshWindow(1, _T("ON"));
-	GetDlgItem(IDC_POWER_ONOFF)->SetWindowText(_T("电源关闭"));
+	GetDlgItem(IDC_POWER_ONOFF)->SetWindowText(_T("远程电源关闭"));
 	}
 	else if (compareBYTE(recBuf, Order::relay_StatusOFF, nLength)) {
 	m_RelayStatusLED.RefreshWindow(0, _T("OFF"));
-	GetDlgItem(IDC_POWER_ONOFF)->SetWindowText(_T("电源开启"));
+	GetDlgItem(IDC_POWER_ONOFF)->SetWindowText(_T("远程电源开启"));
 	}
 	return 0;
 }

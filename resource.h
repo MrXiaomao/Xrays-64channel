@@ -14,6 +14,7 @@
 #define IDD_POWER_DIALOG                140
 #define IDR_MENU1                       142
 #define IDD_NETSETTING_DLG              143
+#define IDB_BITMAP1                     149
 #define IDC_PORT1                       1001
 #define IDC_CONNECT1                    1002
 #define IDC_LED                         1003
@@ -90,7 +91,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        148
+#define _APS_NEXT_RESOURCE_VALUE        150
 #define _APS_NEXT_COMMAND_VALUE         32783
 #define _APS_NEXT_CONTROL_VALUE         1064
 #define _APS_NEXT_SYMED_VALUE           106

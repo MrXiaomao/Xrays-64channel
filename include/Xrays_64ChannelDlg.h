@@ -217,7 +217,7 @@ public:
 	afx_msg void OnEnKillfocusMeasureTime(); 
 	//限制阈值输入范围
 	afx_msg void OnEnKillfocusThreshold();
-	//开始测量（手动测量）
+	//手动测量
 	afx_msg void OnBnClickedStart(); 
 	//自动测量
 	afx_msg void OnBnClickedAutomeasure(); 

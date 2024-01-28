@@ -108,7 +108,39 @@ END_MESSAGE_MAP()
 BOOL CAboutDlg::OnInitDialog()
 {
     CDialogEx::OnInitDialog();
+	
+	//设置软件标题名称
+	CString AppTitle = _T("垂直硬X射线相机阵列");//默认名称
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	if (!jsonSetting.isNull()) {
+		if (jsonSetting.isMember("SoftwareTitle"))
+		{
+			// AppTitle = jsonSetting["SoftwareTitle"].asCString();
+			const char* s  = jsonSetting["SoftwareTitle"].asCString();
+			int nLenW = ::MultiByteToWideChar(CP_UTF8, 0, s, -1, NULL, 0);
+			wchar_t* wszBuffer = new wchar_t[nLenW];
+			::MultiByteToWideChar(CP_UTF8, 0, s, -1, wszBuffer, nLenW);
 
+			// 将 Unicode 编码转换为 GB2312 编码（也就是简体中文编码）
+			int nLenA = ::WideCharToMultiByte(CP_ACP, 0, wszBuffer, -1, NULL, 0, NULL, NULL);
+			char* szBuffer = new char[nLenA];
+			::WideCharToMultiByte(CP_ACP, 0, wszBuffer, -1, szBuffer, nLenA, NULL, NULL);
+
+			// 输出结果
+			std::string strResult(szBuffer);
+			const char * tmp = strResult.c_str();
+			AppTitle = tmp;
+		}
+		else {
+			string pStrTitle = _UnicodeToUtf8(AppTitle);
+			// char* pStrTitle = CstringToWideCharArry(AppTitle);
+			jsonSetting["SoftwareTitle"] = pStrTitle;
+		}
+	}
+	WriteSetting(_T("Setting.json"), jsonSetting);
+
+	GetDlgItem(IDC_STATIC_VERSION)->SetWindowText(AppTitle); 
+	
     // 将版本号设置为静态文本控件的文本
     GetDlgItem(IDC_STATIC_VERSION5)->SetWindowText(m_strVersion); 
 	CString commitHash;
@@ -853,7 +885,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 					
 					// 测量结束，恢复各按钮使能
 					if(MeasureMode == 1){
-						SetDlgItemText(IDC_Start, _T("开始测量"));
+						SetDlgItemText(IDC_Start, _T("手动测量"));
 						GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
 						GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
 					}
@@ -1011,7 +1043,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 
 	CString strTemp;
 	GetDlgItemText(IDC_Start, strTemp);
-	if (strTemp == _T("开始测量")) {
+	if (strTemp == _T("手动测量")) {
 		timer = 0;
 		MeasureMode = 1;
 		m_nTimerId[0] = 0;
@@ -1121,7 +1153,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
 			GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
 			SetParameterInputStatus(TRUE);
-			SetDlgItemText(IDC_Start, _T("开始测量"));
+			SetDlgItemText(IDC_Start, _T("手动测量"));
 			
 			// 完成测量，关闭文件
 			if(connectStatus && fileDetector.is_open()){
