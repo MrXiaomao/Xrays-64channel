@@ -241,6 +241,7 @@ C:\Users\DELL\AppData\Local\Programs\Python\Python311\python.exe get_version.py<
   <ItemGroup>
     <Image Include="res\Xrays_64Channel.ico" />
     <Image Include="res\nuclear.ico" />
+    <Image Include="res\西南物理研究院文字图层.bmp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="软件开发计划.txt" />
