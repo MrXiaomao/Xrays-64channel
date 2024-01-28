@@ -123,16 +123,16 @@ void CXrays_64ChannelDlg::OnRelayChange() {
 	GetDlgItem(IDC_POWER_ONOFF)->EnableWindow(FALSE); //禁用
 	CString strTemp;
 	GetDlgItemText(IDC_POWER_ONOFF, strTemp);
-	if (strTemp == _T("电源开启")) {
+	if (strTemp == _T("远程电源开启")) {
 		send(relaySocket, (char*)Order::relay_ON, 10, 0);
-		SetDlgItemText(IDC_POWER_ONOFF, _T("电源关闭"));
-		CString info = _T("电源已开启");
+		SetDlgItemText(IDC_POWER_ONOFF, _T("远程电源关闭"));
+		CString info = _T("远程电源已开启");
 		m_page1.PrintLog(info);
 	}
 	else {
 		send(relaySocket, (char*)Order::relay_OFF, 10, 0);
-		SetDlgItemText(IDC_POWER_ONOFF, _T("电源开启"));
-		CString info = _T("电源已关闭");
+		SetDlgItemText(IDC_POWER_ONOFF, _T("远程电源开启"));
+		CString info = _T("远程电源已关闭");
 		m_page1.PrintLog(info);
 	}
 	GetDlgItem(IDC_POWER_ONOFF)->EnableWindow(TRUE); //恢复使用

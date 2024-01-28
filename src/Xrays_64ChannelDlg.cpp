@@ -661,7 +661,7 @@ void CXrays_64ChannelDlg::SendCalibration(CString fileName)
 	}
 }
 
-// 连接网络
+// 数据网络连接
 void CXrays_64ChannelDlg::OnConnect()
 {
 	UpdateData(TRUE); //界面——>控件变量
@@ -672,8 +672,8 @@ void CXrays_64ChannelDlg::OnConnect()
 	GetDlgItemText(IDC_CONNECT1, strTemp);
 	
 	BOOL AllconnectStatus = TRUE;
-	if (strTemp == _T("连接网络")) {
-		CLog::WriteMsg(_T("点击“连接网络按钮”，尝试连接UDP/TCP网络！"));
+	if (strTemp == _T("数据网络连接")) {
+		CLog::WriteMsg(_T("点击“数据网络连接按钮”，尝试连接UDP/TCP网络！"));
 		
 		// 打开UDP网络
 		OpenUDP();
@@ -743,7 +743,7 @@ void CXrays_64ChannelDlg::OnConnect()
 			}
 		} 
 
-		SetDlgItemText(IDC_CONNECT1, _T("连接网络"));
+		SetDlgItemText(IDC_CONNECT1, _T("数据网络连接"));
 
 		// 恢复各个输入框使能状态
 		SetTCPnetStatus(FALSE);
@@ -1031,7 +1031,7 @@ void CXrays_64ChannelDlg::OnTimer(UINT_PTR nIDEvent) {
 						SetParameterInputStatus(TRUE);
 						//打开其他相关按键使能
 						GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
-						GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
+						GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //数据网络连接
 					}
 
 					if (RECVLength[0] + RECVLength[1] + RECVLength[2] > 0) {
@@ -1268,7 +1268,7 @@ void CXrays_64ChannelDlg::OnBnClickedStart()
 		// 按键互斥锁
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 		GetDlgItem(IDC_AutoMeasure)->EnableWindow(FALSE); //自动测量
-		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
+		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //数据网络连接
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 		
 		//恢复按键
@@ -1370,7 +1370,7 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 
 		// 锁死其他相关按键
 		GetDlgItem(IDC_Start)->EnableWindow(FALSE); //手动测量
-		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //连接网络
+		GetDlgItem(IDC_CONNECT1)->EnableWindow(FALSE); //数据网络连接
 		GetDlgItem(IDC_SaveAs)->EnableWindow(FALSE); //设置文件路径
 
 		// 恢复按键
@@ -1413,7 +1413,7 @@ void CXrays_64ChannelDlg::OnBnClickedAutomeasure()
 			SetParameterInputStatus(TRUE);
 			//打开其他相关按键使能
 			GetDlgItem(IDC_SaveAs)->EnableWindow(TRUE); //设置文件路径
-			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //连接网络
+			GetDlgItem(IDC_CONNECT1)->EnableWindow(TRUE); //数据网络连接
 			GetDlgItem(IDC_AutoMeasure)->EnableWindow(TRUE); //自动测量
 			GetDlgItem(IDC_Start)->EnableWindow(TRUE); //手动测量
 			// 打印日志
