@@ -307,24 +307,41 @@ void CXrays_64ChannelDlg::refreshBar() {
 		}
 		strInfo1 += tempStr;
 	}
+	
+	// 获取要显示的温度通道号，这里下标从0开始,输入范围0~5
+	int showTempID = 0;
+	Json::Value jsonSetting = ReadSetting(_T("Setting.json"));
+	if (!jsonSetting.isNull()) {
+		if (jsonSetting.isMember("TempShowID"))
+		{
+			showTempID = jsonSetting["TempShowID"].asInt();
+			if(showTempID>5){
+				showTempID = 5;
+			}
+		}
+	}
+	jsonSetting["TempShowID"] = showTempID;
+	WriteSetting(_T("Setting.json"), jsonSetting);
 
 	//电压电流监控设备
-	CString strInfo2;
+	CString strInfo2,strInfo3;
 	if(abs(powerVolt - 6553.5)<0.01 || abs(powerCurrent - 6553.5)<0.01){
 		strInfo2 = _T("--V,--A");
+		strInfo3 = strInfo2;
 	}
 	else {
-		strInfo2.Format(_T("Volt:%.2fV,Current:%.2fA"), powerVolt, powerCurrent);
+		strInfo2.Format(_T("Temp:%.1f°C,Volt:%.2fV,Current:%.2fA"), temperature[showTempID], powerVolt, powerCurrent);
+		strInfo3.Format(_T("Volt:%.2fV,Current:%.2fA"), powerVolt, powerCurrent);
 	}
 
-	CString strInfo = strInfo1 + strInfo2;
+	CString strInfo = strInfo1 + strInfo3;
 	m_statusBar.SetPaneText(1, strInfo2);
 	m_page1.PrintLog(_T("温度、电压、电流采集数据：") + strInfo, FALSE);
 
 	// 生成工作环境监测文件名
 	CTime ct = CTime::GetCurrentTime();
 	CString parentPath = _T("Enviroment\\");
-	CString filename = ct.Format(_T("Temperature_%Y%m%d.dat"));
+	CString filename = ct.Format(_T("Monitor_%Y%m%d.dat"));
 
 	// 保存数据到文件
 	double data[8] = { temperature[0], temperature[1], temperature[2], temperature[3], temperature[4], temperature[5], 
@@ -333,7 +350,7 @@ void CXrays_64ChannelDlg::refreshBar() {
 
 	// 如果在测量模式,则同时在测量数据目录下存储一份数据
 	if(MeasureMode>0){
-		SaveEnviromentFile(saveAsTargetPath, _T("Temperature.dat"), data);
+		SaveEnviromentFile(saveAsTargetPath, _T("Monitor.dat"), data);
 	}
 
 	// 重置温度/电压/电流查询反馈状态

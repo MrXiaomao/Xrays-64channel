@@ -240,8 +240,12 @@ C:\Users\DELL\AppData\Local\Programs\Python\Python311\python.exe get_version.py
     <None Include="Setting.json" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\西南物理研究院文字图层.png" />
     <Image Include="res\Xrays_64Channel.ico" />
     <Image Include="res\nuclear.ico" />
+    <Image Include="res\核工业西南物理研究所.bmp" />
+    <Image Include="res\西南物理研究院文字图层.bmp" />
+    <Image Include="res\西南物理研究院文字图层2.bmp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="软件开发计划.txt" />
