@@ -924,7 +924,7 @@ UINT Recv_Thread(const int num, LPVOID p)
 				// 添加日志到文件
 				CLog::SetPrefix(_T("ERROR"));
 				CString info;
-				info.Format(_T("保存数据失败,丢失数据长度:%d,丢失内容："), nLength);
+				info.Format(_T("CH%d保存数据失败,丢失数据长度(字节):%d,丢失内容："), num+1, nLength);
 				info += Char2HexCString(mk, nLength);
 				CLog::WriteMsg(info);
 			}
