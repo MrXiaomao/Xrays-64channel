@@ -589,8 +589,8 @@ void CXrays_64ChannelDlg::OnConnect()
 	GetDlgItemText(IDC_CONNECT1, strTemp);
 	
 	BOOL AllconnectStatus = TRUE;
-	if (strTemp == _T("连接网络")) {
-		CLog::WriteMsg(_T("点击“连接网络按钮”，尝试连接UDP/TCP网络！"));
+	if (strTemp == _T("数据网络连接")) {
+		CLog::WriteMsg(_T("点击“数据网络连接按钮”，尝试连接UDP/TCP网络！"));
 		
 		// 打开UDP网络
 		OpenUDP();
@@ -646,7 +646,7 @@ void CXrays_64ChannelDlg::OnConnect()
 			m_NetStatusLEDList.RefreshWindow(FALSE, _T("OFF"));// 关闭指示灯
 		}
 
-		SetDlgItemText(IDC_CONNECT1, _T("连接网络"));
+		SetDlgItemText(IDC_CONNECT1, _T("数据网络连接"));
 
 		// 恢复各个输入框使能状态
 		SetTCPInputStatus(TRUE);
